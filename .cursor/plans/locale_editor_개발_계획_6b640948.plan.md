@@ -178,9 +178,42 @@ i18n 번역 작업에 특화된 편집 유틸리티를 단계적으로 구현합
 
 ---
 
-#### Phase 1-3: 빈 번역 셀 하이라이트 - TODO
+#### Phase 1-3: 빈 번역 셀 하이라이트 - ✅ 완료
 
-#### Phase 1-4: 향상된 키보드 네비게이션 - TODO
+**3.1.6 [RED] 테스트 작성**
+- 빈 번역 셀 하이라이트 테스트
+- 빈 셀에 `cell-empty` 클래스 적용 확인
+- 값 입력 시 하이라이트 제거 확인
+
+**3.1.7 [GREEN] 구현**
+- `cellClassRules`에 `cell-empty` 규칙 추가
+- CSS 스타일 정의 (연한 빨간색 배경, 왼쪽 빨간 테두리)
+- Context 컬럼은 하이라이트 제외
+- 테스트 통과 확인
+
+**3.1.8 검사**
+- 빈 번역 셀이 올바르게 하이라이트되는지 확인
+
+---
+
+#### Phase 1-4: 향상된 키보드 네비게이션 - ✅ 완료
+
+**3.1.9 [RED] 테스트 작성**
+- Tab/Shift+Tab 네비게이션 테스트
+- Enter/Shift+Enter 네비게이션 테스트
+- Arrow keys 및 Esc 키 동작 테스트
+- readOnly 모드에서 네비게이션만 동작하는지 테스트
+
+**3.1.10 [GREEN] 구현**
+- `navigateToNextCell` 콜백 구현 (Tab/Shift+Tab)
+- `onCellEditingStopped` 이벤트 핸들러 구현 (Enter/Shift+Enter)
+- 편집 가능한 언어 컬럼만 순회하도록 커스터마이징
+- Arrow keys는 AG Grid 기본 동작 사용
+- Esc는 AG Grid 기본 동작 사용 (편집 취소)
+- 테스트 통과 확인
+
+**3.1.11 검사**
+- 키보드 네비게이션이 올바르게 동작하는지 확인
 
 #### Phase 1-5: Context 컬럼 편집 지원 - TODO
 

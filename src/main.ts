@@ -64,6 +64,16 @@ app.innerHTML = `
     
     <div id="cell-change-feedback" class="mb-2 text-sm font-semibold min-h-[24px]"></div>
     
+    <div class="mb-4 flex items-center gap-4">
+      <button
+        id="toggle-editable-btn"
+        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+      >
+        Toggle Editable (현재: 편집 가능)
+      </button>
+      <span id="editable-status" class="text-sm text-gray-600"></span>
+    </div>
+    
     <div id="editor-container" class="w-full mb-8" style="height: 600px; position: relative;"></div>
     
     <div class="bg-gray-50 rounded-lg p-6">
@@ -99,6 +109,10 @@ app.innerHTML = `
 
 // 에디터 초기화
 const container = document.getElementById('editor-container')!;
+const toggleEditableBtn = document.getElementById('toggle-editable-btn')!;
+const editableStatus = document.getElementById('editable-status')!;
+
+let isEditable = true; // 기본값: 편집 가능
 
 // 셀 변경 콜백 (디버깅용)
 const onCellChange = (id: string, lang: string, value: string) => {
@@ -133,10 +147,32 @@ const editor = new LocaleEditor({
   defaultLanguage: 'en',
   container,
   readOnly: false,
+  getEditDisabledTooltip: (field, rowId, rowData) => {
+    return `You cannot edit ${field} field for row ${rowId}`;
+  },
   onCellChange,
 });
 
 editor.render();
+
+// Editable 토글 버튼 이벤트
+toggleEditableBtn.addEventListener('click', () => {
+  isEditable = !isEditable;
+  editor.setReadOnly(!isEditable);
+  
+  // UI 업데이트
+  toggleEditableBtn.textContent = `Toggle Editable (현재: ${isEditable ? '편집 가능' : '읽기 전용'})`;
+  toggleEditableBtn.className = isEditable
+    ? 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors'
+    : 'px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors';
+  
+  editableStatus.textContent = isEditable
+    ? '💡 편집 가능 모드: 모든 셀을 편집할 수 있습니다.'
+    : '🔒 읽기 전용 모드: 셀을 편집할 수 없습니다. 마우스를 올리면 tooltip이 표시됩니다.';
+});
+
+// 초기 상태 표시
+editableStatus.textContent = '💡 편집 가능 모드: 모든 셀을 편집할 수 있습니다.';
 
 console.log('✅ Step 2: AG Grid 통합 완료');
 console.log('✅ Phase 1-1: 셀 편집 이벤트 처리 완료');

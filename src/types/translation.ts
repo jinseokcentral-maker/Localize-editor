@@ -40,6 +40,8 @@ export interface LocaleEditorOptions {
   readonly onSave?: (changes: TranslationChange[]) => Promise<void>;
   /** 검색 시 호출되는 콜백 (선택적, 서버 검색용) */
   readonly onSearch?: (query: string) => Promise<Translation[]>;
+  /** 편집 불가능한 필드에 표시할 tooltip 메시지 생성 함수 (선택적) */
+  readonly getEditDisabledTooltip?: (field: string, rowId: string, rowData: any) => string;
 }
 
 /**
