@@ -5,7 +5,8 @@
  */
 
 import { Virtualizer, observeElementRect, observeElementOffset, elementScroll } from "@/virtual-core/index";
-import type { Translation } from "@/types/translation";
+import type { Translation, TranslationChange } from "@/types/translation";
+import { ChangeTracker } from "./change-tracker";
 import "@/styles/virtual-table.css";
 
 export interface VirtualTableOptions {
@@ -34,10 +35,15 @@ export class VirtualTable {
   private columnWidths: Map<string, number> = new Map();
   private editableColumns: Set<string> = new Set();
   private rowHeight: number = 40;
+  private changeTracker = new ChangeTracker();
   
   // 편집 관련 상태
   private editingCell: { rowIndex: number; columnId: string } | null = null;
   private isEscapeKeyPressed = false;
+  
+  // 정렬 관련 상태
+  private sortColumn: string | null = null;
+  private sortDirection: 'asc' | 'desc' | null = null;
 
   constructor(options: VirtualTableOptions) {
     this.container = options.container;
@@ -50,6 +56,9 @@ export class VirtualTable {
     options.languages.forEach(lang => {
       this.editableColumns.add(`values.${lang}`);
     });
+    
+    // 원본 데이터 초기화 (변경사항 추적용)
+    this.changeTracker.initializeOriginalData(options.translations, options.languages);
   }
 
   /**
@@ -150,6 +159,22 @@ export class VirtualTable {
       return;
     }
 
+    // 스크롤 컨테이너의 초기 크기 계산 (테스트 환경을 위한 폴백)
+    const getInitialRect = (): { width: number; height: number } => {
+      if (this.scrollElement) {
+        const rect = this.scrollElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          return { width: rect.width, height: rect.height };
+        }
+      }
+      // 폴백: 컨테이너 크기 사용
+      const containerWidth = this.container.clientWidth || 800;
+      const containerHeight = this.container.clientHeight || 600;
+      return { width: containerWidth, height: containerHeight };
+    };
+
+    const initialRect = getInitialRect();
+
     this.rowVirtualizer = new Virtualizer<HTMLElement, HTMLTableRowElement>({
       count: this.options.translations.length,
       getScrollElement: () => this.scrollElement,
@@ -157,6 +182,7 @@ export class VirtualTable {
       scrollToFn: elementScroll,
       observeElementRect: observeElementRect,
       observeElementOffset: observeElementOffset,
+      initialRect, // 초기 크기 제공 (테스트 환경 지원)
       onChange: () => {
         // requestAnimationFrame으로 렌더링 최적화
         if (!this.renderScheduled) {
@@ -457,7 +483,11 @@ export class VirtualTable {
     cellContent.style.overflow = 'hidden';
     cellContent.style.textOverflow = 'ellipsis';
     cellContent.style.whiteSpace = 'nowrap';
+    cellContent.style.width = '100%';
     cell.appendChild(cellContent);
+    
+    // Dirty/Empty 상태에 따른 CSS 클래스 추가
+    this.updateCellStyle(rowId, columnId, cell);
 
     // 더블클릭으로 편집 시작
     if (editable && !this.options.readOnly) {
@@ -518,22 +548,60 @@ export class VirtualTable {
 
     // 편집 완료/취소 이벤트
     const finishEdit = (save: boolean) => {
+      const rowId = cell.getAttribute('data-row-id');
+      if (!rowId) {
+        this.editingCell = null;
+        return;
+      }
+      
       if (save && input.value !== currentValue) {
-        const rowId = cell.getAttribute('data-row-id');
-        if (rowId && this.options.onCellChange) {
-          this.options.onCellChange(rowId, columnId, input.value);
+        const newValue = input.value;
+        
+        // 변경사항 추적
+        const oldValue = this.changeTracker.getOriginalValue(rowId, columnId);
+        
+        // lang 값 결정: key는 'key', context는 'context', values.*는 언어 코드
+        let lang: string;
+        if (columnId === 'key') {
+          lang = 'key';
+        } else if (columnId === 'context') {
+          lang = 'context';
+        } else if (columnId.startsWith('values.')) {
+          lang = columnId.replace('values.', '');
+        } else {
+          lang = columnId;
+        }
+        
+        // translation key 결정
+        const translationKey = columnId === 'key' ? newValue : (this.options.translations.find(t => t.id === rowId)?.key || '');
+        
+        this.changeTracker.trackChange(
+          rowId,
+          columnId,
+          lang,
+          oldValue,
+          newValue,
+          translationKey,
+          () => {
+            // 변경사항 추적 후 셀 스타일 업데이트
+            this.updateCellStyle(rowId, columnId);
+          }
+        );
+        
+        // Key 컬럼 변경 시 자동 정렬
+        if (columnId === 'key') {
+          this.sortByKey();
+        }
+        
+        // onCellChange 콜백 호출
+        if (this.options.onCellChange) {
+          this.options.onCellChange(rowId, columnId, newValue);
         }
       }
       
-      // 원래 내용으로 복원
+      // 원래 내용으로 복원 (변경사항 추적 후)
       const newValue = save ? input.value : currentValue;
-      cell.innerHTML = '';
-      const div = document.createElement('div');
-      div.textContent = newValue;
-      div.style.overflow = 'hidden';
-      div.style.textOverflow = 'ellipsis';
-      div.style.whiteSpace = 'nowrap';
-      cell.appendChild(div);
+      this.updateCellContent(cell, rowId, columnId, newValue);
       
       this.editingCell = null;
     };
@@ -619,6 +687,97 @@ export class VirtualTable {
    */
   private getTotalTableWidth(): string {
     return `${this.getContainerWidth()}px`;
+  }
+
+  /**
+   * 셀 스타일 업데이트 (dirty/empty 상태)
+   */
+  private updateCellStyle(rowId: string, columnId: string, cell?: HTMLTableCellElement): void {
+    const targetCell = cell || this.bodyElement?.querySelector(`td[data-row-id="${rowId}"][data-column-id="${columnId}"]`) as HTMLTableCellElement;
+    if (!targetCell) return;
+    
+    // 기존 클래스 제거
+    targetCell.classList.remove('cell-dirty', 'cell-empty');
+    
+    // Dirty 상태 확인
+    const changeKey = `${rowId}-${columnId}`;
+    const changesMap = this.changeTracker.getChangesMap();
+    if (changesMap.has(changeKey)) {
+      targetCell.classList.add('cell-dirty');
+    }
+    
+    // Empty 상태 확인 (언어 컬럼만)
+    if (columnId.startsWith('values.')) {
+      const div = targetCell.querySelector('div');
+      const value = div?.textContent || '';
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        targetCell.classList.add('cell-empty');
+      }
+    }
+  }
+  
+  /**
+   * 셀 내용 업데이트
+   */
+  private updateCellContent(cell: HTMLTableCellElement, rowId: string, columnId: string, value: string): void {
+    cell.innerHTML = '';
+    cell.style.position = ''; // position 복원
+    const div = document.createElement('div');
+    div.textContent = value;
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
+    div.style.whiteSpace = 'nowrap';
+    div.style.width = '100%';
+    cell.appendChild(div);
+    
+    // 스타일 업데이트
+    this.updateCellStyle(rowId, columnId, cell);
+  }
+  
+  /**
+   * Key 컬럼으로 정렬 (간단한 구현)
+   */
+  private sortByKey(): void {
+    // 정렬은 translations 배열을 외부에서 관리해야 하므로,
+    // 일단 정렬 방향만 저장하고 외부에서 처리하도록 함
+    this.sortColumn = 'key';
+    this.sortDirection = 'asc';
+    
+    // 재렌더링 (정렬된 순서는 외부에서 translations를 정렬한 후 updateTranslations 호출 필요)
+    // 하지만 일단 render()는 하지 않음 (translations가 변경되지 않았으므로)
+  }
+  
+  /**
+   * 변경사항 가져오기
+   */
+  getChanges(): TranslationChange[] {
+    return this.changeTracker.getChanges();
+  }
+  
+  /**
+   * 변경사항 초기화
+   */
+  clearChanges(): void {
+    this.changeTracker.clearChanges();
+    // 모든 셀 스타일 업데이트
+    if (this.bodyElement) {
+      const cells = this.bodyElement.querySelectorAll('td[data-row-id][data-column-id]');
+      cells.forEach(cell => {
+        const rowId = cell.getAttribute('data-row-id')!;
+        const columnId = cell.getAttribute('data-column-id')!;
+        this.updateCellStyle(rowId, columnId, cell as HTMLTableCellElement);
+      });
+    }
+  }
+  
+  /**
+   * translations 업데이트 (정렬 후 사용)
+   */
+  updateTranslations(translations: readonly Translation[]): void {
+    this.options = { ...this.options, translations };
+    // 원본 데이터도 업데이트
+    this.changeTracker.initializeOriginalData(translations, this.options.languages);
+    this.render();
   }
 
   /**

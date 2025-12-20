@@ -162,3 +162,27 @@
   opacity: 0.7;
 }
 
+/* 변경된 셀 스타일 (dirty cells) */
+.virtual-table td.cell-dirty {
+  background-color: #fef3c7 !important; /* 노란색 배경 */
+}
+
+/* 빈 번역 셀 하이라이트 스타일 */
+.virtual-table td.cell-empty {
+  background-color: #fee2e2 !important; /* 연한 빨간색 배경 */
+  border-left: 3px solid #ef4444 !important; /* 왼쪽 빨간 테두리 */
+  position: relative;
+}
+
+.virtual-table td.cell-empty::before {
+  content: "⚠";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #dc2626;
+  opacity: 0.6;
+  z-index: 1;
+}
+
