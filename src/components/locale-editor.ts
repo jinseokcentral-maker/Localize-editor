@@ -34,6 +34,7 @@ if (!modulesRegistered) {
  */
 export class LocaleEditor {
   private gridApi: GridApi | null = null;
+  private isEscapeKeyPressed = false; // ESC 키가 눌렸는지 추적
   private columnDefs: ColDef[] = [];
   private options: LocaleEditorOptions;
   private changeTracker = new ChangeTracker();
@@ -184,6 +185,10 @@ export class LocaleEditor {
         sortable: true,
         filter: true,
       },
+      // 헤더 포커스 비활성화 (헤더 셀 선택 방지)
+      suppressHeaderFocus: true,
+      // Tab 키가 그리드 밖으로 나가지 않도록 설정
+      enableCellTextSelection: false,
       // 성능 최적화
       animateRows: false,
       suppressScrollOnNewData: true,
@@ -205,12 +210,89 @@ export class LocaleEditor {
         this.handleCellValueChanged(event);
       },
       // 셀 편집 완료 이벤트 (Enter 키로 편집 완료 후 다음 셀로 이동)
+      // ESC 키로 취소된 경우에는 이동하지 않음
       onCellEditingStopped: (event) => {
         this.handleCellEditingStopped(event);
       },
-      // 키보드 네비게이션 커스터마이징
+      // Tab 키 네비게이션 커스터마이징 (AG Grid가 Tab 키를 처리할 때 호출)
+      // 편집 중이 아닐 때만 처리 (편집 중은 onCellKeyDown에서 처리)
       navigateToNextCell: (params) => {
+        // 편집 중이면 null 반환하여 onCellKeyDown에서 처리하도록 함
+        // AG Grid가 편집 중일 때 navigateToNextCell을 호출하는지 확인이 필요하지만,
+        // 일단 편집 중이 아닐 때만 처리하도록 함
         return this.handleNavigateToNextCell(params);
+      },
+      // 키보드 이벤트 처리 - 우리가 정의한 동작만 허용
+      onCellKeyDown: (event) => {
+        const key = event.event.key;
+        
+        // ESC 키: 편집 취소 (기본 동작 허용, 플래그만 설정)
+        if (key === 'Escape') {
+          this.isEscapeKeyPressed = true;
+          return false; // 기본 동작 허용
+        }
+        
+        // Enter 키: 기본 동작 허용 (handleCellEditingStopped에서 처리)
+        if (key === 'Enter') {
+          return false; // 기본 동작 허용
+        }
+        
+        // Tab 키: 편집 중이면 편집 종료 후 다음 셀로 이동
+        if (key === 'Tab') {
+          if (event.editing && event.api) {
+            // 편집 중이면 먼저 편집 종료 (변경사항 저장)
+            // stopEditing(true)를 호출하면 자동으로 다음 셀로 이동하는데,
+            // 우리는 커스텀 네비게이션을 원하므로 false로 호출하고 수동으로 처리
+            event.api.stopEditing(false); // false = 포커스 이동 안 함
+            
+            // 편집 종료 후 다음 셀로 이동
+            // setTimeout을 사용하여 편집 종료가 완전히 완료된 후 실행
+            setTimeout(() => {
+              if (this.gridApi && currentRowIndex !== undefined && currentColumn) {
+                this.handleTabNavigationAfterEditDirectly(
+                  currentRowIndex,
+                  currentColumn,
+                  isShift
+                );
+              }
+            }, 0);
+            
+            // 기본 Tab 동작 완전히 차단
+            event.event.preventDefault();
+            event.event.stopPropagation();
+            event.event.stopImmediatePropagation();
+            return false;
+          }
+          // 편집 중이 아니면 navigateToNextCell에서 처리
+          // 하지만 여기서도 기본 동작을 차단하여 navigateToNextCell만 사용하도록 함
+          event.event.preventDefault();
+          event.event.stopPropagation();
+          return false;
+        }
+        
+        // 편집 모드에서는 텍스트 입력을 위한 키 허용 (브라우저 기본 동작)
+        if (event.editing) {
+          return false; // 편집 모드에서는 기본 동작 허용
+        }
+        
+        // 편집 모드가 아닐 때는 Arrow keys, Space 등 네비게이션 키도 차단
+        // (우리가 정의한 Tab만 사용)
+        // Arrow keys, Space 등은 기본 동작 차단
+        if (
+          key.startsWith('Arrow') ||
+          key === 'Space' ||
+          key === 'Home' ||
+          key === 'End' ||
+          key === 'PageUp' ||
+          key === 'PageDown'
+        ) {
+          event.event.preventDefault();
+          event.event.stopPropagation();
+          return false;
+        }
+        
+        // 나머지 키는 기본 동작 허용 (예: 문자 입력 등)
+        return false;
       },
     };
 
@@ -606,10 +688,18 @@ export class LocaleEditor {
   }
 
   /**
-   * 셀 편집 완료 이벤트 처리 (Enter 키로 편집 완료 후 다음 셀로 이동)
+   * 셀 편집 완료 이벤트 처리 (Enter 키로 편집 완료 후 아래 행의 같은 컬럼으로 이동)
+   * ESC 키로 취소된 경우에는 이동하지 않음
+   * 모든 편집 가능한 컬럼(Key, Context, Language)에서 동일하게 동작
    */
   private handleCellEditingStopped(event: any): void {
     if (!this.gridApi) return;
+
+    // ESC 키로 편집이 취소된 경우에는 이동하지 않음
+    if (this.isEscapeKeyPressed) {
+      this.isEscapeKeyPressed = false; // 플래그 초기화
+      return;
+    }
 
     // Enter 키로 편집이 완료된 경우에만 처리
     // (Tab 키는 navigateToNextCell에서 처리)
@@ -617,36 +707,21 @@ export class LocaleEditor {
     if (!column || rowIndex === undefined) return;
 
     const colId = column.getColId();
-    // 언어 컬럼(values.*)이 아니면 무시
-    if (!colId?.startsWith("values.")) return;
+    const colDef = column.getColDef();
+    
+    // 편집 가능한 컬럼이 아니면 무시
+    if (!colDef.editable) return;
 
-    const allColumns = this.gridApi.getColumns();
-    if (!allColumns) return;
-
-    // 편집 가능한 언어 컬럼만 필터링
-    const editableColumns = allColumns.filter(
-      (col) => col.getColDef().editable && col.getColId()?.startsWith("values.")
-    );
-
-    if (editableColumns.length === 0) return;
-
-    const currentColIndex = editableColumns.findIndex(
-      (col) => col.getColId() === colId
-    );
-
-    if (currentColIndex < 0) return;
-
-    // Enter 키로 편집 완료 후 아래 행의 같은 언어 셀로 이동
-    // (Shift+Enter는 위 행으로 이동 - 이건 키보드 이벤트로 처리해야 함)
+    // 아래 행으로 이동
     const rowCount = this.gridApi.getDisplayedRowCount();
     if (rowIndex < rowCount - 1) {
-      // 다음 프레임에 포커스 이동 (편집 완료 후)
+      // 다음 프레임에 포커스 이동 및 편집 시작 (편집 완료 후)
       requestAnimationFrame(() => {
         if (this.gridApi) {
-          this.gridApi.setFocusedCell(rowIndex + 1, editableColumns[currentColIndex]);
+          this.gridApi.setFocusedCell(rowIndex + 1, column);
           this.gridApi.startEditingCell({
             rowIndex: rowIndex + 1,
-            colKey: editableColumns[currentColIndex],
+            colKey: column,
           });
         }
       });
@@ -654,9 +729,174 @@ export class LocaleEditor {
   }
 
   /**
-   * 키보드 네비게이션 처리 (Tab/Shift+Tab)
+   * Tab 키 네비게이션 처리 (편집 모드로 시작하지 않음)
+   * onCellKeyDown에서 호출됨
+   */
+  private handleTabKeyNavigationFromEvent(event: any): void {
+    if (!this.gridApi) return;
+
+    const isEditing = event.editing;
+    const currentRowIndex = event.rowIndex;
+    const currentColumn = event.column;
+    const isShift = event.event.shiftKey;
+
+    if (currentRowIndex === undefined || !currentColumn) return;
+
+    // 편집 중이면 먼저 편집 완료 (동기적으로 즉시 처리)
+    if (isEditing && event.api) {
+      event.api.stopEditing(false); // false = 포커스 이동 안 함
+    }
+
+    // 편집 완료 직후 즉시 네비게이션 수행 (동기적으로)
+    // requestAnimationFrame을 사용하면 AG Grid가 그 사이에 기본 Tab 동작을 수행할 수 있음
+    this.handleTabKeyNavigationInternal(currentRowIndex, currentColumn, isShift);
+  }
+
+  /**
+   * Tab 키 네비게이션 내부 로직 (requestAnimationFrame에서 호출)
+   */
+  private handleTabKeyNavigationInternal(currentRowIndex: number, currentColumn: any, isShift: boolean): void {
+
+    const allColumns = this.gridApi.getColumns();
+    if (!allColumns || allColumns.length === 0) return;
+
+    // 편집 가능한 컬럼만 필터링
+    const editableColumns = allColumns.filter(
+      (col) => col.getColDef().editable
+    );
+
+    if (editableColumns.length === 0) return;
+
+    const currentColId = currentColumn.getColId();
+    const currentColIndex = editableColumns.findIndex(
+      (col) => col.getColId() === currentColId
+    );
+
+    // 현재 컬럼이 편집 가능한 컬럼이 아니면 첫 번째 편집 가능한 컬럼으로 순환
+    let nextRowIndex = currentRowIndex;
+    let nextColIndex = currentColIndex >= 0 ? currentColIndex : 0;
+
+    if (isShift) {
+      // Shift+Tab: 왼쪽 편집 가능한 컬럼으로 이동
+      if (currentColIndex >= 0 && currentColIndex > 0) {
+        nextColIndex = currentColIndex - 1;
+      } else {
+        // 이전 행의 마지막 편집 가능한 컬럼
+        if (currentRowIndex > 0) {
+          nextRowIndex = currentRowIndex - 1;
+          nextColIndex = editableColumns.length - 1;
+        } else {
+          // 첫 번째 행이면 마지막 행으로 순환
+          const rowCount = this.gridApi.getDisplayedRowCount();
+          nextRowIndex = rowCount - 1;
+          nextColIndex = editableColumns.length - 1;
+        }
+      }
+    } else {
+      // Tab: 오른쪽 편집 가능한 컬럼으로 이동
+      if (currentColIndex >= 0 && currentColIndex < editableColumns.length - 1) {
+        nextColIndex = currentColIndex + 1;
+      } else {
+        // 다음 행의 첫 번째 편집 가능한 컬럼
+        const rowCount = this.gridApi.getDisplayedRowCount();
+        if (currentRowIndex < rowCount - 1) {
+          nextRowIndex = currentRowIndex + 1;
+          nextColIndex = 0;
+        } else {
+          // 마지막 행이면 첫 번째 행으로 순환 (그리드 밖으로 나가지 않음)
+          nextRowIndex = 0;
+          nextColIndex = 0;
+        }
+      }
+    }
+
+    // 다음 프레임에 포커스 이동 (편집 모드로 시작하지 않음)
+    requestAnimationFrame(() => {
+      if (this.gridApi) {
+        this.gridApi.setFocusedCell(nextRowIndex, editableColumns[nextColIndex]);
+      }
+    });
+  }
+
+  /**
+   * 편집 후 Tab 키 네비게이션 처리 (편집 모드로 시작하지 않음)
+   * 편집 중 Tab 키를 누르면 편집을 종료하고 다음/이전 셀로 이동
+   * 직접 rowIndex, column, isShift를 받아서 처리 (이벤트 객체 대신)
+   */
+  private handleTabNavigationAfterEditDirectly(
+    currentRowIndex: number,
+    currentColumn: any,
+    isShift: boolean
+  ): void {
+    if (!this.gridApi) return;
+
+    const allColumns = this.gridApi.getColumns();
+    if (!allColumns || allColumns.length === 0) return;
+
+    // 편집 가능한 컬럼만 필터링
+    const editableColumns = allColumns.filter(
+      (col) => col.getColDef().editable
+    );
+
+    if (editableColumns.length === 0) return;
+
+    const currentColId = currentColumn.getColId();
+    const currentColIndex = editableColumns.findIndex(
+      (col) => col.getColId() === currentColId
+    );
+
+    if (currentColIndex < 0) return;
+
+    let nextRowIndex = currentRowIndex;
+    let nextColIndex = currentColIndex;
+
+    if (!isShift) {
+      // Tab: 오른쪽 편집 가능한 컬럼으로 이동
+      if (currentColIndex < editableColumns.length - 1) {
+        nextColIndex = currentColIndex + 1;
+      } else {
+        // 다음 행의 첫 번째 편집 가능한 컬럼
+        const rowCount = this.gridApi.getDisplayedRowCount();
+        if (currentRowIndex < rowCount - 1) {
+          nextRowIndex = currentRowIndex + 1;
+          nextColIndex = 0;
+        } else {
+          // 마지막 행이면 첫 번째 행으로 순환
+          nextRowIndex = 0;
+          nextColIndex = 0;
+        }
+      }
+    } else {
+      // Shift+Tab: 왼쪽 편집 가능한 컬럼으로 이동
+      if (currentColIndex > 0) {
+        nextColIndex = currentColIndex - 1;
+      } else {
+        // 이전 행의 마지막 편집 가능한 컬럼
+        if (currentRowIndex > 0) {
+          nextRowIndex = currentRowIndex - 1;
+          nextColIndex = editableColumns.length - 1;
+        } else {
+          // 첫 번째 행이면 마지막 행으로 순환
+          const rowCount = this.gridApi.getDisplayedRowCount();
+          nextRowIndex = rowCount - 1;
+          nextColIndex = editableColumns.length - 1;
+        }
+      }
+    }
+
+    // 다음 셀로 포커스 이동 (편집 모드로 시작하지 않음)
+    this.gridApi.setFocusedCell(nextRowIndex, editableColumns[nextColIndex]);
+  }
+
+  /**
+   * 키보드 네비게이션 처리 (Tab/Shift+Tab) - 편집 중이 아닐 때
    * 
-   * 편집 가능한 언어 컬럼만 순회하도록 커스터마이징
+   * Tab: 오른쪽 편집 가능한 컬럼으로 이동 (편집 모드로 시작하지 않음)
+   * - 편집 가능한 컬럼만 순회
+   * - 같은 행의 다음 편집 가능한 컬럼으로 이동
+   * - 마지막 편집 가능한 컬럼이면 다음 행의 첫 번째 편집 가능한 컬럼으로 이동
+   * - 마지막 행의 마지막 편집 가능한 컬럼이면 첫 번째 행의 첫 번째 편집 가능한 컬럼으로 순환
+   * 
    * Enter 키는 handleCellEditingStopped에서 처리
    */
   private handleNavigateToNextCell(
@@ -673,11 +913,11 @@ export class LocaleEditor {
     if (key !== "Tab") return null;
 
     const allColumns = this.gridApi.getColumns();
-    if (!allColumns) return null;
+    if (!allColumns || allColumns.length === 0) return null;
 
-    // 편집 가능한 언어 컬럼만 필터링 (key, context 제외)
+    // 편집 가능한 컬럼만 필터링
     const editableColumns = allColumns.filter(
-      (col) => col.getColDef().editable && col.getColId()?.startsWith("values.")
+      (col) => col.getColDef().editable
     );
 
     if (editableColumns.length === 0) return null;
@@ -687,17 +927,54 @@ export class LocaleEditor {
       (col) => col.getColId() === currentColId
     );
 
-    // Tab: 다음 편집 가능한 셀로 이동
+    // 현재 컬럼이 편집 가능한 컬럼이 아니면 null 반환하여 그리드 밖으로 나가지 않도록 순환
+    if (currentColIndex < 0) {
+      // 편집 불가능한 컬럼에서 Tab을 누르면 첫 번째 편집 가능한 컬럼으로 순환
+      const rowCount = this.gridApi.getDisplayedRowCount();
+      if (!params.event?.shiftKey) {
+        // Tab: 첫 번째 편집 가능한 컬럼으로 이동 (순환)
+        if (rowIndex < rowCount - 1) {
+          return {
+            rowIndex: rowIndex + 1,
+            rowPinned: null,
+            column: editableColumns[0],
+          };
+        } else {
+          return {
+            rowIndex: 0,
+            rowPinned: null,
+            column: editableColumns[0],
+          };
+        }
+      } else {
+        // Shift+Tab: 마지막 편집 가능한 컬럼으로 이동 (순환)
+        if (rowIndex > 0) {
+          return {
+            rowIndex: rowIndex - 1,
+            rowPinned: null,
+            column: editableColumns[editableColumns.length - 1],
+          };
+        } else {
+          return {
+            rowIndex: rowCount - 1,
+            rowPinned: null,
+            column: editableColumns[editableColumns.length - 1],
+          };
+        }
+      }
+    }
+
+    // Tab: 오른쪽 편집 가능한 컬럼으로 이동
     if (!params.event?.shiftKey) {
       if (currentColIndex < editableColumns.length - 1) {
-        // 같은 행의 다음 언어 컬럼
+        // 같은 행의 다음 편집 가능한 컬럼으로 이동
         return {
           rowIndex,
           rowPinned: rowPinned || null,
           column: editableColumns[currentColIndex + 1],
         };
       } else {
-        // 다음 행의 첫 번째 언어 컬럼
+        // 마지막 편집 가능한 컬럼이면 다음 행의 첫 번째 편집 가능한 컬럼으로 이동
         const rowCount = this.gridApi.getDisplayedRowCount();
         if (rowIndex < rowCount - 1) {
           return {
@@ -705,24 +982,39 @@ export class LocaleEditor {
             rowPinned: null,
             column: editableColumns[0],
           };
+        } else {
+          // 마지막 행이면 첫 번째 행의 첫 번째 편집 가능한 컬럼으로 순환
+          return {
+            rowIndex: 0,
+            rowPinned: null,
+            column: editableColumns[0],
+          };
         }
       }
     }
 
-    // Shift+Tab: 이전 편집 가능한 셀로 이동
+    // Shift+Tab: 왼쪽 편집 가능한 컬럼으로 이동
     if (params.event?.shiftKey) {
       if (currentColIndex > 0) {
-        // 같은 행의 이전 언어 컬럼
+        // 같은 행의 이전 편집 가능한 컬럼으로 이동
         return {
           rowIndex,
           rowPinned: rowPinned || null,
           column: editableColumns[currentColIndex - 1],
         };
       } else {
-        // 이전 행의 마지막 언어 컬럼
+        // 첫 번째 편집 가능한 컬럼이면 이전 행의 마지막 편집 가능한 컬럼으로 이동
         if (rowIndex > 0) {
           return {
             rowIndex: rowIndex - 1,
+            rowPinned: null,
+            column: editableColumns[editableColumns.length - 1],
+          };
+        } else {
+          // 첫 번째 행이면 마지막 행의 마지막 편집 가능한 컬럼으로 순환
+          const rowCount = this.gridApi.getDisplayedRowCount();
+          return {
+            rowIndex: rowCount - 1,
             rowPinned: null,
             column: editableColumns[editableColumns.length - 1],
           };

@@ -1,41 +1,56 @@
 import './style.css';
-import { LocaleEditor } from './components/locale-editor';
+// import { LocaleEditor } from './components/locale-editor'; // VirtualTable 테스트 중이므로 주석처리
 import type { Translation } from './types/translation';
+import { VirtualTable } from './components/virtual-table';
 
 // Step 2: AG Grid 통합 완료
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
-// 예제 데이터
-const exampleTranslations: Translation[] = [
+// 예제 데이터 (대량 테스트용으로 1000개 생성)
+const exampleTranslations: Translation[] = Array.from({ length: 1000 }, (_, i) => ({
+  id: String(i + 1),
+  key: `common.items.item${i + 1}`,
+  values: {
+    en: `Item ${i + 1}`,
+    ko: `항목 ${i + 1}`,
+  },
+  context: i % 3 === 0 ? `Context for item ${i + 1}` : undefined,
+}));
+
+// 기존 5개 데이터도 추가 (테스트용)
+const originalTranslations: Translation[] = [
   {
-    id: '1',
+    id: 'original-1',
     key: 'common.buttons.submit',
     values: { en: 'Submit', ko: '제출' },
     context: 'Submit button text',
   },
   {
-    id: '2',
+    id: 'original-2',
     key: 'common.buttons.cancel',
     values: { en: 'Cancel', ko: '취소' },
     context: 'Cancel button text',
   },
   {
-    id: '3',
+    id: 'original-3',
     key: 'common.buttons.save',
     values: { en: 'Save', ko: '저장' },
   },
   {
-    id: '4',
+    id: 'original-4',
     key: 'common.messages.welcome',
     values: { en: 'Welcome', ko: '환영합니다' },
     context: 'Welcome message',
   },
   {
-    id: '5',
+    id: 'original-5',
     key: 'common.messages.goodbye',
     values: { en: 'Goodbye', ko: '안녕히 가세요' },
   },
 ];
+
+// 전체 데이터 합치기
+const allTranslations = [...originalTranslations, ...exampleTranslations];
 
 // UI 구조
 app.innerHTML = `
@@ -107,12 +122,13 @@ app.innerHTML = `
   </div>
 `;
 
-// 에디터 초기화
+// 에디터 초기화 (VirtualTable 테스트용)
 const container = document.getElementById('editor-container')!;
 const toggleEditableBtn = document.getElementById('toggle-editable-btn')!;
 const editableStatus = document.getElementById('editable-status')!;
 
 let isEditable = true; // 기본값: 편집 가능
+let virtualTable: VirtualTable | null = null;
 
 // 셀 변경 콜백 (디버깅용)
 const onCellChange = (id: string, lang: string, value: string) => {
@@ -141,24 +157,24 @@ const onCellChange = (id: string, lang: string, value: string) => {
   }
 };
 
-const editor = new LocaleEditor({
-  translations: exampleTranslations,
+// VirtualTable 테스트 (대량 데이터)
+virtualTable = new VirtualTable({
+  container,
+  translations: allTranslations,
   languages: ['en', 'ko'],
   defaultLanguage: 'en',
-  container,
   readOnly: false,
-  getEditDisabledTooltip: (field, rowId, rowData) => {
-    return `You cannot edit ${field} field for row ${rowId}`;
-  },
+  rowHeight: 40,
   onCellChange,
 });
 
-editor.render();
+virtualTable.render();
 
-// Editable 토글 버튼 이벤트
+// Editable 토글 버튼 이벤트 (VirtualTable에서는 아직 미구현)
 toggleEditableBtn.addEventListener('click', () => {
   isEditable = !isEditable;
-  editor.setReadOnly(!isEditable);
+  // TODO: VirtualTable에 setReadOnly 메서드 구현 필요
+  // virtualTable?.setReadOnly(!isEditable);
   
   // UI 업데이트
   toggleEditableBtn.textContent = `Toggle Editable (현재: ${isEditable ? '편집 가능' : '읽기 전용'})`;
@@ -172,10 +188,8 @@ toggleEditableBtn.addEventListener('click', () => {
 });
 
 // 초기 상태 표시
-editableStatus.textContent = '💡 편집 가능 모드: 모든 셀을 편집할 수 있습니다.';
+editableStatus.textContent = '💡 VirtualTable 테스트 모드: 모든 셀을 편집할 수 있습니다.';
 
-console.log('✅ Step 2: AG Grid 통합 완료');
-console.log('✅ Phase 1-1: 셀 편집 이벤트 처리 완료');
-console.log('Grid API:', editor.getGridApi());
-console.log('💡 셀을 편집하면 콘솔에 변경사항이 표시됩니다.');
+console.log('✅ VirtualTable 테스트 모드');
+console.log('💡 셀을 더블클릭하여 편집하면 콘솔에 변경사항이 표시됩니다.');
 
