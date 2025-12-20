@@ -1,0 +1,18 @@
+/**
+ * LocaleEditor Styles
+ * 
+ * Import this file in your application to get all required styles:
+ * 
+ * @example
+ * import 'localeeditor/styles';
+ * // or
+ * import 'localeeditor/dist/index.css';
+ */
+
+/* AG Grid base styles */
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+/* Custom styles for LocaleEditor */
+@import './ag-grid-custom.css';
+

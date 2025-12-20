@@ -1,11 +1,43 @@
 {
   "name": "localeeditor",
-  "private": true,
   "version": "0.0.0",
+  "description": "Excel-like i18n translation editor built with AG Grid",
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./styles": "./dist/index.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "i18n",
+    "translation",
+    "editor",
+    "excel",
+    "grid",
+    "ag-grid",
+    "internationalization"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm build:lib && pnpm build:types",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build:lib": "vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest --watch",
@@ -33,6 +65,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "ag-grid-community": "^35.0.0",
     "effect": "^3.19.13",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.2.1"
   }
 }

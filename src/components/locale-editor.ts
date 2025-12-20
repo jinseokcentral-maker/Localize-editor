@@ -10,7 +10,15 @@ import {
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import "@/styles/ag-grid-custom.css"; // 커스터마이징 스타일
-import type { Translation, LocaleEditorOptions } from "@/types/translation";
+import { Effect, Option } from "effect";
+import type {
+  Translation,
+  LocaleEditorOptions,
+  TranslationChange,
+} from "@/types/translation";
+import { LocaleEditorError } from "@/types/errors";
+import { FieldSchema, validateWithEffect } from "@/utils/validation";
+import { ChangeTracker } from "./change-tracker";
 
 // AG Grid 모듈 등록 (한 번만 실행)
 let modulesRegistered = false;
@@ -26,6 +34,7 @@ export class LocaleEditor {
   private gridApi: GridApi | null = null;
   private columnDefs: ColDef[] = [];
   private options: LocaleEditorOptions;
+  private changeTracker = new ChangeTracker();
 
   constructor(options: LocaleEditorOptions) {
     this.options = options;
@@ -35,8 +44,11 @@ export class LocaleEditor {
    * 그리드를 렌더링합니다.
    */
   render(): void {
-    const { container, translations, languages, defaultLanguage, readOnly } =
+    const { container, translations, languages, readOnly } =
       this.options;
+
+    // 원본 데이터 초기화 (변경사항 추적용)
+    this.changeTracker.initializeOriginalData(translations, languages);
 
     // 컬럼 정의
     this.columnDefs = this.prepareColumns(languages, readOnly ?? false);
@@ -87,14 +99,16 @@ export class LocaleEditor {
     languages: readonly string[],
     readOnly: boolean
   ): ColDef[] {
+    // cellClassRules에서 changes에 접근하기 위한 참조
+    const changesMap = this.changeTracker.getChangesMap();
+
     const columns: ColDef[] = [
       {
         field: "key",
         headerName: "Key",
-        width: 250,
+        width: 200,
         pinned: "left",
-        cellStyle: { fontWeight: "bold" },
-        editable: false,
+        editable: false, // Key는 편집 불가
       },
       {
         field: "context",
@@ -105,6 +119,14 @@ export class LocaleEditor {
         cellEditor: "agTextCellEditor",
         cellEditorParams: {
           useFormatter: false,
+        },
+        // 변경된 셀에 스타일 적용
+        cellClassRules: {
+          "cell-dirty": (params: any) => {
+            if (!params.data?.id) return false;
+            const changeKey = `${params.data.id}-context`;
+            return changesMap.has(changeKey);
+          },
         },
       },
     ];
@@ -134,6 +156,21 @@ export class LocaleEditor {
           }
           return false;
         },
+        // 변경된 셀에 스타일 적용
+        cellClassRules: {
+          "cell-dirty": (params: any) => {
+            if (!params.data?.id) return false;
+            const changeKey = `${params.data.id}-${field}`;
+            return changesMap.has(changeKey);
+          },
+          // 빈 번역 셀 하이라이트
+          "cell-empty": (params: any) => {
+            if (!params.data) return false;
+            const value = params.data[field];
+            // 빈 문자열, null, undefined를 빈 값으로 간주
+            return !value || (typeof value === "string" && value.trim() === "");
+          },
+        },
       });
     }
 
@@ -155,16 +192,16 @@ export class LocaleEditor {
       };
 
       // 각 언어별 값 추가
-      for (const lang of languages) {
+      languages.forEach((lang) => {
         row[`values.${lang}`] = t.values[lang] || "";
-      }
+      });
 
       return row;
     });
   }
 
   /**
-   * Grid API 반환
+   * GridApi 반환
    */
   getGridApi(): GridApi | null {
     return this.gridApi;
@@ -178,69 +215,206 @@ export class LocaleEditor {
   }
 
   /**
-   * 셀 값 변경 이벤트 처리
+   * 셀 값 변경 이벤트 처리 (Effect 기반)
+   */
+  private handleCellValueChangedEffect(
+    event: CellValueChangedEvent
+  ): Effect.Effect<void, LocaleEditorError | import("@/types/errors").ValidationError> {
+    const fieldOption = Option.fromNullable(event.colDef?.field);
+    
+    // field가 없으면 무시
+    if (Option.isNone(fieldOption)) {
+      return Effect.void;
+    }
+
+    const field = fieldOption.value;
+    
+    return Effect.flatMap(
+      validateWithEffect(FieldSchema, field, "Invalid field format"),
+      (validField) => {
+        // context 필드인 경우
+        if (validField === "context") {
+          const rowId = event.data?.id;
+          if (!rowId) {
+            return Effect.fail(
+              new LocaleEditorError({
+                message: "Row ID not found in cell event",
+                code: "INVALID_CELL_EVENT",
+              })
+            );
+          }
+          const newValue = event.newValue !== undefined && event.newValue !== null
+            ? event.newValue
+            : (event.data?.[validField] ?? event.node?.data?.[validField] ?? "");
+          const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
+          
+          // 원본 값 가져오기 및 변경사항 추적
+          const oldValue = this.changeTracker.getOriginalValue(rowId, validField);
+          this.changeTracker.trackChange(
+            rowId,
+            validField,
+            "context",
+            oldValue,
+            valueString,
+            event.data?.key || "",
+            (rowId, field) => {
+              this.updateCellStyle(rowId, field, true);
+            }
+          );
+          
+          // onCellChange 콜백 호출 (있으면)
+          if (this.options.onCellChange) {
+            this.options.onCellChange(rowId, "context", valueString);
+          }
+          return Effect.void;
+        }
+
+        // "values.{lang}" 형식이 아니면 무시
+        if (!validField.startsWith("values.")) {
+          return Effect.void;
+        }
+
+        // 언어 코드 추출 (예: "values.en" -> "en")
+        const lang = validField.replace("values.", "");
+
+        // 행의 id 추출
+        const rowId = event.data?.id;
+        if (!rowId) {
+          return Effect.fail(
+            new LocaleEditorError({
+              message: "Row ID not found in cell event",
+              code: "INVALID_CELL_EVENT",
+            })
+          );
+        }
+
+        // 새로운 값 추출
+        const newValue = event.newValue !== undefined && event.newValue !== null
+          ? event.newValue
+          : (event.data?.[validField] ?? event.node?.data?.[validField] ?? "");
+        
+        // 최종적으로 문자열로 변환 (빈 값도 빈 문자열로)
+        const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
+
+        // 원본 값 가져오기 및 변경사항 추적
+        const oldValue = this.changeTracker.getOriginalValue(rowId, validField);
+        this.changeTracker.trackChange(
+          rowId,
+          validField,
+          lang,
+          oldValue,
+          valueString,
+          event.data?.key || "",
+          (rowId, field) => {
+            this.updateCellStyle(rowId, field, true);
+          }
+        );
+
+        // onCellChange 콜백 호출 (있으면)
+        if (this.options.onCellChange) {
+          this.options.onCellChange(rowId, lang, valueString);
+        }
+        return Effect.void;
+      }
+    );
+  }
+
+  /**
+   * 셀 값 변경 이벤트 처리 (기존 API 호환성 유지)
    */
   private handleCellValueChanged(event: CellValueChangedEvent): void {
-    const { onCellChange } = this.options;
+    const effect = this.handleCellValueChangedEffect(event);
+    // 에러가 발생해도 무시 (기존 동작 유지)
+    Effect.runSync(Effect.either(effect));
+  }
+
+  /**
+   * 셀 스타일 업데이트 (Effect 기반)
+   */
+  private updateCellStyleEffect(
+    rowId: string,
+    field: string,
+    _isDirty: boolean
+  ): Effect.Effect<void, LocaleEditorError> {
+    const gridApiOption = Option.fromNullable(this.gridApi);
     
-    // onCellChange 콜백이 없으면 아무것도 하지 않음
-    if (!onCellChange) {
-      return;
+    if (Option.isNone(gridApiOption)) {
+      return Effect.fail(
+        new LocaleEditorError({
+          message: "Grid API is not available",
+          code: "GRID_API_NOT_AVAILABLE",
+        })
+      );
     }
 
-    // 필드명 확인: "values.{lang}" 형식 또는 "context" 필드
-    const field = event.colDef?.field;
-    if (!field) {
-      return;
-    }
-
-    // context 필드인 경우
-    if (field === "context") {
-      const rowId = event.data?.id;
-      if (!rowId) {
-        return;
-      }
-      const newValue = event.newValue !== undefined && event.newValue !== null
-        ? event.newValue
-        : (event.data?.[field] ?? event.node?.data?.[field] ?? "");
-      const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
-      onCellChange(rowId, "context", valueString);
-      return;
-    }
-
-    // "values.{lang}" 형식이 아니면 무시
-    if (!field.startsWith("values.")) {
-      return;
-    }
-
-    // 언어 코드 추출 (예: "values.en" -> "en")
-    const lang = field.replace("values.", "");
-
-    // 행의 id 추출
-    const rowId = event.data?.id;
-    if (!rowId) {
-      return;
-    }
-
-    // 새로운 값 추출
-    // AG Grid의 onCellValueChanged 이벤트에서:
-    // - event.newValue: 새로운 값 (사용자가 직접 편집할 때 항상 설정됨) ⭐ 중요!
-    // - event.oldValue: 이전 값
-    // - event.data: 업데이트된 행 데이터 (새 값이 이미 반영됨)
-    // - event.node.data: rowNode의 데이터 (새 값이 이미 반영됨)
-    // 
-    // ⚠️ 주의: 사용자가 직접 편집할 때는 event.newValue가 항상 설정되므로 이를 우선 사용해야 함!
-    // AG Grid는 자동으로 event.data와 event.node.data를 업데이트하므로,
-    // event.newValue를 사용하는 것이 가장 안전함
-    const newValue = event.newValue !== undefined && event.newValue !== null
-      ? event.newValue
-      : (event.data?.[field] ?? event.node?.data?.[field] ?? "");
+    const gridApi = gridApiOption.value;
+    const rowNode = gridApi.getRowNode(rowId);
     
-    // 최종적으로 문자열로 변환 (빈 값도 빈 문자열로)
-    const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
+    if (!rowNode) {
+      return Effect.fail(
+        new LocaleEditorError({
+          message: `Row node not found for row ID: ${rowId}`,
+          code: "ROW_NODE_NOT_FOUND",
+        })
+      );
+    }
 
-    // onCellChange 콜백 호출
-    onCellChange(rowId, lang, valueString);
+    const column = gridApi.getColumn(field);
+    
+    if (!column) {
+      return Effect.fail(
+        new LocaleEditorError({
+          message: `Column not found: ${field}`,
+          code: "COLUMN_NOT_FOUND",
+        })
+      );
+    }
+
+    // requestAnimationFrame으로 다음 프레임에 실행하여
+    // 여러 변경사항을 배치 처리할 수 있도록 최적화
+    return Effect.sync(() => {
+      requestAnimationFrame(() => {
+        if (this.gridApi) {
+          this.gridApi.refreshCells({
+            rowNodes: [rowNode],
+            columns: [field],
+            force: true, // 강제로 새로고침
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * 셀 스타일 업데이트 (변경사항 표시)
+   * 
+   * 성능 최적화:
+   * - cellClassRules가 이미 정의되어 있어서, refreshCells를 호출하면
+   *   cellClassRules가 재평가되어 스타일이 업데이트됨
+   * - 단일 셀만 refresh하므로 성능 영향은 미미함 (O(1) 셀만 업데이트)
+   * - 대안: refreshCells 없이 cellClassRules만 사용할 수도 있지만,
+   *   즉시 반영을 위해 refreshCells 사용 (사용자 경험 우선)
+   */
+  private updateCellStyle(rowId: string, field: string, _isDirty: boolean): void {
+    const effect = this.updateCellStyleEffect(rowId, field, _isDirty);
+    // 에러가 발생해도 무시 (기존 동작 유지)
+    Effect.runSync(Effect.either(effect));
+  }
+
+  /**
+   * 변경사항 목록 반환
+   */
+  getChanges(): TranslationChange[] {
+    return this.changeTracker.getChanges();
+  }
+
+  /**
+   * 변경사항 초기화
+   */
+  clearChanges(): void {
+    this.changeTracker.clearChanges((rowId, field, isDirty) =>
+      this.updateCellStyle(rowId, field, isDirty)
+    );
   }
 
   /**
