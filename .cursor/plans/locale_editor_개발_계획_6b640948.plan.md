@@ -1,83 +1,3 @@
----
-name: Locale Editor 개발 계획 (TDD)
-overview: TDD 방식으로 AG Grid 기반 Excel-like i18n 번역 에디터를 구현. 각 단계마다 테스트 작성 → 구현 → 통과 확인 → 검사 순서로 진행합니다.
-todos:
-  - id: setup-test-env
-    content: 테스트 환경 설정 (Vitest + Playwright)
-    status: completed
-  - id: step1-types-test
-    content: "[RED] 타입 정의 테스트 작성 (Translation, LocaleEditorOptions)"
-    status: completed
-    dependencies:
-      - setup-test-env
-  - id: step1-types-impl
-    content: "[GREEN] 타입 정의 구현 → 테스트 통과 확인 → 검사"
-    status: completed
-    dependencies:
-      - step1-types-test
-  - id: step2-grid-test
-    content: "[RED] AG Grid 초기화 및 렌더링 테스트 작성"
-    status: pending
-    dependencies:
-      - step1-types-impl
-  - id: step2-grid-impl
-    content: "[GREEN] AG Grid 통합 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step2-grid-test
-  - id: step3-cell-edit-test
-    content: "[RED] 셀 편집 기능 테스트 작성 (단위 + E2E)"
-    status: pending
-    dependencies:
-      - step2-grid-impl
-  - id: step3-cell-edit-impl
-    content: "[GREEN] 셀 편집 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step3-cell-edit-test
-  - id: step4-search-util-test
-    content: "[RED] 검색 유틸리티 테스트 작성"
-    status: pending
-    dependencies:
-      - step1-types-impl
-  - id: step4-search-util-impl
-    content: "[GREEN] 검색 유틸리티 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step4-search-util-test
-  - id: step5-search-component-test
-    content: "[RED] 검색 바 컴포넌트 테스트 작성 (단위 + E2E)"
-    status: pending
-    dependencies:
-      - step4-search-util-impl
-      - step2-grid-impl
-  - id: step5-search-component-impl
-    content: "[GREEN] 검색 바 컴포넌트 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step5-search-component-test
-  - id: step6-store-test
-    content: "[RED] 변경사항 추적 스토어 테스트 작성"
-    status: pending
-    dependencies:
-      - step3-cell-edit-impl
-  - id: step6-store-impl
-    content: "[GREEN] 변경사항 추적 스토어 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step6-store-test
-  - id: step7-save-test
-    content: "[RED] 저장 기능 테스트 작성 (단위 + E2E)"
-    status: pending
-    dependencies:
-      - step6-store-impl
-  - id: step7-save-impl
-    content: "[GREEN] 저장 기능 구현 → 테스트 통과 확인 → 검사"
-    status: pending
-    dependencies:
-      - step7-save-test
----
-
 # Locale Editor 개발 계획 (TDD)
 
 ## 개발 방식: Test-Driven Development (TDD)
@@ -212,32 +132,57 @@ src/
 - 그리드가 올바르게 렌더링되는지 확인
 - 성능 확인 (초기 렌더링 < 100ms)
 
-## Step 3: 셀 편집 기능 (TDD)
+## Step 3: i18n 편집 유틸리티 (TDD)
 
-### 3.1 [RED] 테스트 작성
+i18n 번역 작업에 특화된 편집 유틸리티를 단계적으로 구현합니다.
+
+### Phase 1: 기본 편집 유틸리티
+
+#### Phase 1-1: 셀 편집 이벤트 처리 및 콜백
+
+**3.1.1 [RED] 테스트 작성**
 
 - **단위 테스트**: `src/tests/unit/locale-editor.test.ts`
-  - 셀 편집 이벤트 발생 테스트
-  - 변경사항 추적 테스트
-  - 읽기 전용 모드 테스트
+  - `onCellChange` 콜백이 셀 값 변경 시 호출되는지 테스트
+  - 올바른 파라미터(id, lang, value)가 전달되는지 테스트
+  - readOnly 모드에서 콜백이 호출되지 않는지 테스트
+  
 - **E2E 테스트**: `src/tests/e2e/editor.spec.ts`
-  - 셀 클릭 → 편집 모드 진입
-  - 값 변경 → 이벤트 발생 확인
-  - Esc 키로 취소
-  - Enter 키로 저장
+  - 셀 클릭 → 편집 모드 진입 확인
+  - 값 변경 → onCellChange 콜백 호출 확인
 
-### 3.2 [GREEN] 셀 편집 구현
+**3.1.2 [GREEN] 구현**
 
 - **파일**: `src/components/locale-editor.ts`
-- AG Grid 셀 에디터 설정
-- onCellValueChanged 이벤트 핸들러
-- 변경사항 추적 (dirty cells)
+- `onCellValueChanged` 이벤트 핸들러 추가
+- `onCellChange` 콜백 호출 로직 구현
 - 테스트 통과 확인
 
-### 3.3 검사
+**3.1.3 검사**
 
-- 셀 편집이 올바르게 동작하는지 확인
-- 키보드 동작 확인
+- 셀 편집 시 콜백이 올바르게 호출되는지 확인
+
+---
+
+#### Phase 1-2: 변경사항 추적 (dirty cells) - TODO
+
+**3.1.4 [RED] 테스트 작성**
+
+- 변경된 셀 추적 테스트
+- 변경사항 초기화 테스트
+
+**3.1.5 [GREEN] 구현**
+
+- 변경사항 추적 로직 구현
+- 변경된 셀 시각적 표시
+
+---
+
+#### Phase 1-3: 빈 번역 셀 하이라이트 - TODO
+
+#### Phase 1-4: 향상된 키보드 네비게이션 - TODO
+
+#### Phase 1-5: Context 컬럼 편집 지원 - TODO
 
 ## Step 4: 검색 유틸리티 (TDD)
 

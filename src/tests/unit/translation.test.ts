@@ -206,3 +206,4 @@ describe("LocaleEditorOptions 타입", () => {
     });
   });
 });
+

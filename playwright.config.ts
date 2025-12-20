@@ -10,6 +10,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
+    headless: false, // 브라우저를 보이게 실행
   },
   projects: [
     {
@@ -31,4 +32,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
   },
 });
+
 

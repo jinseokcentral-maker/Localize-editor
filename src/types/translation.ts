@@ -153,3 +153,4 @@ export function isValidLocaleEditorOptions(
 
   return true;
 }
+
