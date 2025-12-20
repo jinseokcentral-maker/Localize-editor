@@ -186,3 +186,9 @@
   z-index: 1;
 }
 
+/* 중복된 Key 셀 스타일 */
+.virtual-table td.cell-duplicate-key {
+  background-color: #fee2e2 !important; /* 연한 빨간색 배경 */
+  border: 2px solid #ef4444 !important; /* 빨간 테두리 */
+}
+

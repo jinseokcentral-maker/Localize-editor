@@ -54,7 +54,7 @@ const allTranslations = [...originalTranslations, ...exampleTranslations];
 
 // UI 구조
 app.innerHTML = `
-  <div class="p-8 font-sans max-w-7xl mx-auto">
+  <div>
     <h1 class="text-3xl font-bold mb-2">
       Locale Editor
     </h1>

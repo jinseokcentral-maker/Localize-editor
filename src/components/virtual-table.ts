@@ -534,6 +534,7 @@ export class VirtualTable {
     input.style.position = 'absolute';
     input.style.top = '0';
     input.style.left = '0';
+    input.style.zIndex = '10'; // 편집 중일 때 ::before 아이콘 위에 표시
 
     // 기존 내용 제거하고 input 추가
     cell.innerHTML = '';
@@ -546,12 +547,67 @@ export class VirtualTable {
       input.select();
     });
 
+    // Key 컬럼 편집 중 실시간 중복 체크
+    let isDuplicateKey = false; // 중복 상태 추적
+    if (columnId === 'key') {
+      const rowId = cell.getAttribute('data-row-id') || '';
+      const updateDuplicateCheck = () => {
+        const inputValue = input.value;
+        // 기존 클래스 제거
+        cell.classList.remove('cell-duplicate-key');
+        cell.removeAttribute('title');
+        isDuplicateKey = false;
+        
+        // 중복 체크 (임시로 현재 입력값으로 체크, 자기 자신 제외)
+        if (inputValue && inputValue.trim() !== '') {
+          const keysByRowId = new Map<string, string>();
+          this.options.translations.forEach(t => {
+            // 현재 편집 중인 행은 제외하고 체크
+            if (t.id !== rowId) {
+              keysByRowId.set(t.id, t.key);
+            }
+          });
+          
+          // changeTracker의 변경사항도 반영 (현재 편집 중인 행 제외)
+          const changesMap = this.changeTracker.getChangesMap();
+          changesMap.forEach((change, changeKey) => {
+            const [changeRowId, changeColumnId] = changeKey.split('-', 2);
+            if (changeColumnId === 'key' && changeRowId !== rowId) {
+              keysByRowId.set(changeRowId, change.newValue);
+            }
+          });
+          
+          // 중복 체크
+          if (Array.from(keysByRowId.values()).includes(inputValue)) {
+            cell.classList.add('cell-duplicate-key');
+            cell.setAttribute('title', 'Key must be unique. This key already exists.');
+            input.setAttribute('title', 'Key must be unique. This key already exists.');
+            isDuplicateKey = true;
+          } else {
+            cell.classList.remove('cell-duplicate-key');
+            cell.removeAttribute('title');
+            input.removeAttribute('title');
+            isDuplicateKey = false;
+          }
+        }
+      };
+      
+      input.addEventListener('input', updateDuplicateCheck);
+      // 초기 체크
+      updateDuplicateCheck();
+    }
+
     // 편집 완료/취소 이벤트
     const finishEdit = (save: boolean) => {
       const rowId = cell.getAttribute('data-row-id');
       if (!rowId) {
         this.editingCell = null;
         return;
+      }
+      
+      // 중복된 Key인 경우 저장하지 않음 (이전 값으로 복원)
+      if (save && columnId === 'key' && isDuplicateKey) {
+        save = false; // 중복된 Key는 저장하지 않음
       }
       
       if (save && input.value !== currentValue) {
@@ -587,11 +643,6 @@ export class VirtualTable {
             this.updateCellStyle(rowId, columnId);
           }
         );
-        
-        // Key 컬럼 변경 시 자동 정렬
-        if (columnId === 'key') {
-          this.sortByKey();
-        }
         
         // onCellChange 콜백 호출
         if (this.options.onCellChange) {
@@ -690,20 +741,64 @@ export class VirtualTable {
   }
 
   /**
-   * 셀 스타일 업데이트 (dirty/empty 상태)
+   * Key 중복 체크
+   */
+  private checkKeyDuplicate(rowId: string, keyValue: string): boolean {
+    if (!keyValue || keyValue.trim() === '') {
+      return false; // 빈 값은 중복이 아님 (빈 값 검증은 별도로 처리)
+    }
+
+    // 현재 translations 배열에서 모든 key 수집 (변경사항 반영)
+    const keysByRowId = new Map<string, string>();
+    this.options.translations.forEach(t => {
+      keysByRowId.set(t.id, t.key);
+    });
+
+    // changeTracker의 변경사항 반영
+    const changesMap = this.changeTracker.getChangesMap();
+    changesMap.forEach((change, changeKey) => {
+      const [changeRowId, changeColumnId] = changeKey.split('-', 2);
+      if (changeColumnId === 'key') {
+        keysByRowId.set(changeRowId, change.newValue);
+      }
+    });
+
+    // 자기 자신을 제외하고 같은 key가 있는지 확인
+    for (const [id, key] of keysByRowId.entries()) {
+      if (id !== rowId && key === keyValue) {
+        return true; // 중복 발견
+      }
+    }
+
+    return false; // 중복 없음
+  }
+
+  /**
+   * 셀 스타일 업데이트 (dirty/empty/duplicate-key 상태)
    */
   private updateCellStyle(rowId: string, columnId: string, cell?: HTMLTableCellElement): void {
     const targetCell = cell || this.bodyElement?.querySelector(`td[data-row-id="${rowId}"][data-column-id="${columnId}"]`) as HTMLTableCellElement;
     if (!targetCell) return;
     
     // 기존 클래스 제거
-    targetCell.classList.remove('cell-dirty', 'cell-empty');
+    targetCell.classList.remove('cell-dirty', 'cell-empty', 'cell-duplicate-key');
+    targetCell.removeAttribute('title'); // tooltip 제거
     
     // Dirty 상태 확인
     const changeKey = `${rowId}-${columnId}`;
     const changesMap = this.changeTracker.getChangesMap();
     if (changesMap.has(changeKey)) {
       targetCell.classList.add('cell-dirty');
+    }
+    
+    // Key 컬럼 중복 체크
+    if (columnId === 'key') {
+      const div = targetCell.querySelector('div');
+      const keyValue = div?.textContent || '';
+      if (keyValue && this.checkKeyDuplicate(rowId, keyValue)) {
+        targetCell.classList.add('cell-duplicate-key');
+        targetCell.setAttribute('title', 'Key must be unique. This key already exists.');
+      }
     }
     
     // Empty 상태 확인 (언어 컬럼만)
