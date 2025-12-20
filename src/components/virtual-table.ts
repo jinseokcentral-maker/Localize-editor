@@ -7,6 +7,7 @@
 import { Virtualizer, observeElementRect, observeElementOffset, elementScroll } from "@/virtual-core/index";
 import type { Translation, TranslationChange } from "@/types/translation";
 import { ChangeTracker } from "./change-tracker";
+import { UndoRedoManager, type UndoRedoAction } from "./undo-redo-manager";
 import "@/styles/virtual-table.css";
 
 export interface VirtualTableOptions {
@@ -36,10 +37,13 @@ export class VirtualTable {
   private editableColumns: Set<string> = new Set();
   private rowHeight: number = 40;
   private changeTracker = new ChangeTracker();
+  private undoRedoManager = new UndoRedoManager();
+  private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
   
   // 편집 관련 상태
   private editingCell: { rowIndex: number; columnId: string } | null = null;
   private isEscapeKeyPressed = false;
+  private isFinishingEdit = false; // finishEdit 중복 호출 방지
   
   // 정렬 관련 상태
   private sortColumn: string | null = null;
@@ -599,9 +603,17 @@ export class VirtualTable {
 
     // 편집 완료/취소 이벤트
     const finishEdit = (save: boolean) => {
+      // 중복 호출 방지
+      if (this.isFinishingEdit) {
+        return;
+      }
+      
+      this.isFinishingEdit = true;
+      
       const rowId = cell.getAttribute('data-row-id');
       if (!rowId) {
         this.editingCell = null;
+        this.isFinishingEdit = false;
         return;
       }
       
@@ -612,9 +624,19 @@ export class VirtualTable {
       
       if (save && input.value !== currentValue) {
         const newValue = input.value;
+        const oldValue = currentValue; // 편집 시작 시점의 값
+        
+        // Undo/Redo 히스토리에 추가
+        this.undoRedoManager.push({
+          type: 'cell-change',
+          rowId,
+          columnId,
+          oldValue,
+          newValue,
+        });
         
         // 변경사항 추적
-        const oldValue = this.changeTracker.getOriginalValue(rowId, columnId);
+        const originalValue = this.changeTracker.getOriginalValue(rowId, columnId);
         
         // lang 값 결정: key는 'key', context는 'context', values.*는 언어 코드
         let lang: string;
@@ -635,7 +657,7 @@ export class VirtualTable {
           rowId,
           columnId,
           lang,
-          oldValue,
+          originalValue,
           newValue,
           translationKey,
           () => {
@@ -655,9 +677,15 @@ export class VirtualTable {
       this.updateCellContent(cell, rowId, columnId, newValue);
       
       this.editingCell = null;
+      this.isFinishingEdit = false;
     };
 
     input.addEventListener('blur', () => {
+      // finishEdit이 이미 실행 중이면 무시 (중복 호출 방지)
+      if (this.isFinishingEdit) {
+        return;
+      }
+      
       if (!this.isEscapeKeyPressed) {
         finishEdit(true);
       } else {
@@ -669,15 +697,21 @@ export class VirtualTable {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation(); // 이벤트 전파 방지
         finishEdit(true);
+        // blur 이벤트가 발생하지 않도록 input을 즉시 제거
+        input.blur();
         // 다음 셀로 이동하는 로직은 나중에 구현
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         this.isEscapeKeyPressed = true;
         input.blur();
       } else if (e.key === 'Tab') {
         e.preventDefault();
+        e.stopPropagation();
         finishEdit(true);
+        input.blur();
         // Tab 네비게이션은 나중에 구현
       }
     });
@@ -696,15 +730,108 @@ export class VirtualTable {
    * 키보드 이벤트 리스너 추가
    */
   private attachKeyboardListeners(): void {
-    if (!this.tableElement) return;
-
-    this.tableElement.addEventListener('keydown', (e) => {
-      // Tab 키 네비게이션은 나중에 구현
-      if (e.key === 'Tab') {
+    // document에 이벤트 리스너를 추가하여 어디서든 작동하도록 함
+    this.keyboardHandler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+      
+      // Undo: Ctrl+Z (Mac: Cmd+Z)
+      // input 필드 내부가 아니거나, contentEditable이 아닌 경우에만 처리
+      const target = e.target as HTMLElement;
+      const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      
+      // Ctrl+Z는 input 필드에서는 기본 동작(텍스트 undo)을 사용하므로 제외
+      // 하지만 우리가 편집 중인 input이 아니면 처리
+      if (ctrlOrCmd && e.key === 'z' && !e.shiftKey && !isInputField) {
         e.preventDefault();
-        // 커스텀 Tab 네비게이션 로직
+        this.handleUndo();
+        return;
       }
-    });
+      
+      // Redo: Ctrl+Y (Mac: Cmd+Y) 또는 Ctrl+Shift+Z (Mac: Cmd+Shift+Z)
+      if (ctrlOrCmd && (e.key === 'y' || (e.key === 'z' && e.shiftKey)) && !isInputField) {
+        e.preventDefault();
+        this.handleRedo();
+        return;
+      }
+    };
+    
+    document.addEventListener('keydown', this.keyboardHandler);
+  }
+
+  /**
+   * Undo 처리
+   */
+  private handleUndo(): void {
+    const action = this.undoRedoManager.undo();
+    if (!action) return;
+
+    this.applyUndoRedoAction(action);
+  }
+
+  /**
+   * Redo 처리
+   */
+  private handleRedo(): void {
+    const action = this.undoRedoManager.redo();
+    if (!action) return;
+
+    this.applyUndoRedoAction(action);
+  }
+
+  /**
+   * Undo/Redo 액션 적용
+   */
+  private applyUndoRedoAction(action: UndoRedoAction): void {
+    if (action.type !== 'cell-change') return;
+
+    // 셀 찾기
+    const cell = this.bodyElement?.querySelector(
+      `td[data-row-id="${action.rowId}"][data-column-id="${action.columnId}"]`
+    ) as HTMLTableCellElement;
+    
+    if (!cell) return;
+
+    // 현재 편집 중이면 중지
+    if (this.editingCell) {
+      this.stopEditing(false);
+    }
+
+    // 값 업데이트
+    this.updateCellContent(cell, action.rowId, action.columnId, action.newValue);
+
+    // 변경사항 추적 업데이트 (undo/redo는 히스토리에 추가하지 않음)
+    const originalValue = this.changeTracker.getOriginalValue(action.rowId, action.columnId);
+    
+    // lang 값 결정
+    const lang = action.columnId === 'key' ? 'key' 
+      : action.columnId === 'context' ? 'context'
+      : action.columnId.startsWith('values.') ? action.columnId.replace('values.', '')
+      : action.columnId;
+    
+    // translation key 결정
+    const translationKey = action.columnId === 'key' 
+      ? action.newValue 
+      : (this.options.translations.find(t => t.id === action.rowId)?.key || '');
+
+    // changeTracker는 원본 값을 기준으로 변경사항을 추적하므로
+    // undo/redo 시에도 원본 값과 새 값을 비교하여 변경사항을 업데이트
+    this.changeTracker.trackChange(
+      action.rowId,
+      action.columnId,
+      lang,
+      originalValue,
+      action.newValue,
+      translationKey,
+      () => {
+        this.updateCellStyle(action.rowId, action.columnId);
+      }
+    );
+
+    // onCellChange 콜백 호출
+    if (this.options.onCellChange) {
+      this.options.onCellChange(action.rowId, action.columnId, action.newValue);
+    }
   }
 
   /**
@@ -854,6 +981,7 @@ export class VirtualTable {
    */
   clearChanges(): void {
     this.changeTracker.clearChanges();
+    this.undoRedoManager.clear(); // Undo/Redo 히스토리도 초기화
     // 모든 셀 스타일 업데이트
     if (this.bodyElement) {
       const cells = this.bodyElement.querySelectorAll('td[data-row-id][data-column-id]');
@@ -863,6 +991,27 @@ export class VirtualTable {
         this.updateCellStyle(rowId, columnId, cell as HTMLTableCellElement);
       });
     }
+  }
+
+  /**
+   * Undo 가능 여부
+   */
+  canUndo(): boolean {
+    return this.undoRedoManager.canUndo();
+  }
+
+  /**
+   * Redo 가능 여부
+   */
+  canRedo(): boolean {
+    return this.undoRedoManager.canRedo();
+  }
+
+  /**
+   * 히스토리 상태 가져오기 (디버깅용)
+   */
+  getUndoRedoState(): { length: number; currentIndex: number; canUndo: boolean; canRedo: boolean } {
+    return this.undoRedoManager.getHistoryState();
   }
   
   /**
@@ -879,6 +1028,24 @@ export class VirtualTable {
    * 테이블 제거
    */
   destroy(): void {
+    // 키보드 이벤트 리스너 제거
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+      this.keyboardHandler = null;
+    }
+    
+    // ResizeObserver 제거
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    
+    // Virtualizer cleanup
+    if (this.virtualizerCleanup) {
+      this.virtualizerCleanup();
+      this.virtualizerCleanup = null;
+    }
+    
     if (this.scrollElement && this.container.contains(this.scrollElement)) {
       this.container.removeChild(this.scrollElement);
     }

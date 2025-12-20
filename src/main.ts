@@ -130,17 +130,8 @@ const editableStatus = document.getElementById('editable-status')!;
 let isEditable = true; // 기본값: 편집 가능
 let virtualTable: VirtualTable | null = null;
 
-// 셀 변경 콜백 (디버깅용)
+// 셀 변경 콜백
 const onCellChange = (id: string, lang: string, value: string) => {
-  console.log('🔵 셀 변경:', { 
-    id, 
-    lang, 
-    value, 
-    valueType: typeof value, 
-    valueLength: value.length,
-    isEmpty: value === ''
-  });
-  
   // UI에 피드백 표시
   const feedbackEl = document.getElementById('cell-change-feedback');
   if (feedbackEl) {
@@ -189,7 +180,4 @@ toggleEditableBtn.addEventListener('click', () => {
 
 // 초기 상태 표시
 editableStatus.textContent = '💡 VirtualTable 테스트 모드: 모든 셀을 편집할 수 있습니다.';
-
-console.log('✅ VirtualTable 테스트 모드');
-console.log('💡 셀을 더블클릭하여 편집하면 콘솔에 변경사항이 표시됩니다.');
 
