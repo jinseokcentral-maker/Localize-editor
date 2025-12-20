@@ -1,0 +1,38 @@
+{
+  "name": "localeeditor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "check:outdated": "pnpm outdated"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.10.7",
+    "@vitest/ui": "^4.0.15",
+    "jsdom": "^27.3.0",
+    "typescript": "~5.9.3",
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vitest": "^4.0.15"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.2.5"
+    }
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "ag-grid-community": "^35.0.0",
+    "effect": "^3.19.13",
+    "tailwindcss": "^4.1.18"
+  }
+}
