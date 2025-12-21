@@ -63,8 +63,12 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
-    "ag-grid-community": "^35.0.0",
+    "@types/lodash": "^4.17.21",
     "effect": "^3.19.13",
+    "jspreadsheet-ce": "^4.15.0",
+    "jsuites": "^5.2.0",
+    "lodash": "^4.17.21",
+    "marked": "^17.0.1",
     "tailwindcss": "^4.1.18",
     "zod": "^4.2.1"
   }

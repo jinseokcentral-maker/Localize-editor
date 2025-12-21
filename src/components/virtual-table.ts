@@ -44,6 +44,15 @@ export class VirtualTable {
   private editingCell: { rowIndex: number; columnId: string } | null = null;
   private isEscapeKeyPressed = false;
   private isFinishingEdit = false; // finishEdit 중복 호출 방지
+  
+  // 컬럼 리사이즈 관련 상태
+  private columnMinWidths: Map<string, number> = new Map();
+  private isResizing: boolean = false;
+  private resizeStartX: number = 0;
+  private resizeStartWidth: number = 0;
+  private resizeColumnId: string | null = null;
+  private resizeHandler: ((e: MouseEvent) => void) | null = null;
+  private resizeEndHandler: ((e: MouseEvent) => void) | null = null;
 
   constructor(options: VirtualTableOptions) {
     this.container = options.container;
@@ -55,6 +64,13 @@ export class VirtualTable {
     this.editableColumns = new Set(['key', 'context']);
     options.languages.forEach(lang => {
       this.editableColumns.add(`values.${lang}`);
+    });
+    
+    // 컬럼 최소 너비 설정 (리사이즈 방지)
+    this.columnMinWidths.set('key', 100);
+    this.columnMinWidths.set('context', 100);
+    options.languages.forEach(lang => {
+      this.columnMinWidths.set(`values.${lang}`, 80);
     });
     
     // 원본 데이터 초기화 (변경사항 추적용)
@@ -85,12 +101,10 @@ export class VirtualTable {
       this.tableElement.classList.add('readonly');
     }
     this.tableElement.setAttribute('role', 'grid');
-    // 테이블 너비는 컨테이너 너비에 맞춤
+    // 테이블 너비는 컨테이너 너비에 맞춤 (table-layout: fixed 제거, min-width로 제어)
     const totalWidth = this.getTotalTableWidth();
     this.tableElement.style.width = totalWidth;
     this.tableElement.style.minWidth = totalWidth;
-    this.tableElement.style.maxWidth = totalWidth;
-    this.tableElement.style.tableLayout = 'fixed';
 
     // 헤더 생성 (가상 스크롤 컨테이너 안에 포함)
     this.headerElement = document.createElement('thead');
@@ -137,7 +151,6 @@ export class VirtualTable {
           const totalWidth = this.getTotalTableWidth();
           this.tableElement.style.width = totalWidth;
           this.tableElement.style.minWidth = totalWidth;
-          this.tableElement.style.maxWidth = totalWidth;
         }
         
         // 헤더 다시 렌더링 (컬럼 너비가 변경되었으므로)
@@ -270,10 +283,9 @@ export class VirtualTable {
       row.style.left = '0';
       row.style.width = totalWidth;
       row.style.minWidth = totalWidth;
-      row.style.maxWidth = totalWidth;
       row.style.height = `${virtualItem.size}px`;
       row.style.display = 'table';
-      row.style.tableLayout = 'fixed';
+      /* table-layout: fixed 제거 - min-width로 컬럼 너비 제어 */
       row.setAttribute('data-index', virtualItem.index.toString());
 
       this.bodyElement!.appendChild(row);
@@ -312,16 +324,28 @@ export class VirtualTable {
     const containerWidth = this.getContainerWidth();
     const columnWidths = this.calculateColumnWidths(containerWidth);
     
-    // Key 컬럼 (sticky, z-index: 10)
-    headerRow.appendChild(this.createHeaderCell('Key', columnWidths.key, 0, 10));
+    // Key 컬럼 (sticky, z-index: 10) - 리사이즈 가능
+    const keyHeaderCell = this.createHeaderCell('Key', columnWidths.key, 0, 10, 'key');
+    this.addResizeHandle(keyHeaderCell, 'key');
+    headerRow.appendChild(keyHeaderCell);
     
-    // Context 컬럼 (sticky, z-index: 10)
-    headerRow.appendChild(this.createHeaderCell('Context', columnWidths.context, columnWidths.key, 10));
+    // Context 컬럼 (sticky, z-index: 10) - 리사이즈 가능
+    const contextHeaderCell = this.createHeaderCell('Context', columnWidths.context, columnWidths.key, 10, 'context');
+    this.addResizeHandle(contextHeaderCell, 'context');
+    headerRow.appendChild(contextHeaderCell);
 
-    // 언어 컬럼들
+    // 언어 컬럼들 (리사이즈 가능)
+    // 각 컬럼의 오른쪽 경계에 리사이즈 핸들 추가
+    // 핸들을 드래그하면 해당 컬럼의 너비가 조절됨 (오른쪽으로 드래그하면 늘어나고, 왼쪽으로 드래그하면 줄어듦)
     this.options.languages.forEach((lang, index) => {
       const langWidth = columnWidths.languages[index]!;
-      headerRow.appendChild(this.createHeaderCell(lang.toUpperCase(), langWidth, 0, 0));
+      const columnId = `values.${lang}`;
+      const headerCell = this.createHeaderCell(lang.toUpperCase(), langWidth, 0, 0, columnId);
+      
+      // 모든 언어 컬럼의 오른쪽 경계에 리사이즈 핸들 추가
+      this.addResizeHandle(headerCell, columnId);
+      
+      headerRow.appendChild(headerCell);
     });
 
     this.headerElement.appendChild(headerRow);
@@ -330,21 +354,278 @@ export class VirtualTable {
   /**
    * 헤더 셀 생성
    */
-  private createHeaderCell(text: string, width: number, left: number, zIndex: number): HTMLTableCellElement {
+  private createHeaderCell(text: string, width: number, left: number, zIndex: number, columnId?: string): HTMLTableCellElement {
     const header = document.createElement('th');
     header.setAttribute('role', 'columnheader');
     header.textContent = text;
-    header.style.width = `${width}px`;
+    if (columnId) {
+      header.setAttribute('data-column-id', columnId);
+    }
+    // jsfiddle 방식: min-width 우선 사용
     header.style.minWidth = `${width}px`;
-    header.style.maxWidth = `${width}px`;
+    header.style.width = `${width}px`;
     
     if (left > 0 || zIndex > 0) {
       header.style.position = 'sticky';
       header.style.left = `${left}px`;
       header.style.zIndex = zIndex.toString();
+    } else {
+      header.style.position = 'relative'; // 리사이즈 핸들을 위한 relative positioning
     }
     
+    // 리사이즈 핸들을 위해 overflow visible 보장
+    header.style.overflow = 'visible';
+    
     return header;
+  }
+
+  /**
+   * 컬럼 리사이즈 핸들 추가 (언어 컬럼만)
+   * @param headerCell 헤더 셀
+   * @param columnId 컬럼 ID (리사이즈할 컬럼)
+   */
+  private addResizeHandle(headerCell: HTMLTableCellElement, columnId: string): void {
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'column-resize-handle';
+    resizeHandle.setAttribute('data-column-id', columnId);
+    resizeHandle.style.position = 'absolute';
+    resizeHandle.style.right = '-2px'; // 경계선 위에 배치
+    resizeHandle.style.top = '0';
+    resizeHandle.style.bottom = '0';
+    resizeHandle.style.width = '4px';
+    resizeHandle.style.cursor = 'col-resize';
+    // sticky 컬럼의 z-index(10)보다 높게 설정
+    resizeHandle.style.zIndex = '25';
+    resizeHandle.style.backgroundColor = 'transparent';
+    
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.startResize(columnId, e.clientX, headerCell);
+    });
+    
+    headerCell.appendChild(resizeHandle);
+  }
+
+  /**
+   * 컬럼 리사이즈 시작
+   * Excel 스타일: 초기 마우스 위치와 컬럼 너비를 저장하고 전역 이벤트 리스너 등록
+   */
+  private startResize(columnId: string, startX: number, headerCell: HTMLTableCellElement): void {
+    // 리사이즈 상태 초기화
+    this.isResizing = true;
+    this.resizeStartX = startX;
+    this.resizeStartWidth = headerCell.offsetWidth || headerCell.getBoundingClientRect().width;
+    this.resizeColumnId = columnId;
+    
+    // 전역 마우스 이동 이벤트 리스너
+    this.resizeHandler = (e: MouseEvent) => {
+      if (!this.isResizing || !this.resizeColumnId) return;
+      e.preventDefault();
+      this.handleResize(e.clientX);
+    };
+    
+    // 전역 마우스 업 이벤트 리스너 (드래그가 화면 밖으로 나가도 처리되도록)
+    this.resizeEndHandler = (e: MouseEvent) => {
+      if (this.isResizing) {
+        e.preventDefault();
+        this.endResize();
+      }
+    };
+    
+    // 이벤트 리스너 등록 (capture phase에서도 처리)
+    document.addEventListener('mousemove', this.resizeHandler, true);
+    document.addEventListener('mouseup', this.resizeEndHandler, true);
+    
+    // 시각적 피드백
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.body.style.pointerEvents = 'auto';
+  }
+
+  /**
+   * 컬럼 리사이즈 중 (실시간 업데이트)
+   * Excel 공식: newWidth = initialWidth + (currentMouseX - initialMouseX)
+   */
+  private handleResize(currentX: number): void {
+    if (!this.resizeColumnId) return;
+    
+    // Excel 스타일 너비 계산
+    const deltaX = currentX - this.resizeStartX;
+    const minWidth = this.columnMinWidths.get(this.resizeColumnId) || 80;
+    const newWidth = Math.max(minWidth, this.resizeStartWidth + deltaX);
+    
+    // 너비 저장 (다음 렌더링 시 사용)
+    this.columnWidths.set(this.resizeColumnId, newWidth);
+    
+    // 모든 관련 셀에 즉시 반영 (테이블 재렌더링 없이)
+    this.applyColumnWidth(this.resizeColumnId, newWidth);
+  }
+
+  /**
+   * 특정 컬럼의 너비를 모든 셀에 적용 (Excel 스타일)
+   * min-width를 사용하여 브라우저가 컬럼을 재분배하지 않도록 모든 컬럼의 너비를 명시적으로 설정
+   */
+  private applyColumnWidth(columnId: string, width: number): void {
+    // 리사이즈 중인 컬럼의 너비를 먼저 저장
+    this.columnWidths.set(columnId, width);
+    
+    // 모든 컬럼의 현재 너비 가져오기
+    const defaultKeyWidth = 200;
+    const defaultContextWidth = 200;
+    const defaultLangWidth = 150;
+    
+    const keyWidth = columnId === 'key' ? width : this.getColumnWidthValue('key', defaultKeyWidth);
+    const contextWidth = columnId === 'context' ? width : this.getColumnWidthValue('context', defaultContextWidth);
+    const langWidths = this.options.languages.map((lang) => {
+      const langColumnId = `values.${lang}`;
+      return columnId === langColumnId ? width : this.getColumnWidthValue(langColumnId, defaultLangWidth);
+    });
+    
+    // 헤더 셀 업데이트 (모든 컬럼 명시적으로 설정하여 브라우저 재분배 방지)
+    if (this.headerElement) {
+      // Key 컬럼 (jsfiddle 방식: width 대신 min-width 사용)
+      const keyHeaderCell = this.headerElement.querySelector('th[data-column-id="key"]') as HTMLTableCellElement | null;
+      if (keyHeaderCell) {
+        keyHeaderCell.style.minWidth = `${keyWidth}px`;
+        keyHeaderCell.style.width = `${keyWidth}px`;
+      }
+      
+      // Context 컬럼
+      const contextHeaderCell = this.headerElement.querySelector('th[data-column-id="context"]') as HTMLTableCellElement | null;
+      if (contextHeaderCell) {
+        contextHeaderCell.style.minWidth = `${contextWidth}px`;
+        contextHeaderCell.style.width = `${contextWidth}px`;
+        contextHeaderCell.style.left = `${keyWidth}px`;
+      }
+      
+      // 언어 컬럼들
+      if (this.headerElement) {
+        this.options.languages.forEach((lang, index) => {
+          const langHeaderCell = this.headerElement!.querySelector(`th[data-column-id="values.${lang}"]`) as HTMLTableCellElement | null;
+          if (langHeaderCell) {
+            const langWidth = langWidths[index]!;
+            langHeaderCell.style.minWidth = `${langWidth}px`;
+            langHeaderCell.style.width = `${langWidth}px`;
+          }
+        });
+      }
+    }
+    
+    // 바디 셀 업데이트 (모든 컬럼 명시적으로 설정 - 헤더와 동기화)
+    if (this.bodyElement) {
+      // Key 컬럼 (jsfiddle 방식: min-width 우선 사용)
+      const keyCells = this.bodyElement.querySelectorAll('td[data-column-id="key"]');
+      keyCells.forEach(cell => {
+        const htmlCell = cell as HTMLTableCellElement;
+        htmlCell.style.minWidth = `${keyWidth}px`;
+        htmlCell.style.width = `${keyWidth}px`;
+      });
+      
+      // Context 컬럼
+      const contextCells = this.bodyElement.querySelectorAll('td[data-column-id="context"]');
+      contextCells.forEach(cell => {
+        const htmlCell = cell as HTMLTableCellElement;
+        htmlCell.style.minWidth = `${contextWidth}px`;
+        htmlCell.style.width = `${contextWidth}px`;
+        htmlCell.style.left = `${keyWidth}px`;
+      });
+      
+      // 언어 컬럼들
+      if (this.bodyElement) {
+        this.options.languages.forEach((lang, index) => {
+          const langCells = this.bodyElement!.querySelectorAll(`td[data-column-id="values.${lang}"]`);
+          const langWidth = langWidths[index]!;
+          langCells.forEach(cell => {
+            const htmlCell = cell as HTMLTableCellElement;
+            htmlCell.style.minWidth = `${langWidth}px`;
+            htmlCell.style.width = `${langWidth}px`;
+          });
+        });
+      }
+    }
+    
+    // 테이블 전체 너비 업데이트 (Excel 스타일: 리사이즈된 컬럼 너비가 반영된 전체 너비)
+    if (this.tableElement) {
+      const totalWidth = keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
+      this.tableElement.style.width = `${totalWidth}px`;
+      this.tableElement.style.minWidth = `${totalWidth}px`;
+    }
+  }
+
+  /**
+   * 컬럼 리사이즈 종료
+   * Excel 스타일: 전역 이벤트 리스너 제거 및 상태 정리
+   */
+  private endResize(): void {
+    // 이벤트 리스너 제거
+    if (this.resizeHandler) {
+      document.removeEventListener('mousemove', this.resizeHandler, true);
+      this.resizeHandler = null;
+    }
+    
+    if (this.resizeEndHandler) {
+      document.removeEventListener('mouseup', this.resizeEndHandler, true);
+      this.resizeEndHandler = null;
+    }
+    
+    // 시각적 피드백 제거
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.body.style.pointerEvents = '';
+    
+    // 상태 초기화
+    this.isResizing = false;
+    this.resizeColumnId = null;
+    
+    // 테이블 전체 너비 업데이트 (모든 컬럼 너비의 합)
+    if (this.tableElement) {
+      const totalWidth = this.calculateTotalTableWidth();
+      this.tableElement.style.width = `${totalWidth}px`;
+      this.tableElement.style.minWidth = `${totalWidth}px`;
+    }
+  }
+
+  /**
+   * 테이블 전체 너비 계산 (모든 컬럼 너비의 합)
+   */
+  private calculateTotalTableWidth(): number {
+    const defaultKeyWidth = 200;
+    const defaultContextWidth = 200;
+    const defaultLangWidth = 150;
+    
+    const keyWidth = this.getColumnWidthValue('key', defaultKeyWidth);
+    const contextWidth = this.getColumnWidthValue('context', defaultContextWidth);
+    const langWidths = this.options.languages.map(lang => 
+      this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
+    );
+    
+    return keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
+  }
+
+  /**
+   * sticky 컬럼인지 확인
+   */
+  private isStickyColumn(columnId: string): boolean {
+    return columnId === 'key' || columnId === 'context';
+  }
+
+  /**
+   * columnId에서 lang 값 추출
+   */
+  private getLangFromColumnId(columnId: string): string {
+    if (columnId === 'key') return 'key';
+    if (columnId === 'context') return 'context';
+    if (columnId.startsWith('values.')) return columnId.replace('values.', '');
+    return columnId;
+  }
+
+  /**
+   * translation key 값 결정
+   */
+  private getTranslationKey(rowId: string, columnId: string, newValue: string): string {
+    if (columnId === 'key') return newValue;
+    return this.options.translations.find(t => t.id === rowId)?.key || '';
   }
 
   /**
@@ -390,6 +671,7 @@ export class VirtualTable {
 
   /**
    * 컬럼 너비 계산 (컨테이너 너비에 맞춤)
+   * 사용자가 리사이즈한 컬럼은 저장된 너비를 사용하고, 나머지는 기본값 사용
    */
   private calculateColumnWidths(containerWidth: number): { key: number; context: number; languages: number[] } {
     // 기본 너비
@@ -404,12 +686,12 @@ export class VirtualTable {
       this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
     );
     
-    // 전체 기본 너비 합계
-    const totalDefaultWidth = keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
+    // 전체 너비 합계
+    const totalWidth = keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
     
-    // 컨테이너 너비가 기본 너비 합계보다 크면, 남은 공간을 언어 컬럼들에 균등 분배
-    if (containerWidth > totalDefaultWidth) {
-      const extraWidth = containerWidth - totalDefaultWidth;
+    // 컨테이너 너비가 전체 너비보다 크면, 남은 공간을 언어 컬럼들에 균등 분배
+    if (containerWidth > totalWidth) {
+      const extraWidth = containerWidth - totalWidth;
       const extraPerLang = Math.floor(extraWidth / langWidths.length);
       
       return {
@@ -419,12 +701,25 @@ export class VirtualTable {
       };
     }
     
-    // 컨테이너 너비가 작으면 비율에 맞게 축소
-    const ratio = containerWidth / totalDefaultWidth;
+    // 컨테이너 너비가 작으면 비율에 맞게 축소 (단, minWidth는 유지)
+    if (containerWidth < totalWidth) {
+      const ratio = containerWidth / totalWidth;
+      return {
+        key: Math.max(this.columnMinWidths.get('key') || 100, Math.floor(keyWidth * ratio)),
+        context: Math.max(this.columnMinWidths.get('context') || 100, Math.floor(contextWidth * ratio)),
+        languages: langWidths.map((w, i) => {
+          const lang = this.options.languages[i]!;
+          const minWidth = this.columnMinWidths.get(`values.${lang}`) || 80;
+          return Math.max(minWidth, Math.floor(w * ratio));
+        }),
+      };
+    }
+    
+    // 정확히 맞으면 그대로 반환
     return {
-      key: Math.floor(keyWidth * ratio),
-      context: Math.floor(contextWidth * ratio),
-      languages: langWidths.map(w => Math.floor(w * ratio)),
+      key: keyWidth,
+      context: contextWidth,
+      languages: langWidths,
     };
   }
 
@@ -528,28 +823,10 @@ export class VirtualTable {
 
     const currentValue = cellContent.textContent || '';
     
-    // input 생성
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentValue;
-    input.style.width = '100%';
-    input.style.height = '100%';
-    input.style.boxSizing = 'border-box';
-    input.style.border = '2px solid #3b82f6';
-    input.style.padding = '4px 8px';
-    input.style.outline = 'none';
-    input.style.fontSize = '14px';
-    input.style.fontFamily = 'inherit';
-    input.style.backgroundColor = '#fff';
-    input.style.color = '#1e293b';
-    input.style.position = 'absolute';
-    input.style.top = '0';
-    input.style.left = '0';
-    input.style.zIndex = '10'; // 편집 중일 때 ::before 아이콘 위에 표시
-
-    // 기존 내용 제거하고 input 추가
+    // 편집용 input 생성 및 셀 설정
+    const input = this.createEditInput(currentValue);
+    this.prepareCellForEditing(cell, columnId);
     cell.innerHTML = '';
-    cell.style.position = 'relative'; // input이 absolute로 위치할 수 있도록
     cell.appendChild(input);
     
     // 다음 프레임에서 focus (DOM이 완전히 업데이트된 후)
@@ -559,52 +836,26 @@ export class VirtualTable {
     });
 
     // Key 컬럼 편집 중 실시간 중복 체크
-    let isDuplicateKey = false; // 중복 상태 추적
+    let isDuplicateKey = false;
     if (columnId === 'key') {
       const rowId = cell.getAttribute('data-row-id') || '';
       const updateDuplicateCheck = () => {
-        const inputValue = input.value;
-        // 기존 클래스 제거
+        const inputValue = input.value.trim();
+        isDuplicateKey = false;
         cell.classList.remove('cell-duplicate-key');
         cell.removeAttribute('title');
-        isDuplicateKey = false;
+        input.removeAttribute('title');
         
-        // 중복 체크 (임시로 현재 입력값으로 체크, 자기 자신 제외)
-        if (inputValue && inputValue.trim() !== '') {
-          const keysByRowId = new Map<string, string>();
-          this.options.translations.forEach(t => {
-            // 현재 편집 중인 행은 제외하고 체크
-            if (t.id !== rowId) {
-              keysByRowId.set(t.id, t.key);
-            }
-          });
-          
-          // changeTracker의 변경사항도 반영 (현재 편집 중인 행 제외)
-          const changesMap = this.changeTracker.getChangesMap();
-          changesMap.forEach((change, changeKey) => {
-            const [changeRowId, changeColumnId] = changeKey.split('-', 2);
-            if (changeColumnId === 'key' && changeRowId !== rowId) {
-              keysByRowId.set(changeRowId, change.newValue);
-            }
-          });
-          
-          // 중복 체크
-          if (Array.from(keysByRowId.values()).includes(inputValue)) {
-            cell.classList.add('cell-duplicate-key');
-            cell.setAttribute('title', 'Key must be unique. This key already exists.');
-            input.setAttribute('title', 'Key must be unique. This key already exists.');
-            isDuplicateKey = true;
-          } else {
-            cell.classList.remove('cell-duplicate-key');
-            cell.removeAttribute('title');
-            input.removeAttribute('title');
-            isDuplicateKey = false;
-          }
+        if (inputValue && this.checkKeyDuplicate(rowId, inputValue)) {
+          isDuplicateKey = true;
+          const errorMessage = 'Key must be unique. This key already exists.';
+          cell.classList.add('cell-duplicate-key');
+          cell.setAttribute('title', errorMessage);
+          input.setAttribute('title', errorMessage);
         }
       };
       
       input.addEventListener('input', updateDuplicateCheck);
-      // 초기 체크
       updateDuplicateCheck();
     }
 
@@ -644,21 +895,8 @@ export class VirtualTable {
         
         // 변경사항 추적
         const originalValue = this.changeTracker.getOriginalValue(rowId, columnId);
-        
-        // lang 값 결정: key는 'key', context는 'context', values.*는 언어 코드
-        let lang: string;
-        if (columnId === 'key') {
-          lang = 'key';
-        } else if (columnId === 'context') {
-          lang = 'context';
-        } else if (columnId.startsWith('values.')) {
-          lang = columnId.replace('values.', '');
-        } else {
-          lang = columnId;
-        }
-        
-        // translation key 결정
-        const translationKey = columnId === 'key' ? newValue : (this.options.translations.find(t => t.id === rowId)?.key || '');
+        const lang = this.getLangFromColumnId(columnId);
+        const translationKey = this.getTranslationKey(rowId, columnId, newValue);
         
         this.changeTracker.trackChange(
           rowId,
@@ -809,17 +1047,8 @@ export class VirtualTable {
 
     // 변경사항 추적 업데이트 (undo/redo는 히스토리에 추가하지 않음)
     const originalValue = this.changeTracker.getOriginalValue(action.rowId, action.columnId);
-    
-    // lang 값 결정
-    const lang = action.columnId === 'key' ? 'key' 
-      : action.columnId === 'context' ? 'context'
-      : action.columnId.startsWith('values.') ? action.columnId.replace('values.', '')
-      : action.columnId;
-    
-    // translation key 결정
-    const translationKey = action.columnId === 'key' 
-      ? action.newValue 
-      : (this.options.translations.find(t => t.id === action.rowId)?.key || '');
+    const lang = this.getLangFromColumnId(action.columnId);
+    const translationKey = this.getTranslationKey(action.rowId, action.columnId, action.newValue);
 
     // changeTracker는 원본 값을 기준으로 변경사항을 추적하므로
     // undo/redo 시에도 원본 값과 새 값을 비교하여 변경사항을 업데이트
@@ -867,36 +1096,32 @@ export class VirtualTable {
   }
 
   /**
-   * Key 중복 체크
+   * Key 중복 체크 (현재 편집 중인 값 포함)
    */
   private checkKeyDuplicate(rowId: string, keyValue: string): boolean {
     if (!keyValue || keyValue.trim() === '') {
-      return false; // 빈 값은 중복이 아님 (빈 값 검증은 별도로 처리)
+      return false; // 빈 값은 중복이 아님
     }
 
-    // 현재 translations 배열에서 모든 key 수집 (변경사항 반영)
+    // 모든 key 수집 (원본 데이터 + 변경사항 반영, 자기 자신 제외)
     const keysByRowId = new Map<string, string>();
     this.options.translations.forEach(t => {
-      keysByRowId.set(t.id, t.key);
+      if (t.id !== rowId) {
+        keysByRowId.set(t.id, t.key);
+      }
     });
 
-    // changeTracker의 변경사항 반영
+    // changeTracker의 변경사항 반영 (자기 자신 제외)
     const changesMap = this.changeTracker.getChangesMap();
     changesMap.forEach((change, changeKey) => {
       const [changeRowId, changeColumnId] = changeKey.split('-', 2);
-      if (changeColumnId === 'key') {
+      if (changeColumnId === 'key' && changeRowId !== rowId) {
         keysByRowId.set(changeRowId, change.newValue);
       }
     });
 
-    // 자기 자신을 제외하고 같은 key가 있는지 확인
-    for (const [id, key] of keysByRowId.entries()) {
-      if (id !== rowId && key === keyValue) {
-        return true; // 중복 발견
-      }
-    }
-
-    return false; // 중복 없음
+    // 중복 확인
+    return Array.from(keysByRowId.values()).includes(keyValue);
   }
 
   /**
@@ -938,11 +1163,60 @@ export class VirtualTable {
   }
   
   /**
+   * 편집용 input 요소 생성
+   */
+  private createEditInput(value: string): HTMLInputElement {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = value;
+    input.style.width = '100%';
+    input.style.height = '100%';
+    input.style.boxSizing = 'border-box';
+    input.style.border = '2px solid #3b82f6';
+    input.style.padding = '4px 8px';
+    input.style.outline = 'none';
+    input.style.fontSize = '14px';
+    input.style.fontFamily = 'inherit';
+    input.style.backgroundColor = '#fff';
+    input.style.color = '#1e293b';
+    input.style.position = 'absolute';
+    input.style.top = '0';
+    input.style.left = '0';
+    input.style.right = '0';
+    input.style.zIndex = '10';
+    return input;
+  }
+
+  /**
+   * 편집 모드를 위해 셀 스타일 준비 (sticky 셀 처리 포함)
+   */
+  private prepareCellForEditing(cell: HTMLTableCellElement, columnId: string): void {
+    const isSticky = this.isStickyColumn(columnId);
+    
+    if (isSticky) {
+      // sticky 셀은 기존 left 값을 유지하되, 편집 중에는 z-index를 높임
+      // left 값은 이미 applyCellWidthAndStyle에서 설정되어 있음
+      cell.style.position = 'sticky';
+      cell.style.zIndex = '15'; // 편집 중 더 높은 z-index
+    } else {
+      // 일반 셀은 relative로 설정하여 input의 absolute positioning을 위한 컨테이너로 사용
+      cell.style.position = 'relative';
+    }
+  }
+
+  /**
    * 셀 내용 업데이트
    */
   private updateCellContent(cell: HTMLTableCellElement, rowId: string, columnId: string, value: string): void {
+    const columnIdAttr = cell.getAttribute('data-column-id') || columnId;
+    
     cell.innerHTML = '';
-    cell.style.position = ''; // position 복원
+    
+    // sticky 컬럼이 아니면 position을 초기화
+    if (!this.isStickyColumn(columnIdAttr)) {
+      cell.style.position = '';
+    }
+    
     const div = document.createElement('div');
     div.textContent = value;
     div.style.overflow = 'hidden';
@@ -950,6 +1224,9 @@ export class VirtualTable {
     div.style.whiteSpace = 'nowrap';
     div.style.width = '100%';
     cell.appendChild(div);
+    
+    // sticky 셀의 position 복원 (applyCellWidthAndStyle에서 설정)
+    this.applyCellWidthAndStyle(cell, columnIdAttr);
     
     // 스타일 업데이트
     this.updateCellStyle(rowId, columnId, cell);
@@ -1000,6 +1277,73 @@ export class VirtualTable {
     return this.undoRedoManager.getHistoryState();
   }
   
+  /**
+   * readOnly 모드 업데이트 및 테이블 재렌더링
+   */
+  setReadOnly(readOnly: boolean): void {
+    this.options = { ...this.options, readOnly };
+    
+    // 테이블 재렌더링
+    if (this.tableElement) {
+      // readOnly 클래스 추가/제거
+      if (readOnly) {
+        this.tableElement.classList.add('readonly');
+      } else {
+        this.tableElement.classList.remove('readonly');
+      }
+      
+      // 모든 셀의 편집 가능 여부 업데이트
+      this.updateCellEditability(readOnly);
+      
+      // tooltip 업데이트
+      this.updateReadOnlyTooltips(readOnly);
+    }
+  }
+
+  /**
+   * 현재 readOnly 상태 반환
+   */
+  isReadOnly(): boolean {
+    return this.options.readOnly ?? false;
+  }
+
+  /**
+   * 셀의 편집 가능 여부 업데이트
+   */
+  private updateCellEditability(_readOnly: boolean): void {
+    if (!this.bodyElement) return;
+    
+    // 전체 테이블 재렌더링 (더 간단하고 안전한 방법)
+    // readOnly는 이미 this.options.readOnly에 반영되어 있으므로
+    // renderVirtualRows()에서 자동으로 처리됨
+    this.renderVirtualRows();
+  }
+
+  /**
+   * read-only 모드일 때 tooltip 표시/제거
+   */
+  private updateReadOnlyTooltips(readOnly: boolean): void {
+    if (!this.bodyElement) return;
+    
+    const cells = this.bodyElement.querySelectorAll('td[data-column-id]');
+    cells.forEach(cell => {
+      const htmlCell = cell as HTMLTableCellElement;
+      const columnId = htmlCell.getAttribute('data-column-id');
+      if (!columnId) return;
+      
+      // 언어 컬럼만 read-only 모드에서 tooltip 표시
+      const isLangColumn = columnId.startsWith('values.');
+      
+      if (readOnly && isLangColumn) {
+        htmlCell.setAttribute('title', 'You cannot edit in read-only mode');
+        htmlCell.style.cursor = 'not-allowed';
+      } else {
+        htmlCell.removeAttribute('title');
+        htmlCell.style.cursor = '';
+      }
+    });
+  }
+
   /**
    * translations 업데이트 (정렬 후 사용)
    */

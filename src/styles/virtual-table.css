@@ -14,7 +14,7 @@
   position: relative;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  /* table-layout: fixed 제거 - min-width로 컬럼 너비 제어 */
   background-color: #fff;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 14px;
@@ -56,7 +56,7 @@
 .virtual-table tbody tr {
   background-color: #fff;
   display: table;
-  table-layout: fixed;
+  /* table-layout: fixed 제거 - min-width로 컬럼 너비 제어 */
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -190,5 +190,33 @@
 .virtual-table td.cell-duplicate-key {
   background-color: #fee2e2 !important; /* 연한 빨간색 배경 */
   border: 2px solid #ef4444 !important; /* 빨간 테두리 */
+}
+
+/* 컬럼 리사이즈 핸들 (Excel 스타일) */
+.column-resize-handle {
+  position: absolute;
+  right: -3px; /* 경계선 중심에 배치 (핫존 ±3px) */
+  top: 0;
+  bottom: 0;
+  width: 6px; /* 핫존 너비 (±3px) */
+  cursor: col-resize;
+  z-index: 30; /* 모든 요소 위에 표시 (sticky 헤더 z-index: 20보다 높음) */
+  background-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 마우스 오버 시 시각적 피드백 (Excel 스타일) */
+.column-resize-handle:hover {
+  background-color: #3b82f6;
+  opacity: 0.5;
+}
+
+/* 드래그 중 시각적 피드백 */
+.column-resize-handle:active {
+  background-color: #2563eb;
+  opacity: 0.7;
 }
 

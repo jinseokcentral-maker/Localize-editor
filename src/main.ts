@@ -161,11 +161,10 @@ virtualTable = new VirtualTable({
 
 virtualTable.render();
 
-// Editable 토글 버튼 이벤트 (VirtualTable에서는 아직 미구현)
+// Editable 토글 버튼 이벤트
 toggleEditableBtn.addEventListener('click', () => {
   isEditable = !isEditable;
-  // TODO: VirtualTable에 setReadOnly 메서드 구현 필요
-  // virtualTable?.setReadOnly(!isEditable);
+  virtualTable?.setReadOnly(!isEditable);
   
   // UI 업데이트
   toggleEditableBtn.textContent = `Toggle Editable (현재: ${isEditable ? '편집 가능' : '읽기 전용'})`;
@@ -175,7 +174,7 @@ toggleEditableBtn.addEventListener('click', () => {
   
   editableStatus.textContent = isEditable
     ? '💡 편집 가능 모드: 모든 셀을 편집할 수 있습니다.'
-    : '🔒 읽기 전용 모드: 셀을 편집할 수 없습니다. 마우스를 올리면 tooltip이 표시됩니다.';
+    : '🔒 읽기 전용 모드: 언어 컬럼은 편집할 수 없습니다. 마우스를 올리면 tooltip이 표시됩니다.';
 });
 
 // 초기 상태 표시
