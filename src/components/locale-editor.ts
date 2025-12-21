@@ -224,7 +224,12 @@ export class LocaleEditor {
       },
       // 키보드 이벤트 처리 - 우리가 정의한 동작만 허용
       onCellKeyDown: (event) => {
-        const key = event.event.key;
+        if (!event.event) return false;
+        
+        const key = (event.event as KeyboardEvent).key;
+        const isShift = (event.event as KeyboardEvent).shiftKey;
+        const currentRowIndex = event.rowIndex ?? null;
+        const currentColumn = 'column' in event ? event.column : null;
         
         // ESC 키: 편집 취소 (기본 동작 허용, 플래그만 설정)
         if (key === 'Escape') {
@@ -239,7 +244,10 @@ export class LocaleEditor {
         
         // Tab 키: 편집 중이면 편집 종료 후 다음 셀로 이동
         if (key === 'Tab') {
-          if (event.editing && event.api) {
+          // 편집 중인지 확인 (AG Grid API를 통해 확인)
+          const isEditing = event.api?.getEditingCells().length > 0;
+          
+          if (isEditing && event.api) {
             // 편집 중이면 먼저 편집 종료 (변경사항 저장)
             // stopEditing(true)를 호출하면 자동으로 다음 셀로 이동하는데,
             // 우리는 커스텀 네비게이션을 원하므로 false로 호출하고 수동으로 처리
@@ -247,20 +255,21 @@ export class LocaleEditor {
             
             // 편집 종료 후 다음 셀로 이동
             // setTimeout을 사용하여 편집 종료가 완전히 완료된 후 실행
-            setTimeout(() => {
-              if (this.gridApi && currentRowIndex !== undefined && currentColumn) {
-                this.handleTabNavigationAfterEditDirectly(
-                  currentRowIndex,
-                  currentColumn,
-                  isShift
-                );
-              }
-            }, 0);
+            if (currentRowIndex !== null && currentRowIndex !== undefined && currentColumn) {
+              setTimeout(() => {
+                if (this.gridApi) {
+                  this.handleTabNavigationAfterEditDirectly(
+                    currentRowIndex,
+                    currentColumn,
+                    isShift
+                  );
+                }
+              }, 0);
+            }
             
             // 기본 Tab 동작 완전히 차단
             event.event.preventDefault();
             event.event.stopPropagation();
-            event.event.stopImmediatePropagation();
             return false;
           }
           // 편집 중이 아니면 navigateToNextCell에서 처리
@@ -271,7 +280,8 @@ export class LocaleEditor {
         }
         
         // 편집 모드에서는 텍스트 입력을 위한 키 허용 (브라우저 기본 동작)
-        if (event.editing) {
+        const isEditing = event.api?.getEditingCells().length > 0;
+        if (isEditing) {
           return false; // 편집 모드에서는 기본 동작 허용
         }
         
@@ -706,7 +716,6 @@ export class LocaleEditor {
     const { column, rowIndex } = event;
     if (!column || rowIndex === undefined) return;
 
-    const colId = column.getColId();
     const colDef = column.getColDef();
     
     // 편집 가능한 컬럼이 아니면 무시
@@ -731,6 +740,7 @@ export class LocaleEditor {
   /**
    * Tab 키 네비게이션 처리 (편집 모드로 시작하지 않음)
    * onCellKeyDown에서 호출됨
+   * @deprecated 사용되지 않음
    */
   private handleTabKeyNavigationFromEvent(event: any): void {
     if (!this.gridApi) return;
@@ -756,6 +766,7 @@ export class LocaleEditor {
    * Tab 키 네비게이션 내부 로직 (requestAnimationFrame에서 호출)
    */
   private handleTabKeyNavigationInternal(currentRowIndex: number, currentColumn: any, isShift: boolean): void {
+    if (!this.gridApi) return;
 
     const allColumns = this.gridApi.getColumns();
     if (!allColumns || allColumns.length === 0) return;

@@ -44,10 +44,6 @@ export class VirtualTable {
   private editingCell: { rowIndex: number; columnId: string } | null = null;
   private isEscapeKeyPressed = false;
   private isFinishingEdit = false; // finishEdit 중복 호출 방지
-  
-  // 정렬 관련 상태
-  private sortColumn: string | null = null;
-  private sortDirection: 'asc' | 'desc' | null = null;
 
   constructor(options: VirtualTableOptions) {
     this.container = options.container;
@@ -142,6 +138,14 @@ export class VirtualTable {
           this.tableElement.style.width = totalWidth;
           this.tableElement.style.minWidth = totalWidth;
           this.tableElement.style.maxWidth = totalWidth;
+        }
+        
+        // 헤더 다시 렌더링 (컬럼 너비가 변경되었으므로)
+        if (this.headerElement && this.tableElement) {
+          // 기존 헤더 내용 제거
+          this.headerElement.innerHTML = '';
+          // 헤더 다시 렌더링
+          this.renderHeader();
         }
         
         // 가상 행들도 다시 렌더링 (너비가 변경되었으므로)
@@ -305,47 +309,83 @@ export class VirtualTable {
     const headerRow = document.createElement('tr');
     headerRow.setAttribute('role', 'row');
 
-    // 컬럼 너비 계산 (헤더와 바디가 일치하도록)
     const containerWidth = this.getContainerWidth();
     const columnWidths = this.calculateColumnWidths(containerWidth);
     
-    // Key 컬럼
-    const keyHeader = document.createElement('th');
-    keyHeader.setAttribute('role', 'columnheader');
-    keyHeader.textContent = 'Key';
-    keyHeader.style.width = `${columnWidths.key}px`;
-    keyHeader.style.minWidth = `${columnWidths.key}px`;
-    keyHeader.style.maxWidth = `${columnWidths.key}px`;
-    keyHeader.style.position = 'sticky';
-    keyHeader.style.left = '0';
-    keyHeader.style.zIndex = '10';
-    headerRow.appendChild(keyHeader);
-
-    // Context 컬럼
-    const contextHeader = document.createElement('th');
-    contextHeader.setAttribute('role', 'columnheader');
-    contextHeader.textContent = 'Context';
-    contextHeader.style.width = `${columnWidths.context}px`;
-    contextHeader.style.minWidth = `${columnWidths.context}px`;
-    contextHeader.style.maxWidth = `${columnWidths.context}px`;
-    contextHeader.style.position = 'sticky';
-    contextHeader.style.left = `${columnWidths.key}px`;
-    contextHeader.style.zIndex = '10';
-    headerRow.appendChild(contextHeader);
+    // Key 컬럼 (sticky, z-index: 10)
+    headerRow.appendChild(this.createHeaderCell('Key', columnWidths.key, 0, 10));
+    
+    // Context 컬럼 (sticky, z-index: 10)
+    headerRow.appendChild(this.createHeaderCell('Context', columnWidths.context, columnWidths.key, 10));
 
     // 언어 컬럼들
     this.options.languages.forEach((lang, index) => {
       const langWidth = columnWidths.languages[index]!;
-      const langHeader = document.createElement('th');
-      langHeader.setAttribute('role', 'columnheader');
-      langHeader.textContent = lang.toUpperCase();
-      langHeader.style.width = `${langWidth}px`;
-      langHeader.style.minWidth = `${langWidth}px`;
-      langHeader.style.maxWidth = `${langWidth}px`;
-      headerRow.appendChild(langHeader);
+      headerRow.appendChild(this.createHeaderCell(lang.toUpperCase(), langWidth, 0, 0));
     });
 
     this.headerElement.appendChild(headerRow);
+  }
+
+  /**
+   * 헤더 셀 생성
+   */
+  private createHeaderCell(text: string, width: number, left: number, zIndex: number): HTMLTableCellElement {
+    const header = document.createElement('th');
+    header.setAttribute('role', 'columnheader');
+    header.textContent = text;
+    header.style.width = `${width}px`;
+    header.style.minWidth = `${width}px`;
+    header.style.maxWidth = `${width}px`;
+    
+    if (left > 0 || zIndex > 0) {
+      header.style.position = 'sticky';
+      header.style.left = `${left}px`;
+      header.style.zIndex = zIndex.toString();
+    }
+    
+    return header;
+  }
+
+  /**
+   * 셀에 너비 및 스타일 적용
+   */
+  private applyCellWidthAndStyle(cell: HTMLTableCellElement, columnId: string): void {
+    const containerWidth = this.getContainerWidth();
+    const columnWidths = this.calculateColumnWidths(containerWidth);
+    
+    let width: number;
+    let left = 0;
+    let zIndex = 0;
+    
+    if (columnId === 'key') {
+      width = columnWidths.key;
+      left = 0;
+      zIndex = 5;
+    } else if (columnId === 'context') {
+      width = columnWidths.context;
+      left = columnWidths.key;
+      zIndex = 5;
+    } else if (columnId.startsWith('values.')) {
+      const langIndex = this.options.languages.findIndex(lang => `values.${lang}` === columnId);
+      if (langIndex >= 0) {
+        width = columnWidths.languages[langIndex]!;
+      } else {
+        return; // 알 수 없는 컬럼
+      }
+    } else {
+      return; // 알 수 없는 컬럼
+    }
+    
+    cell.style.width = `${width}px`;
+    cell.style.minWidth = `${width}px`;
+    cell.style.maxWidth = `${width}px`;
+    
+    if (zIndex > 0) {
+      cell.style.position = 'sticky';
+      cell.style.left = `${left}px`;
+      cell.style.zIndex = zIndex.toString();
+    }
   }
 
   /**
@@ -388,14 +428,6 @@ export class VirtualTable {
     };
   }
 
-  /**
-   * 바디 렌더링 (가상 스크롤링 적용)
-   * 이 메서드는 이제 renderVirtualRows에서 처리됨
-   */
-  private renderBody(): void {
-    // 가상 스크롤링이 활성화되어 있으면 renderVirtualRows에서 처리
-    // 이 메서드는 호환성을 위해 남겨두지만 실제로는 사용되지 않음
-  }
 
   /**
    * 행 생성
@@ -453,33 +485,8 @@ export class VirtualTable {
     cell.setAttribute('data-row-index', rowIndex.toString());
     cell.setAttribute('tabindex', editable ? '0' : '-1');
     
-    // 컬럼 너비 설정 (헤더와 일치)
-    const containerWidth = this.getContainerWidth();
-    const columnWidths = this.calculateColumnWidths(containerWidth);
-    
-    if (columnId === 'key') {
-      cell.style.width = `${columnWidths.key}px`;
-      cell.style.minWidth = `${columnWidths.key}px`;
-      cell.style.maxWidth = `${columnWidths.key}px`;
-      cell.style.position = 'sticky';
-      cell.style.left = '0';
-      cell.style.zIndex = '5';
-    } else if (columnId === 'context') {
-      cell.style.width = `${columnWidths.context}px`;
-      cell.style.minWidth = `${columnWidths.context}px`;
-      cell.style.maxWidth = `${columnWidths.context}px`;
-      cell.style.position = 'sticky';
-      cell.style.left = `${columnWidths.key}px`;
-      cell.style.zIndex = '5';
-    } else if (columnId.startsWith('values.')) {
-      const langIndex = this.options.languages.findIndex(lang => `values.${lang}` === columnId);
-      if (langIndex >= 0) {
-        const langWidth = columnWidths.languages[langIndex]!;
-        cell.style.width = `${langWidth}px`;
-        cell.style.minWidth = `${langWidth}px`;
-        cell.style.maxWidth = `${langWidth}px`;
-      }
-    }
+    // 컬럼 너비 및 스타일 설정 (헤더와 일치)
+    this.applyCellWidthAndStyle(cell, columnId);
 
     // 셀 내용
     const cellContent = document.createElement('div');
@@ -511,7 +518,7 @@ export class VirtualTable {
   private startEditing(rowIndex: number, columnId: string, cell: HTMLTableCellElement): void {
     // 이미 편집 중이면 취소
     if (this.editingCell) {
-      this.stopEditing(false);
+      this.stopEditing();
     }
 
     this.editingCell = { rowIndex, columnId };
@@ -720,7 +727,7 @@ export class VirtualTable {
   /**
    * 편집 중지
    */
-  private stopEditing(save: boolean): void {
+  private stopEditing(): void {
     if (!this.editingCell) return;
     // 편집 중지 로직은 startEditing의 finishEdit에서 처리됨
     this.editingCell = null;
@@ -794,7 +801,7 @@ export class VirtualTable {
 
     // 현재 편집 중이면 중지
     if (this.editingCell) {
-      this.stopEditing(false);
+      this.stopEditing();
     }
 
     // 값 업데이트
@@ -832,14 +839,6 @@ export class VirtualTable {
     if (this.options.onCellChange) {
       this.options.onCellChange(action.rowId, action.columnId, action.newValue);
     }
-  }
-
-  /**
-   * 컬럼 너비 가져오기 (px 값 반환)
-   */
-  private getColumnWidth(columnId: string, defaultWidth: number): string {
-    const width = this.columnWidths.get(columnId) || defaultWidth;
-    return `${width}px`;
   }
 
   /**
@@ -954,19 +953,6 @@ export class VirtualTable {
     
     // 스타일 업데이트
     this.updateCellStyle(rowId, columnId, cell);
-  }
-  
-  /**
-   * Key 컬럼으로 정렬 (간단한 구현)
-   */
-  private sortByKey(): void {
-    // 정렬은 translations 배열을 외부에서 관리해야 하므로,
-    // 일단 정렬 방향만 저장하고 외부에서 처리하도록 함
-    this.sortColumn = 'key';
-    this.sortDirection = 'asc';
-    
-    // 재렌더링 (정렬된 순서는 외부에서 translations를 정렬한 후 updateTranslations 호출 필요)
-    // 하지만 일단 render()는 하지 않음 (translations가 변경되지 않았으므로)
   }
   
   /**
