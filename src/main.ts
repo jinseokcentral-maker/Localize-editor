@@ -1,7 +1,6 @@
 import './style.css';
-// import { LocaleEditor } from './components/locale-editor'; // VirtualTable 테스트 중이므로 주석처리
 import type { Translation } from './types/translation';
-import { VirtualTable } from './components/virtual-table';
+import { VirtualTableDiv } from './components/virtual-table-div';
 
 // Step 2: AG Grid 통합 완료
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -64,16 +63,16 @@ app.innerHTML = `
     
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
       <h2 class="text-xl font-semibold mb-2 text-blue-900">
-        ✅ Step 2: AG Grid 통합 완료
+        ✅ VirtualTableDiv (Div-based Grid)
       </h2>
       <p class="text-blue-800 mb-2">
-        AG Grid가 통합되었고, 그리드가 렌더링됩니다. 모든 테스트가 통과했습니다.
+        테이블 구조 대신 div 기반 그리드로 구현하여 가상 스크롤링과 완벽하게 호환됩니다.
       </p>
       <p class="text-green-800 font-semibold">
-        ✅ Phase 1-1: 셀 편집 이벤트 처리 완료
+        ✅ 키보드 네비게이션 완전 제어 가능
       </p>
       <p class="text-sm text-gray-600 mt-2">
-        💡 언어 컬럼(EN, KO)의 셀을 더블클릭하여 편집해보세요. 편집 후 Enter 키를 누르면 콘솔에 변경사항이 표시됩니다.
+        💡 셀을 더블클릭하여 편집하거나, Tab/Enter/Arrow 키로 네비게이션하세요. 큰 리스트도 부드럽게 처리됩니다.
       </p>
     </div>
     
@@ -128,7 +127,7 @@ const toggleEditableBtn = document.getElementById('toggle-editable-btn')!;
 const editableStatus = document.getElementById('editable-status')!;
 
 let isEditable = true; // 기본값: 편집 가능
-let virtualTable: VirtualTable | null = null;
+let virtualTable: VirtualTableDiv | null = null;
 
 // 셀 변경 콜백
 const onCellChange = (id: string, lang: string, value: string) => {
@@ -148,8 +147,8 @@ const onCellChange = (id: string, lang: string, value: string) => {
   }
 };
 
-// VirtualTable 테스트 (대량 데이터)
-virtualTable = new VirtualTable({
+// VirtualTableDiv 테스트 (대량 데이터)
+virtualTable = new VirtualTableDiv({
   container,
   translations: allTranslations,
   languages: ['en', 'ko'],
@@ -178,5 +177,5 @@ toggleEditableBtn.addEventListener('click', () => {
 });
 
 // 초기 상태 표시
-editableStatus.textContent = '💡 VirtualTable 테스트 모드: 모든 셀을 편집할 수 있습니다.';
+editableStatus.textContent = '💡 VirtualTableDiv 테스트 모드: 모든 셀을 편집할 수 있습니다. Tab/Enter/Arrow 키로 네비게이션하세요.';
 

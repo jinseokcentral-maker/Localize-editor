@@ -50,34 +50,37 @@ export class LocaleEditor {
    */
   setReadOnly(readOnly: boolean): void {
     this.options = { ...this.options, readOnly };
-    
+
     if (this.gridApi) {
       // 컬럼 크기 저장
       const columnState = this.gridApi.getColumnState();
       const widthMap = new Map<string, number>();
-      columnState.forEach(state => {
+      columnState.forEach((state) => {
         if (state.colId && state.width) {
           widthMap.set(state.colId, state.width);
         }
       });
-      
+
       // 새로운 컬럼 정의 생성 (pinned 속성 포함)
-      const newColumnDefs = this.prepareColumns(this.options.languages, readOnly);
-      
+      const newColumnDefs = this.prepareColumns(
+        this.options.languages,
+        readOnly
+      );
+
       // 저장된 컬럼 크기 적용
-      newColumnDefs.forEach(colDef => {
+      newColumnDefs.forEach((colDef) => {
         if (colDef.field && widthMap.has(colDef.field)) {
           colDef.width = widthMap.get(colDef.field)!;
         }
       });
-      
+
       // 컬럼 정의 업데이트 (pinned 속성이 새 정의에 포함되어 있음)
       this.columnDefs = newColumnDefs;
       this.gridApi.setGridOption("columnDefs", newColumnDefs);
-      
+
       // 셀 새로고침 (editable 상태 변경 반영)
       this.gridApi.refreshCells({ force: true });
-      
+
       // popover 표시/숨김 처리
       this.updateReadOnlyPopover(readOnly);
     }
@@ -90,58 +93,66 @@ export class LocaleEditor {
     if (!this.gridApi) return;
 
     const container = this.options.container;
-    const existingPopover = container.querySelector('.readonly-popover') as HTMLElement | null;
-    
+    const existingPopover = container.querySelector(
+      ".readonly-popover"
+    ) as HTMLElement | null;
+
     // 기존 이벤트 리스너 제거
     if (this.popoverMouseLeaveHandler) {
-      container.removeEventListener('mouseleave', this.popoverMouseLeaveHandler);
+      container.removeEventListener(
+        "mouseleave",
+        this.popoverMouseLeaveHandler
+      );
       this.popoverMouseLeaveHandler = null;
     }
     if (this.popoverMouseEnterHandler) {
-      container.removeEventListener('mouseenter', this.popoverMouseEnterHandler);
+      container.removeEventListener(
+        "mouseenter",
+        this.popoverMouseEnterHandler
+      );
       this.popoverMouseEnterHandler = null;
     }
-    
+
     if (readOnly) {
       // 이미 존재하면 제거하고 다시 생성
       if (existingPopover) {
         existingPopover.remove();
       }
-      
+
       // 새 popover 생성 함수
       const createPopover = () => {
-        const popover = document.createElement('div');
-        popover.className = 'readonly-popover';
-        popover.textContent = this.getEditDisabledMessage('', '', null);
-        container.style.position = 'relative'; // position context 설정
+        const popover = document.createElement("div");
+        popover.className = "readonly-popover";
+        popover.textContent = this.getEditDisabledMessage("", "", null);
+        container.style.position = "relative"; // position context 설정
         container.appendChild(popover);
         return popover;
       };
-      
+
       // 초기 popover 생성
       createPopover();
-      
+
       // 마우스가 그리드 영역을 벗어나면 popover 제거
       this.popoverMouseLeaveHandler = (e: MouseEvent) => {
         // relatedTarget이 container 안에 없으면 (그리드를 떠나면) popover 제거
         if (!container.contains(e.relatedTarget as Node)) {
-          const currentPopover = container.querySelector('.readonly-popover');
+          const currentPopover = container.querySelector(".readonly-popover");
           if (currentPopover) {
             currentPopover.remove();
           }
         }
       };
-      
+
       // 마우스가 다시 들어오면 popover 표시
       this.popoverMouseEnterHandler = () => {
-        const currentPopover = container.querySelector('.readonly-popover');
+        const currentPopover = container.querySelector(".readonly-popover");
         if (!currentPopover && readOnly) {
           createPopover();
         }
       };
-      
-      container.addEventListener('mouseleave', this.popoverMouseLeaveHandler);
-      container.addEventListener('mouseenter', this.popoverMouseEnterHandler);
+
+      container.addEventListener("mouseleave", this.popoverMouseLeaveHandler);
+      container.addEventListener("mouseenter", this.popoverMouseEnterHandler);
     } else {
       // 읽기 전용 모드가 아니면 popover 제거
       if (existingPopover) {
@@ -161,8 +172,7 @@ export class LocaleEditor {
    * 그리드를 렌더링합니다.
    */
   render(): void {
-    const { container, translations, languages, readOnly } =
-      this.options;
+    const { container, translations, languages, readOnly } = this.options;
 
     // 원본 데이터 초기화 (변경사항 추적용)
     this.changeTracker.initializeOriginalData(translations, languages);
@@ -199,7 +209,7 @@ export class LocaleEditor {
       onGridReady: (params) => {
         // 모든 컬럼이 컨테이너 너비를 채우도록 조정
         params.api.sizeColumnsToFit();
-        
+
         // 읽기 전용 모드면 popover 표시
         if (readOnly) {
           this.updateReadOnlyPopover(true);
@@ -225,37 +235,41 @@ export class LocaleEditor {
       // 키보드 이벤트 처리 - 우리가 정의한 동작만 허용
       onCellKeyDown: (event) => {
         if (!event.event) return false;
-        
+
         const key = (event.event as KeyboardEvent).key;
         const isShift = (event.event as KeyboardEvent).shiftKey;
         const currentRowIndex = event.rowIndex ?? null;
-        const currentColumn = 'column' in event ? event.column : null;
-        
+        const currentColumn = "column" in event ? event.column : null;
+
         // ESC 키: 편집 취소 (기본 동작 허용, 플래그만 설정)
-        if (key === 'Escape') {
+        if (key === "Escape") {
           this.isEscapeKeyPressed = true;
           return false; // 기본 동작 허용
         }
-        
+
         // Enter 키: 기본 동작 허용 (handleCellEditingStopped에서 처리)
-        if (key === 'Enter') {
+        if (key === "Enter") {
           return false; // 기본 동작 허용
         }
-        
+
         // Tab 키: 편집 중이면 편집 종료 후 다음 셀로 이동
-        if (key === 'Tab') {
+        if (key === "Tab") {
           // 편집 중인지 확인 (AG Grid API를 통해 확인)
           const isEditing = event.api?.getEditingCells().length > 0;
-          
+
           if (isEditing && event.api) {
             // 편집 중이면 먼저 편집 종료 (변경사항 저장)
             // stopEditing(true)를 호출하면 자동으로 다음 셀로 이동하는데,
             // 우리는 커스텀 네비게이션을 원하므로 false로 호출하고 수동으로 처리
             event.api.stopEditing(false); // false = 포커스 이동 안 함
-            
+
             // 편집 종료 후 다음 셀로 이동
             // setTimeout을 사용하여 편집 종료가 완전히 완료된 후 실행
-            if (currentRowIndex !== null && currentRowIndex !== undefined && currentColumn) {
+            if (
+              currentRowIndex !== null &&
+              currentRowIndex !== undefined &&
+              currentColumn
+            ) {
               setTimeout(() => {
                 if (this.gridApi) {
                   this.handleTabNavigationAfterEditDirectly(
@@ -266,7 +280,7 @@ export class LocaleEditor {
                 }
               }, 0);
             }
-            
+
             // 기본 Tab 동작 완전히 차단
             event.event.preventDefault();
             event.event.stopPropagation();
@@ -278,29 +292,29 @@ export class LocaleEditor {
           event.event.stopPropagation();
           return false;
         }
-        
+
         // 편집 모드에서는 텍스트 입력을 위한 키 허용 (브라우저 기본 동작)
         const isEditing = event.api?.getEditingCells().length > 0;
         if (isEditing) {
           return false; // 편집 모드에서는 기본 동작 허용
         }
-        
+
         // 편집 모드가 아닐 때는 Arrow keys, Space 등 네비게이션 키도 차단
         // (우리가 정의한 Tab만 사용)
         // Arrow keys, Space 등은 기본 동작 차단
         if (
-          key.startsWith('Arrow') ||
-          key === 'Space' ||
-          key === 'Home' ||
-          key === 'End' ||
-          key === 'PageUp' ||
-          key === 'PageDown'
+          key.startsWith("Arrow") ||
+          key === "Space" ||
+          key === "Home" ||
+          key === "End" ||
+          key === "PageUp" ||
+          key === "PageDown"
         ) {
           event.event.preventDefault();
           event.event.stopPropagation();
           return false;
         }
-        
+
         // 나머지 키는 기본 동작 허용 (예: 문자 입력 등)
         return false;
       },
@@ -316,7 +330,11 @@ export class LocaleEditor {
   /**
    * 편집 불가능한 필드에 대한 tooltip 메시지 생성
    */
-  private getEditDisabledMessage(field: string, rowId: string, rowData: any): string {
+  private getEditDisabledMessage(
+    field: string,
+    rowId: string,
+    rowData: any
+  ): string {
     // 커스텀 메시지 생성 함수가 있으면 사용
     if (this.options.getEditDisabledTooltip) {
       return this.options.getEditDisabledTooltip(field, rowId, rowData);
@@ -464,16 +482,19 @@ export class LocaleEditor {
    */
   private handleCellValueChangedEffect(
     event: CellValueChangedEvent
-  ): Effect.Effect<void, LocaleEditorError | import("@/types/errors").ValidationError> {
+  ): Effect.Effect<
+    void,
+    LocaleEditorError | import("@/types/errors").ValidationError
+  > {
     const fieldOption = Option.fromNullable(event.colDef?.field);
-    
+
     // field가 없으면 무시
     if (Option.isNone(fieldOption)) {
       return Effect.void;
     }
 
     const field = fieldOption.value;
-    
+
     return Effect.flatMap(
       validateWithEffect(FieldSchema, field, "Invalid field format"),
       (validField) => {
@@ -488,13 +509,20 @@ export class LocaleEditor {
               })
             );
           }
-          const newValue = event.newValue !== undefined && event.newValue !== null
-            ? event.newValue
-            : (event.data?.[validField] ?? event.node?.data?.[validField] ?? "");
-          const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
-          
+          const newValue =
+            event.newValue !== undefined && event.newValue !== null
+              ? event.newValue
+              : event.data?.[validField] ??
+                event.node?.data?.[validField] ??
+                "";
+          const valueString =
+            newValue !== undefined && newValue !== null ? String(newValue) : "";
+
           // 원본 값 가져오기 및 변경사항 추적
-          const oldValue = this.changeTracker.getOriginalValue(rowId, validField);
+          const oldValue = this.changeTracker.getOriginalValue(
+            rowId,
+            validField
+          );
           this.changeTracker.trackChange(
             rowId,
             validField,
@@ -506,12 +534,12 @@ export class LocaleEditor {
               this.updateCellStyle(rowId, field, true);
             }
           );
-          
+
           // onCellChange 콜백 호출 (있으면)
           if (this.options.onCellChange) {
             this.options.onCellChange(rowId, "key", valueString);
           }
-          
+
           // Key 변경 후 정렬 수행 (성능 최적화: requestAnimationFrame으로 지연)
           if (this.gridApi) {
             requestAnimationFrame(() => {
@@ -524,10 +552,10 @@ export class LocaleEditor {
               }
             });
           }
-          
+
           return Effect.void;
         }
-        
+
         // context 필드인 경우
         if (validField === "context") {
           const rowId = event.data?.id;
@@ -539,13 +567,20 @@ export class LocaleEditor {
               })
             );
           }
-          const newValue = event.newValue !== undefined && event.newValue !== null
-            ? event.newValue
-            : (event.data?.[validField] ?? event.node?.data?.[validField] ?? "");
-          const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
-          
+          const newValue =
+            event.newValue !== undefined && event.newValue !== null
+              ? event.newValue
+              : event.data?.[validField] ??
+                event.node?.data?.[validField] ??
+                "";
+          const valueString =
+            newValue !== undefined && newValue !== null ? String(newValue) : "";
+
           // 원본 값 가져오기 및 변경사항 추적
-          const oldValue = this.changeTracker.getOriginalValue(rowId, validField);
+          const oldValue = this.changeTracker.getOriginalValue(
+            rowId,
+            validField
+          );
           this.changeTracker.trackChange(
             rowId,
             validField,
@@ -557,7 +592,7 @@ export class LocaleEditor {
               this.updateCellStyle(rowId, field, true);
             }
           );
-          
+
           // onCellChange 콜백 호출 (있으면)
           if (this.options.onCellChange) {
             this.options.onCellChange(rowId, "context", valueString);
@@ -585,12 +620,14 @@ export class LocaleEditor {
         }
 
         // 새로운 값 추출
-        const newValue = event.newValue !== undefined && event.newValue !== null
-          ? event.newValue
-          : (event.data?.[validField] ?? event.node?.data?.[validField] ?? "");
-        
+        const newValue =
+          event.newValue !== undefined && event.newValue !== null
+            ? event.newValue
+            : event.data?.[validField] ?? event.node?.data?.[validField] ?? "";
+
         // 최종적으로 문자열로 변환 (빈 값도 빈 문자열로)
-        const valueString = newValue !== undefined && newValue !== null ? String(newValue) : "";
+        const valueString =
+          newValue !== undefined && newValue !== null ? String(newValue) : "";
 
         // 원본 값 가져오기 및 변경사항 추적
         const oldValue = this.changeTracker.getOriginalValue(rowId, validField);
@@ -633,7 +670,7 @@ export class LocaleEditor {
     _isDirty: boolean
   ): Effect.Effect<void, LocaleEditorError> {
     const gridApiOption = Option.fromNullable(this.gridApi);
-    
+
     if (Option.isNone(gridApiOption)) {
       return Effect.fail(
         new LocaleEditorError({
@@ -645,7 +682,7 @@ export class LocaleEditor {
 
     const gridApi = gridApiOption.value;
     const rowNode = gridApi.getRowNode(rowId);
-    
+
     if (!rowNode) {
       return Effect.fail(
         new LocaleEditorError({
@@ -656,7 +693,7 @@ export class LocaleEditor {
     }
 
     const column = gridApi.getColumn(field);
-    
+
     if (!column) {
       return Effect.fail(
         new LocaleEditorError({
@@ -683,7 +720,7 @@ export class LocaleEditor {
 
   /**
    * 셀 스타일 업데이트 (변경사항 표시)
-   * 
+   *
    * 성능 최적화:
    * - cellClassRules가 이미 정의되어 있어서, refreshCells를 호출하면
    *   cellClassRules가 재평가되어 스타일이 업데이트됨
@@ -691,7 +728,11 @@ export class LocaleEditor {
    * - 대안: refreshCells 없이 cellClassRules만 사용할 수도 있지만,
    *   즉시 반영을 위해 refreshCells 사용 (사용자 경험 우선)
    */
-  private updateCellStyle(rowId: string, field: string, _isDirty: boolean): void {
+  private updateCellStyle(
+    rowId: string,
+    field: string,
+    _isDirty: boolean
+  ): void {
     const effect = this.updateCellStyleEffect(rowId, field, _isDirty);
     // 에러가 발생해도 무시 (기존 동작 유지)
     Effect.runSync(Effect.either(effect));
@@ -717,7 +758,7 @@ export class LocaleEditor {
     if (!column || rowIndex === undefined) return;
 
     const colDef = column.getColDef();
-    
+
     // 편집 가능한 컬럼이 아니면 무시
     if (!colDef.editable) return;
 
@@ -759,13 +800,21 @@ export class LocaleEditor {
 
     // 편집 완료 직후 즉시 네비게이션 수행 (동기적으로)
     // requestAnimationFrame을 사용하면 AG Grid가 그 사이에 기본 Tab 동작을 수행할 수 있음
-    this.handleTabKeyNavigationInternal(currentRowIndex, currentColumn, isShift);
+    this.handleTabKeyNavigationInternal(
+      currentRowIndex,
+      currentColumn,
+      isShift
+    );
   }
 
   /**
    * Tab 키 네비게이션 내부 로직 (requestAnimationFrame에서 호출)
    */
-  private handleTabKeyNavigationInternal(currentRowIndex: number, currentColumn: any, isShift: boolean): void {
+  private handleTabKeyNavigationInternal(
+    currentRowIndex: number,
+    currentColumn: any,
+    isShift: boolean
+  ): void {
     if (!this.gridApi) return;
 
     const allColumns = this.gridApi.getColumns();
@@ -805,7 +854,10 @@ export class LocaleEditor {
       }
     } else {
       // Tab: 오른쪽 편집 가능한 컬럼으로 이동
-      if (currentColIndex >= 0 && currentColIndex < editableColumns.length - 1) {
+      if (
+        currentColIndex >= 0 &&
+        currentColIndex < editableColumns.length - 1
+      ) {
         nextColIndex = currentColIndex + 1;
       } else {
         // 다음 행의 첫 번째 편집 가능한 컬럼
@@ -824,7 +876,10 @@ export class LocaleEditor {
     // 다음 프레임에 포커스 이동 (편집 모드로 시작하지 않음)
     requestAnimationFrame(() => {
       if (this.gridApi) {
-        this.gridApi.setFocusedCell(nextRowIndex, editableColumns[nextColIndex]);
+        this.gridApi.setFocusedCell(
+          nextRowIndex,
+          editableColumns[nextColIndex]
+        );
       }
     });
   }
@@ -901,13 +956,13 @@ export class LocaleEditor {
 
   /**
    * 키보드 네비게이션 처리 (Tab/Shift+Tab) - 편집 중이 아닐 때
-   * 
+   *
    * Tab: 오른쪽 편집 가능한 컬럼으로 이동 (편집 모드로 시작하지 않음)
    * - 편집 가능한 컬럼만 순회
    * - 같은 행의 다음 편집 가능한 컬럼으로 이동
    * - 마지막 편집 가능한 컬럼이면 다음 행의 첫 번째 편집 가능한 컬럼으로 이동
    * - 마지막 행의 마지막 편집 가능한 컬럼이면 첫 번째 행의 첫 번째 편집 가능한 컬럼으로 순환
-   * 
+   *
    * Enter 키는 handleCellEditingStopped에서 처리
    */
   private handleNavigateToNextCell(
@@ -917,7 +972,7 @@ export class LocaleEditor {
 
     const { key, previousCellPosition } = params;
     const { rowIndex, column, rowPinned } = previousCellPosition || {};
-    
+
     if (rowIndex === undefined || !column) return null;
 
     // Tab 키만 처리 (Enter는 handleCellEditingStopped에서 처리)
@@ -933,7 +988,8 @@ export class LocaleEditor {
 
     if (editableColumns.length === 0) return null;
 
-    const currentColId = typeof column === "string" ? column : column.getColId();
+    const currentColId =
+      typeof column === "string" ? column : column.getColId();
     const currentColIndex = editableColumns.findIndex(
       (col) => col.getColId() === currentColId
     );

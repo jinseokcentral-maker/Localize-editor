@@ -3,9 +3,18 @@
     "ag-mcp": {
       "command": "npx",
       "args": ["ag-mcp"]
+    },
+    "univer": {
+      "url": "https://mcp.univer.ai/mcp/?univer_session_id=550e8400-e29b-41d4-a716-446655440000",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer sk-xgKQ47qXRoOZYi3DWSlacAf3a0a06e7eb1cf965"
+      }
     }
   }
 }
+
+
 
 
 
