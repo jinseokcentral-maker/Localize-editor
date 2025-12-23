@@ -248,6 +248,7 @@ export class VirtualTableDiv {
 
     // 리사이즈 중이면 저장된 컬럼 너비를 사용, 아니면 헤더의 실제 너비 사용
     let columnWidths: { key: number; context: number; languages: number[] };
+    const containerWidth = this.getContainerWidth();
     
     if (this.isResizing) {
       // 리사이즈 중: 저장된 컬럼 너비 사용 (헤더의 실제 렌더링 너비는 아직 업데이트되지 않았을 수 있음)
@@ -255,12 +256,22 @@ export class VirtualTableDiv {
       const defaultContextWidth = 200;
       const defaultLangWidth = 150;
       
+      const keyWidth = this.getColumnWidthValue('key', defaultKeyWidth);
+      const contextWidth = this.getColumnWidthValue('context', defaultContextWidth);
+      const otherLangWidths = this.options.languages.slice(0, -1).map(lang => 
+        this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
+      );
+      
+      // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비
+      const fixedWidth = keyWidth + contextWidth + otherLangWidths.reduce((sum, w) => sum + w, 0);
+      const lastLang = this.options.languages[this.options.languages.length - 1]!;
+      const lastLangMinWidth = this.columnMinWidths.get(`values.${lastLang}`) || 80;
+      const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
+      
       columnWidths = {
-        key: this.getColumnWidthValue('key', defaultKeyWidth),
-        context: this.getColumnWidthValue('context', defaultContextWidth),
-        languages: this.options.languages.map(lang => 
-          this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
-        ),
+        key: keyWidth,
+        context: contextWidth,
+        languages: [...otherLangWidths, lastLangWidth],
       };
     } else {
       // 리사이즈 중이 아닐 때: 저장된 컬럼 너비를 우선 사용, 없으면 헤더의 실제 너비 사용
@@ -273,12 +284,22 @@ export class VirtualTableDiv {
       
       if (hasStoredWidths) {
         // 저장된 컬럼 너비 사용 (리사이즈된 값 유지)
+        const keyWidth = this.getColumnWidthValue('key', defaultKeyWidth);
+        const contextWidth = this.getColumnWidthValue('context', defaultContextWidth);
+        const otherLangWidths = this.options.languages.slice(0, -1).map(lang => 
+          this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
+        );
+        
+        // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비
+        const fixedWidth = keyWidth + contextWidth + otherLangWidths.reduce((sum, w) => sum + w, 0);
+        const lastLang = this.options.languages[this.options.languages.length - 1]!;
+        const lastLangMinWidth = this.columnMinWidths.get(`values.${lastLang}`) || 80;
+        const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
+        
         columnWidths = {
-          key: this.getColumnWidthValue('key', defaultKeyWidth),
-          context: this.getColumnWidthValue('context', defaultContextWidth),
-          languages: this.options.languages.map(lang => 
-            this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
-          ),
+          key: keyWidth,
+          context: contextWidth,
+          languages: [...otherLangWidths, lastLangWidth],
         };
       } else {
         // 저장된 너비가 없을 때만 헤더의 실제 너비를 가져와서 사용
@@ -286,10 +307,18 @@ export class VirtualTableDiv {
         
         if (headerWidths) {
           // 헤더의 실제 너비 사용 (헤더와 바디 동기화)
-          columnWidths = headerWidths;
+          // 마지막 컬럼은 끝까지 채우도록 재계산
+          const fixedWidth = headerWidths.key + headerWidths.context + headerWidths.languages.slice(0, -1).reduce((sum, w) => sum + w, 0);
+          const lastLangMinWidth = this.columnMinWidths.get(`values.${this.options.languages[this.options.languages.length - 1]!}`) || 80;
+          const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
+          
+          columnWidths = {
+            key: headerWidths.key,
+            context: headerWidths.context,
+            languages: [...headerWidths.languages.slice(0, -1), lastLangWidth],
+          };
         } else {
           // 폴백: 계산된 너비 사용
-          const containerWidth = this.getContainerWidth();
           columnWidths = this.calculateColumnWidths(containerWidth);
         }
       }
@@ -304,8 +333,8 @@ export class VirtualTableDiv {
 
       const row = this.createRow(translation, virtualItem.index, columnWidths);
       
-      // 전체 너비 계산 (모든 컬럼 너비의 합)
-      const totalWidth = columnWidths.key + columnWidths.context + columnWidths.languages.reduce((sum, w) => sum + w, 0);
+      // 전체 너비는 항상 컨테이너 너비와 일치 (마지막 컬럼이 끝까지 채워짐)
+      const totalWidth = containerWidth;
       
       // 가상 스크롤링을 위한 위치 설정
       row.style.position = 'absolute';
@@ -350,21 +379,50 @@ export class VirtualTableDiv {
     headerRow.className = 'virtual-grid-header-row';
     headerRow.setAttribute('role', 'row');
 
+    // 저장된 컬럼 너비가 있으면 사용, 없으면 계산
+    const defaultKeyWidth = 200;
+    const defaultContextWidth = 200;
+    const defaultLangWidth = 150;
     const containerWidth = this.getContainerWidth();
-    const columnWidths = this.calculateColumnWidths(containerWidth);
     
-    // 초기 렌더링 시 계산된 컬럼 너비를 저장 (리사이즈 전 기본값)
-    if (this.columnWidths.size === 0) {
+    let columnWidths: { key: number; context: number; languages: number[] };
+    
+    if (this.columnWidths.size > 0) {
+      // 저장된 컬럼 너비 사용 (리사이즈된 값 유지)
+      // 마지막 컬럼은 항상 끝까지 채우도록 재계산
+      const keyWidth = this.getColumnWidthValue('key', defaultKeyWidth);
+      const contextWidth = this.getColumnWidthValue('context', defaultContextWidth);
+      const otherLangWidths = this.options.languages.slice(0, -1).map(lang =>
+        this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
+      );
+      
+      // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비
+      const fixedWidth = keyWidth + contextWidth + otherLangWidths.reduce((sum, w) => sum + w, 0);
+      const lastLang = this.options.languages[this.options.languages.length - 1]!;
+      const lastLangMinWidth = this.columnMinWidths.get(`values.${lastLang}`) || 80;
+      const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
+      
+      columnWidths = {
+        key: keyWidth,
+        context: contextWidth,
+        languages: [...otherLangWidths, lastLangWidth],
+      };
+    } else {
+      // 저장된 너비가 없을 때만 계산
+      columnWidths = this.calculateColumnWidths(containerWidth);
+      
+      // 초기 렌더링 시 계산된 컬럼 너비를 저장 (리사이즈 전 기본값)
+      // 마지막 컬럼은 저장하지 않음 (항상 동적으로 계산)
       this.columnWidths.set('key', columnWidths.key);
       this.columnWidths.set('context', columnWidths.context);
-      this.options.languages.forEach((lang, index) => {
+      this.options.languages.slice(0, -1).forEach((lang, index) => {
         const langWidth = columnWidths.languages[index]!;
         this.columnWidths.set(`values.${lang}`, langWidth);
       });
     }
     
-    // 전체 너비 계산 (모든 컬럼 너비의 합)
-    const totalWidth = columnWidths.key + columnWidths.context + columnWidths.languages.reduce((sum, w) => sum + w, 0);
+    // 전체 너비는 항상 컨테이너 너비와 일치 (마지막 컬럼이 끝까지 채워짐)
+    const totalWidth = containerWidth;
     headerRow.style.width = `${totalWidth}px`;
     headerRow.style.minWidth = `${totalWidth}px`;
     headerRow.style.maxWidth = `${totalWidth}px`;
@@ -488,23 +546,39 @@ export class VirtualTableDiv {
 
   /**
    * 특정 컬럼의 너비를 모든 셀에 적용
+   * 마지막 컬럼은 항상 끝까지 채워지도록 함
    */
   private applyColumnWidth(columnId: string, width: number): void {
-    this.columnWidths.set(columnId, width);
+    // 마지막 컬럼이 아닌 경우에만 저장
+    const lastLang = this.options.languages[this.options.languages.length - 1]!;
+    const lastLangColumnId = `values.${lastLang}`;
+    if (columnId !== lastLangColumnId) {
+      this.columnWidths.set(columnId, width);
+    }
     
     const defaultKeyWidth = 200;
     const defaultContextWidth = 200;
     const defaultLangWidth = 150;
+    const containerWidth = this.getContainerWidth();
     
     const keyWidth = columnId === 'key' ? width : this.getColumnWidthValue('key', defaultKeyWidth);
     const contextWidth = columnId === 'context' ? width : this.getColumnWidthValue('context', defaultContextWidth);
-    const langWidths = this.options.languages.map((lang) => {
+    
+    // 마지막 컬럼을 제외한 언어 컬럼들
+    const otherLangWidths = this.options.languages.slice(0, -1).map((lang) => {
       const langColumnId = `values.${lang}`;
       return columnId === langColumnId ? width : this.getColumnWidthValue(langColumnId, defaultLangWidth);
     });
     
-    // 전체 너비 계산 (모든 컬럼 너비의 합)
-    const totalWidth = keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
+    // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비
+    const fixedWidth = keyWidth + contextWidth + otherLangWidths.reduce((sum, w) => sum + w, 0);
+    const lastLangMinWidth = this.columnMinWidths.get(lastLangColumnId) || 80;
+    const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
+    
+    const langWidths = [...otherLangWidths, lastLangWidth];
+    
+    // 전체 너비 계산 (모든 컬럼 너비의 합 = 컨테이너 너비)
+    const totalWidth = containerWidth;
     
     // 헤더 셀 업데이트
     if (this.headerElement) {
@@ -1210,6 +1284,7 @@ export class VirtualTableDiv {
 
   /**
    * 컬럼 너비 계산
+   * 마지막 컬럼이 항상 끝까지 채워지도록 함
    */
   private calculateColumnWidths(containerWidth: number): { key: number; context: number; languages: number[] } {
     const defaultKeyWidth = 200;
@@ -1222,36 +1297,20 @@ export class VirtualTableDiv {
       this.getColumnWidthValue(`values.${lang}`, defaultLangWidth)
     );
     
-    const totalWidth = keyWidth + contextWidth + langWidths.reduce((sum, w) => sum + w, 0);
+    // 마지막 컬럼을 제외한 나머지 컬럼들의 총 너비
+    const fixedWidth = keyWidth + contextWidth + langWidths.slice(0, -1).reduce((sum, w) => sum + w, 0);
     
-    if (containerWidth > totalWidth) {
-      const extraWidth = containerWidth - totalWidth;
-      const extraPerLang = Math.floor(extraWidth / langWidths.length);
-      
-      return {
-        key: keyWidth,
-        context: contextWidth,
-        languages: langWidths.map(w => w + extraPerLang),
-      };
-    }
+    // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비 (최소 너비 보장)
+    const lastLangMinWidth = this.columnMinWidths.get(`values.${this.options.languages[this.options.languages.length - 1]!}`) || 80;
+    const lastLangWidth = Math.max(lastLangMinWidth, containerWidth - fixedWidth);
     
-    if (containerWidth < totalWidth) {
-      const ratio = containerWidth / totalWidth;
-      return {
-        key: Math.max(this.columnMinWidths.get('key') || 100, Math.floor(keyWidth * ratio)),
-        context: Math.max(this.columnMinWidths.get('context') || 100, Math.floor(contextWidth * ratio)),
-        languages: langWidths.map((w, i) => {
-          const lang = this.options.languages[i]!;
-          const minWidth = this.columnMinWidths.get(`values.${lang}`) || 80;
-          return Math.max(minWidth, Math.floor(w * ratio));
-        }),
-      };
-    }
+    // 마지막 컬럼을 제외한 언어 컬럼들
+    const otherLangWidths = langWidths.slice(0, -1);
     
     return {
       key: keyWidth,
       context: contextWidth,
-      languages: langWidths,
+      languages: [...otherLangWidths, lastLangWidth],
     };
   }
 
