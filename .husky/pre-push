@@ -3,5 +3,5 @@
 
 echo "Running tests before push..."
 pnpm test
-pnpm test:e2e -- --headless --reporter=list
+CI=true pnpm test:e2e -- --reporter=list
 
