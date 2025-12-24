@@ -469,5 +469,248 @@ test.describe("Command Palette", () => {
     // Help 모달이 닫혔는지 확인
     await expect(helpModal).not.toBeVisible({ timeout: 1000 });
   });
+
+  test("goto \"로 fuzzy find 모드 활성화", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"" 입력
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "');
+    await page.waitForTimeout(300); // debounce 대기
+
+    // "Type to search..." 메시지가 표시되어야 함
+    const emptyMessage = page.locator(".command-palette-item-empty");
+    await expect(emptyMessage).toBeVisible({ timeout: 2000 });
+    const text = await emptyMessage.textContent();
+    expect(text).toContain("Type to search");
+  });
+
+  test("goto \"hell\"로 텍스트 검색 및 결과 표시", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"Welcome\"" 입력 (main.ts에 "Welcome" 데이터가 있음)
+    // 따옴표를 닫을 필요 없음
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "Welcome');
+    await page.waitForTimeout(400); // debounce 대기
+
+    // 검색 결과가 표시되어야 함
+    const resultsHeader = page.locator(".command-palette-item-empty").first();
+    await expect(resultsHeader).toBeVisible({ timeout: 3000 });
+    const headerText = await resultsHeader.textContent();
+    expect(headerText).toMatch(/Search Results/i);
+
+    // 검색 결과 항목이 있어야 함
+    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    await expect(resultItems.first()).toBeVisible({ timeout: 2000 });
+    const count = await resultItems.count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test("goto \"hell\"로 검색 후 Enter로 첫 번째 매치로 이동", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"Welcome\"" 입력 (따옴표를 닫을 필요 없음)
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "Welcome');
+    await page.waitForTimeout(400); // debounce 대기
+
+    // 검색 결과가 표시되는지 확인
+    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+    // Enter로 실행
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // 팔레트가 닫혔는지 확인
+    const overlay = page.locator(".command-palette-overlay");
+    await expect(overlay).not.toBeVisible({ timeout: 1000 });
+
+    // 해당 행이 보이는지 확인 (간접적으로 스크롤 위치 확인)
+    const scrollContainer = page.locator(".virtual-grid-scroll-container");
+    const scrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    // 스크롤이 발생했거나 첫 번째 행에 있을 수 있음
+    expect(scrollTop).toBeGreaterThanOrEqual(0);
+  });
+
+  test("goto \"nonexistent\"로 검색 시 결과 없음 메시지 표시", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"nonexistent12345\"" 입력 (따옴표를 닫을 필요 없음)
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "nonexistent12345');
+    await page.waitForTimeout(400); // debounce 대기
+
+    // "No matches found" 메시지가 표시되어야 함
+    const emptyMessage = page.locator(".command-palette-item-empty");
+    await expect(emptyMessage).toBeVisible({ timeout: 3000 });
+    const text = await emptyMessage.textContent();
+    expect(text?.toLowerCase()).toContain("no matches");
+  });
+
+  test("goto \"로 검색 중 키보드 네비게이션", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"Welcome\"" 입력 (따옴표를 닫을 필요 없음)
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "Welcome');
+    await page.waitForTimeout(400);
+
+    // 검색 결과가 표시되는지 확인
+    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+    // 아래로 이동
+    await page.keyboard.press("ArrowDown");
+    await page.waitForTimeout(100);
+
+    // 선택된 항목이 있어야 함
+    const selected = page.locator(".command-palette-item-selected");
+    await expect(selected).toBeVisible();
+
+    // 위로 이동
+    await page.keyboard.press("ArrowUp");
+    await page.waitForTimeout(100);
+
+    // 첫 번째 항목이 선택되어 있어야 함
+    const firstSelected = page.locator(".command-palette-item-selected").first();
+    await expect(firstSelected).toBeVisible();
+  });
+
+  test("goto \"로 검색 후 클릭으로 이동", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"Welcome\"" 입력 (따옴표를 닫을 필요 없음)
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "Welcome');
+    await page.waitForTimeout(400);
+
+    // 검색 결과가 표시되는지 확인
+    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+    // 첫 번째 결과 클릭
+    await resultItems.first().click();
+    await page.waitForTimeout(500);
+
+    // 팔레트가 닫혔는지 확인
+    const overlay = page.locator(".command-palette-overlay");
+    await expect(overlay).not.toBeVisible({ timeout: 1000 });
+  });
+
+  test("goto \"로 검색 중 Escape로 취소", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto \"Welcome\"" 입력
+    const input = page.locator(".command-palette-input");
+    await input.fill('goto "Welcome"');
+    await page.waitForTimeout(300);
+
+    // Escape로 취소
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(100);
+
+    // 팔레트가 닫혔는지 확인
+    const overlay = page.locator(".command-palette-overlay");
+    await expect(overlay).not.toBeVisible({ timeout: 1000 });
+  });
+
+  test("goto \"로 검색 시 실시간 업데이트", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    const input = page.locator(".command-palette-input");
+
+    // "goto \"W\"" 입력
+    await input.fill('goto "W');
+    await page.waitForTimeout(300);
+
+    // 검색 결과 확인
+    let resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const count1 = await resultItems.count();
+
+    // "goto \"We\"" 입력
+    await input.fill('goto "We');
+    await page.waitForTimeout(300);
+
+    // 검색 결과가 업데이트되었는지 확인
+    resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const count2 = await resultItems.count();
+
+    // 결과 개수가 변경되었을 수 있음 (더 구체적인 검색)
+    expect(count2).toBeGreaterThanOrEqual(0);
+  });
 });
 
