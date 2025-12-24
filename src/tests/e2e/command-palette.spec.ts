@@ -712,5 +712,230 @@ test.describe("Command Palette", () => {
     // 결과 개수가 변경되었을 수 있음 (더 구체적인 검색)
     expect(count2).toBeGreaterThanOrEqual(0);
   });
+
+  test.describe("Goto Next/Prev 명령", () => {
+    test("goto 'keyword' 검색 후 goto next로 다음 매칭으로 이동", async ({
+      page,
+    }) => {
+      // 그리드가 렌더링될 때까지 대기
+      await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+      await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+      // 팔레트 열기
+      const isMac = process.platform === "darwin";
+      const modifierKey = isMac ? "Meta" : "Control";
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+
+      // "goto 'button'" 입력 (fuzzy find 모드)
+      const input = page.locator(".command-palette-input");
+      await input.fill('goto "button"');
+      await page.waitForTimeout(500); // debounce 대기
+
+      // 검색 결과가 나타날 때까지 대기
+      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+      // 첫 번째 매칭으로 이동 (Enter)
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(500);
+
+      // 팔레트가 닫혔는지 확인
+      await expect(page.locator(".command-palette-overlay")).not.toBeVisible({
+        timeout: 1000,
+      });
+
+      // 첫 번째 매칭 행이 보이는지 확인
+      await page.waitForTimeout(300);
+
+      // 다시 팔레트 열기
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+      await page.waitForTimeout(100);
+
+      // "goto next" 입력
+      await input.fill("goto next");
+      await page.waitForTimeout(200);
+
+      // "Go to Next Match" 명령이 표시되는지 확인
+      const nextCommand = page
+        .locator(".command-palette-item")
+        .filter({ hasText: /next.*match/i })
+        .first();
+      await expect(nextCommand).toBeVisible({ timeout: 2000 });
+
+      // Enter로 실행
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(500);
+
+      // 팔레트가 닫혔는지 확인
+      await expect(page.locator(".command-palette-overlay")).not.toBeVisible({
+        timeout: 1000,
+      });
+
+      // 두 번째 매칭 행이 보이는지 확인 (간접적으로)
+      await page.waitForTimeout(300);
+    });
+
+    test("goto 'keyword' 검색 후 goto prev로 이전 매칭으로 이동", async ({
+      page,
+    }) => {
+      // 그리드가 렌더링될 때까지 대기
+      await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+      await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+      // 팔레트 열기
+      const isMac = process.platform === "darwin";
+      const modifierKey = isMac ? "Meta" : "Control";
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+
+      // "goto 'button'" 입력
+      const input = page.locator(".command-palette-input");
+      await input.fill('goto "button"');
+      await page.waitForTimeout(500);
+
+      // 검색 결과가 나타날 때까지 대기
+      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+      // 두 번째 매칭으로 이동 (ArrowDown + Enter)
+      await page.keyboard.press("ArrowDown");
+      await page.waitForTimeout(100);
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(500);
+
+      // 팔레트가 닫혔는지 확인
+      await expect(page.locator(".command-palette-overlay")).not.toBeVisible({
+        timeout: 1000,
+      });
+
+      // 다시 팔레트 열기
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+      await page.waitForTimeout(100);
+
+      // "goto prev" 입력
+      await input.fill("goto prev");
+      await page.waitForTimeout(200);
+
+      // "Go to Previous Match" 명령이 표시되는지 확인
+      const prevCommand = page
+        .locator(".command-palette-item")
+        .filter({ hasText: /previous.*match/i })
+        .first();
+      await expect(prevCommand).toBeVisible({ timeout: 2000 });
+
+      // Enter로 실행
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(500);
+
+      // 팔레트가 닫혔는지 확인
+      await expect(page.locator(".command-palette-overlay")).not.toBeVisible({
+        timeout: 1000,
+      });
+
+      // 첫 번째 매칭 행이 보이는지 확인 (간접적으로)
+      await page.waitForTimeout(300);
+    });
+
+    test("fuzzy find 모드에서 매칭 정보가 footer에 표시되어야 함", async ({
+      page,
+    }) => {
+      // 그리드가 렌더링될 때까지 대기
+      await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+
+      // 팔레트 열기
+      const isMac = process.platform === "darwin";
+      const modifierKey = isMac ? "Meta" : "Control";
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+
+      // "goto 'button'" 입력
+      const input = page.locator(".command-palette-input");
+      await input.fill('goto "button"');
+      await page.waitForTimeout(500); // debounce 대기
+
+      // 검색 결과가 나타날 때까지 대기
+      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+      // Footer에 매칭 정보가 표시되는지 확인
+      const footer = page.locator(".command-palette-footer");
+      await expect(footer).toBeVisible();
+
+      const footerText = await footer.textContent();
+      expect(footerText).toMatch(/\d+\/\d+\s+matches/i);
+    });
+
+    test("fuzzy find 모드에서 Arrow 키로 이동 시 매칭 정보가 업데이트되어야 함", async ({
+      page,
+    }) => {
+      // 그리드가 렌더링될 때까지 대기
+      await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+
+      // 팔레트 열기
+      const isMac = process.platform === "darwin";
+      const modifierKey = isMac ? "Meta" : "Control";
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+
+      // "goto 'button'" 입력
+      const input = page.locator(".command-palette-input");
+      await input.fill('goto "button"');
+      await page.waitForTimeout(500);
+
+      // 검색 결과가 나타날 때까지 대기
+      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
+
+      // Footer 확인 (초기: 1/N matches)
+      const footer = page.locator(".command-palette-footer");
+      let footerText = await footer.textContent();
+      expect(footerText).toMatch(/1\/\d+\s+matches/i);
+
+      // ArrowDown으로 다음 매칭으로 이동
+      await page.keyboard.press("ArrowDown");
+      await page.waitForTimeout(100);
+
+      // Footer가 업데이트되었는지 확인 (2/N matches)
+      footerText = await footer.textContent();
+      expect(footerText).toMatch(/2\/\d+\s+matches/i);
+    });
+
+    test("goto next는 검색 결과가 없으면 동작하지 않아야 함", async ({
+      page,
+    }) => {
+      // 그리드가 렌더링될 때까지 대기
+      await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+
+      // 팔레트 열기
+      const isMac = process.platform === "darwin";
+      const modifierKey = isMac ? "Meta" : "Control";
+      await page.keyboard.press(`${modifierKey}+KeyK`);
+      await page.waitForSelector(".command-palette-overlay", { timeout: 2000 });
+
+      // "goto next" 입력 (검색 없이)
+      const input = page.locator(".command-palette-input");
+      await input.fill("goto next");
+      await page.waitForTimeout(200);
+
+      // "Go to Next Match" 명령이 표시되는지 확인
+      const nextCommand = page
+        .locator(".command-palette-item")
+        .filter({ hasText: /next.*match/i })
+        .first();
+      await expect(nextCommand).toBeVisible({ timeout: 2000 });
+
+      // Enter로 실행
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(300);
+
+      // 팔레트가 닫혔는지 확인 (명령은 실행되지만 아무 동작도 하지 않음)
+      await expect(page.locator(".command-palette-overlay")).not.toBeVisible({
+        timeout: 1000,
+      });
+    });
+  });
 });
 

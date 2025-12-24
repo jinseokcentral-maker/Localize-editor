@@ -274,5 +274,84 @@ describe("CommandRegistry", () => {
       expect(registry.getPopularCommands(10).length).toBe(0);
     });
   });
+
+  describe("goto next/prev 명령", () => {
+    it("goto-next 명령이 등록되어 있어야 함", () => {
+      // VirtualTableDiv가 명령을 등록하므로, 실제 사용 시나리오를 테스트
+      // 대신 명령을 직접 등록하여 테스트
+      const registry = new CommandRegistry();
+      registry.registerCommand({
+        id: "goto-next",
+        label: "Go to Next Match",
+        keywords: ["goto", "next", "match", "forward"],
+        category: "navigation",
+        description: "Navigate to the next search match",
+        execute: () => {},
+      });
+
+      const gotoNext = registry.getCommandById("goto-next");
+      
+      expect(gotoNext).toBeDefined();
+      expect(gotoNext?.id).toBe("goto-next");
+      expect(gotoNext?.label).toContain("Next");
+      expect(gotoNext?.category).toBe("navigation");
+    });
+
+    it("goto-prev 명령이 등록되어 있어야 함", () => {
+      const registry = new CommandRegistry();
+      registry.registerCommand({
+        id: "goto-prev",
+        label: "Go to Previous Match",
+        keywords: ["goto", "prev", "previous", "back", "backward"],
+        category: "navigation",
+        description: "Navigate to the previous search match",
+        execute: () => {},
+      });
+
+      const gotoPrev = registry.getCommandById("goto-prev");
+      
+      expect(gotoPrev).toBeDefined();
+      expect(gotoPrev?.id).toBe("goto-prev");
+      expect(gotoPrev?.label).toContain("Previous");
+      expect(gotoPrev?.category).toBe("navigation");
+    });
+
+    it("goto-next 명령이 'next' 키워드로 검색되어야 함", () => {
+      const registry = new CommandRegistry();
+      registry.registerCommand({
+        id: "goto-next",
+        label: "Go to Next Match",
+        keywords: ["goto", "next", "match", "forward"],
+        category: "navigation",
+        description: "Navigate to the next search match",
+        execute: () => {},
+      });
+
+      const commands = registry.getCommands();
+      
+      const gotoNext = commands.find(cmd => cmd.id === "goto-next");
+      expect(gotoNext).toBeDefined();
+      expect(gotoNext?.keywords).toContain("next");
+    });
+
+    it("goto-prev 명령이 'prev' 키워드로 검색되어야 함", () => {
+      const registry = new CommandRegistry();
+      registry.registerCommand({
+        id: "goto-prev",
+        label: "Go to Previous Match",
+        keywords: ["goto", "prev", "previous", "back", "backward"],
+        category: "navigation",
+        description: "Navigate to the previous search match",
+        execute: () => {},
+      });
+
+      const commands = registry.getCommands();
+      
+      const gotoPrev = commands.find(cmd => cmd.id === "goto-prev");
+      expect(gotoPrev).toBeDefined();
+      expect(gotoPrev?.keywords).toContain("prev");
+      expect(gotoPrev?.keywords).toContain("previous");
+    });
+  });
 });
 

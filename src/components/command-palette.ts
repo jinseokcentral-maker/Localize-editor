@@ -332,11 +332,13 @@ export class CommandPalette {
       e.preventDefault();
       this.selectedIndex = Math.min(this.selectedIndex + 1, maxIndex);
       this.updateList();
+      this.updateFooter(); // Footer도 업데이트
       this.scrollToSelected();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       this.selectedIndex = Math.max(0, this.selectedIndex - 1);
       this.updateList();
+      this.updateFooter(); // Footer도 업데이트
       this.scrollToSelected();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -376,6 +378,38 @@ export class CommandPalette {
   }
 
   /**
+   * Footer 업데이트 (매칭 정보 표시)
+   */
+  private updateFooter(): void {
+    if (!this.footer) return;
+
+    // Fuzzy find 모드인 경우 매칭 정보 표시
+    if (this.isFuzzyFindMode && this.fuzzyFindResults.length > 0) {
+      const current = this.selectedIndex + 1; // 1-based
+      const total = this.fuzzyFindResults.length;
+      this.footer.innerHTML = `
+        <span class="command-palette-hint">
+          <kbd>↑</kbd><kbd>↓</kbd> Navigate
+          <kbd>Enter</kbd> Go to match
+          <kbd>Esc</kbd> Close
+        </span>
+        <span class="command-palette-match-info">
+          ${current}/${total} matches
+        </span>
+      `;
+    } else {
+      // 일반 모드: 기본 힌트 표시
+      this.footer.innerHTML = `
+        <span class="command-palette-hint">
+          <kbd>↑</kbd><kbd>↓</kbd> Navigate
+          <kbd>Enter</kbd> Execute
+          <kbd>Esc</kbd> Close
+        </span>
+      `;
+    }
+  }
+
+  /**
    * 리스트 UI 업데이트
    */
   private updateList(): void {
@@ -386,8 +420,12 @@ export class CommandPalette {
     // Fuzzy find 모드인 경우 검색 결과 표시
     if (this.isFuzzyFindMode) {
       this.updateFuzzyFindList();
+      this.updateFooter();
       return;
     }
+
+    // Footer도 업데이트
+    this.updateFooter();
 
     // 일반 모드: 명령 목록 표시
     if (this.filteredCommands.length === 0) {

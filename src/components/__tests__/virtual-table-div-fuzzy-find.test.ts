@@ -339,5 +339,251 @@ describe("VirtualTableDiv - Fuzzy Find", () => {
       expect(secondMatch.rowIndex).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe("gotoToNextMatch / gotoToPrevMatch", () => {
+    it("다음 검색 결과로 이동해야 함", async () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      const matches = table.findMatches("button");
+      expect(matches.length).toBeGreaterThan(1);
+
+      // 첫 번째 매치로 이동하여 currentGotoMatches 설정
+      table.gotoToMatch(matches[0]);
+      
+      // currentGotoMatches 수동 설정 (실제로는 onGotoMatch에서 설정됨)
+      (table as any).currentGotoMatches = {
+        keyword: "button",
+        matches: matches,
+        currentIndex: 0,
+      };
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 다음 매치로 이동
+      table.gotoToNextMatch();
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // currentIndex가 1로 업데이트되었는지 확인
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).not.toBeNull();
+      expect(matchInfo?.current).toBe(2); // 1-based
+      expect(matchInfo?.total).toBe(matches.length);
+    });
+
+    it("이전 검색 결과로 이동해야 함", async () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      const matches = table.findMatches("button");
+      expect(matches.length).toBeGreaterThan(1);
+
+      // 두 번째 매치로 이동하여 currentGotoMatches 설정
+      table.gotoToMatch(matches[1]);
+      
+      // currentGotoMatches 수동 설정
+      (table as any).currentGotoMatches = {
+        keyword: "button",
+        matches: matches,
+        currentIndex: 1,
+      };
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 이전 매치로 이동
+      table.gotoToPrevMatch();
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // currentIndex가 0으로 업데이트되었는지 확인
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).not.toBeNull();
+      expect(matchInfo?.current).toBe(1); // 1-based
+      expect(matchInfo?.total).toBe(matches.length);
+    });
+
+    it("마지막 매치에서 다음으로 이동하면 첫 번째 매치로 순환해야 함", async () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      const matches = table.findMatches("button");
+      expect(matches.length).toBeGreaterThan(1);
+
+      // 마지막 매치로 이동
+      const lastIndex = matches.length - 1;
+      table.gotoToMatch(matches[lastIndex]);
+      
+      // currentGotoMatches 수동 설정
+      (table as any).currentGotoMatches = {
+        keyword: "button",
+        matches: matches,
+        currentIndex: lastIndex,
+      };
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 다음 매치로 이동 (순환)
+      table.gotoToNextMatch();
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 첫 번째 매치로 순환되었는지 확인
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).not.toBeNull();
+      expect(matchInfo?.current).toBe(1); // 1-based (첫 번째)
+      expect(matchInfo?.total).toBe(matches.length);
+    });
+
+    it("첫 번째 매치에서 이전으로 이동하면 마지막 매치로 순환해야 함", async () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      const matches = table.findMatches("button");
+      expect(matches.length).toBeGreaterThan(1);
+
+      // 첫 번째 매치로 이동
+      table.gotoToMatch(matches[0]);
+      
+      // currentGotoMatches 수동 설정
+      (table as any).currentGotoMatches = {
+        keyword: "button",
+        matches: matches,
+        currentIndex: 0,
+      };
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 이전 매치로 이동 (순환)
+      table.gotoToPrevMatch();
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 마지막 매치로 순환되었는지 확인
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).not.toBeNull();
+      expect(matchInfo?.current).toBe(matches.length); // 1-based (마지막)
+      expect(matchInfo?.total).toBe(matches.length);
+    });
+
+    it("currentGotoMatches가 없으면 아무 동작도 하지 않아야 함", () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      // currentGotoMatches가 null인 상태에서 호출
+      (table as any).currentGotoMatches = null;
+
+      // 예외가 발생하지 않아야 함
+      expect(() => table.gotoToNextMatch()).not.toThrow();
+      expect(() => table.gotoToPrevMatch()).not.toThrow();
+    });
+
+    it("matches가 비어있으면 아무 동작도 하지 않아야 함", () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      // 빈 matches로 설정
+      (table as any).currentGotoMatches = {
+        keyword: "test",
+        matches: [],
+        currentIndex: 0,
+      };
+
+      // 예외가 발생하지 않아야 함
+      expect(() => table.gotoToNextMatch()).not.toThrow();
+      expect(() => table.gotoToPrevMatch()).not.toThrow();
+    });
+  });
+
+  describe("getCurrentMatchInfo", () => {
+    it("현재 매칭 정보를 반환해야 함", () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      const matches = table.findMatches("button");
+      expect(matches.length).toBeGreaterThan(0);
+
+      // currentGotoMatches 설정
+      (table as any).currentGotoMatches = {
+        keyword: "button",
+        matches: matches,
+        currentIndex: 1, // 두 번째 매치 (0-based)
+      };
+
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).not.toBeNull();
+      expect(matchInfo?.current).toBe(2); // 1-based
+      expect(matchInfo?.total).toBe(matches.length);
+    });
+
+    it("currentGotoMatches가 없으면 null을 반환해야 함", () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      (table as any).currentGotoMatches = null;
+
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).toBeNull();
+    });
+
+    it("matches가 비어있으면 null을 반환해야 함", () => {
+      const table = new VirtualTableDiv({
+        container,
+        translations,
+        languages,
+        defaultLanguage: "en",
+      });
+      table.render();
+
+      (table as any).currentGotoMatches = {
+        keyword: "test",
+        matches: [],
+        currentIndex: 0,
+      };
+
+      const matchInfo = table.getCurrentMatchInfo();
+      expect(matchInfo).toBeNull();
+    });
+  });
 });
 

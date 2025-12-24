@@ -376,6 +376,26 @@ http://localhost:3001
 2. `goto "welcome"` 입력
 3. 매칭된 필드 확인
 
+### 8.5 Goto Next/Prev 명령
+
+- [ ] `goto "keyword"`로 검색 후 `goto next` 명령으로 다음 매칭으로 이동하는가?
+- [ ] `goto "keyword"`로 검색 후 `goto prev` 명령으로 이전 매칭으로 이동하는가?
+- [ ] 마지막 매칭에서 `goto next`를 실행하면 첫 번째 매칭으로 순환하는가?
+- [ ] 첫 번째 매칭에서 `goto prev`를 실행하면 마지막 매칭으로 순환하는가?
+- [ ] Fuzzy find 모드에서 footer에 매칭 정보가 표시되는가? (예: "3/10 matches")
+- [ ] ArrowUp/Down으로 검색 결과를 이동할 때 footer의 매칭 정보가 업데이트되는가?
+- [ ] 검색 결과가 없을 때 `goto next` 또는 `goto prev`를 실행해도 오류가 발생하지 않는가?
+
+**경로**:
+
+1. Cmd+K (Mac) 또는 Ctrl+K (Windows/Linux)
+2. `goto "button"` 입력 (여러 매칭이 있는 키워드)
+3. Enter로 첫 번째 매칭으로 이동
+4. 다시 Cmd+K / Ctrl+K
+5. `goto next` 입력 후 Enter로 다음 매칭으로 이동
+6. `goto prev` 입력 후 Enter로 이전 매칭으로 이동
+7. Footer의 매칭 정보 확인 (예: "2/5 matches")
+
 ---
 
 ## 9. 필터 기능
@@ -637,6 +657,18 @@ http://localhost:3001
 3. [ ] 편집 모드로 다시 전환
 4. [ ] 셀 편집 가능 확인
 
+### 시나리오 5: Goto Next/Prev 워크플로우
+
+1. [ ] `goto "button"` 실행 (여러 매칭이 있는 키워드)
+2. [ ] 검색 결과 확인 (footer에 "1/N matches" 표시 확인)
+3. [ ] 첫 번째 매치로 이동
+4. [ ] `goto next` 실행
+5. [ ] 두 번째 매치로 이동 확인 (footer에 "2/N matches" 표시 확인)
+6. [ ] `goto prev` 실행
+7. [ ] 첫 번째 매치로 다시 이동 확인 (footer에 "1/N matches" 표시 확인)
+8. [ ] 마지막 매치로 이동 (`goto next` 반복)
+9. [ ] `goto next` 실행하여 첫 번째 매치로 순환 확인
+
 ---
 
 ## 📝 테스트 결과 기록
@@ -691,6 +723,8 @@ http://localhost:3001
 - `goto top`: 첫 번째 행으로 이동
 - `goto bottom`: 마지막 행으로 이동
 - `goto "keyword"`: 텍스트 검색
+- `goto next`: 다음 검색 결과로 이동
+- `goto prev`: 이전 검색 결과로 이동
 - `search <keyword>`: 키워드 검색 필터
 - `filter empty`: 빈 번역 필터
 - `filter changed`: 변경된 셀 필터

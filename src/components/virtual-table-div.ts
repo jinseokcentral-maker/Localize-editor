@@ -166,17 +166,17 @@ export class VirtualTableDiv {
       },
       onGotoMatch: (match) => {
         this.gotoToMatch(match);
-        // 검색 결과 저장 (향후 goto next/prev를 위해)
+        // 검색 결과 저장 (goto next/prev를 위해)
+        const palette = this.commandPalette as any;
+        const matches = palette?.fuzzyFindResults || [];
+        const matchIndex = matches.findIndex(
+          (m: SearchMatch) => m.rowIndex === match.rowIndex
+        );
+
         this.currentGotoMatches = {
-          keyword: this.commandPalette
-            ? (this.commandPalette as any).fuzzyFindQuery
-            : "",
-          matches: this.commandPalette
-            ? (this.commandPalette as any).fuzzyFindResults
-            : [],
-          currentIndex: this.commandPalette
-            ? (this.commandPalette as any).selectedIndex
-            : 0,
+          keyword: palette?.fuzzyFindQuery || "",
+          matches: matches,
+          currentIndex: matchIndex !== -1 ? matchIndex : 0,
         };
       },
     });
@@ -1228,6 +1228,30 @@ export class VirtualTableDiv {
       },
     });
 
+    // Goto Next 명령
+    this.commandRegistry.registerCommand({
+      id: "goto-next",
+      label: "Go to Next Match",
+      keywords: ["goto", "next", "match", "forward"],
+      category: "navigation",
+      description: "Navigate to the next search match",
+      execute: () => {
+        this.gotoToNextMatch();
+      },
+    });
+
+    // Goto Prev 명령
+    this.commandRegistry.registerCommand({
+      id: "goto-prev",
+      label: "Go to Previous Match",
+      keywords: ["goto", "prev", "previous", "back", "backward"],
+      category: "navigation",
+      description: "Navigate to the previous search match",
+      execute: () => {
+        this.gotoToPrevMatch();
+      },
+    });
+
     // Search 명령
     this.commandRegistry.registerCommand({
       id: "search",
@@ -1416,6 +1440,72 @@ export class VirtualTableDiv {
    */
   gotoToMatch(match: SearchMatch): void {
     this.gotoRow(match.rowIndex);
+
+    // currentGotoMatches 업데이트 (현재 매치 인덱스 찾기)
+    if (this.currentGotoMatches) {
+      const matchIndex = this.currentGotoMatches.matches.findIndex(
+        (m) => m.rowIndex === match.rowIndex
+      );
+      if (matchIndex !== -1) {
+        this.currentGotoMatches.currentIndex = matchIndex;
+      }
+    }
+  }
+
+  /**
+   * 다음 검색 결과로 이동
+   */
+  gotoToNextMatch(): void {
+    if (
+      !this.currentGotoMatches ||
+      this.currentGotoMatches.matches.length === 0
+    ) {
+      return;
+    }
+
+    const { matches, currentIndex } = this.currentGotoMatches;
+    const nextIndex = (currentIndex + 1) % matches.length; // 순환
+    const nextMatch = matches[nextIndex];
+
+    this.currentGotoMatches.currentIndex = nextIndex;
+    this.gotoRow(nextMatch.rowIndex);
+  }
+
+  /**
+   * 이전 검색 결과로 이동
+   */
+  gotoToPrevMatch(): void {
+    if (
+      !this.currentGotoMatches ||
+      this.currentGotoMatches.matches.length === 0
+    ) {
+      return;
+    }
+
+    const { matches, currentIndex } = this.currentGotoMatches;
+    const prevIndex =
+      currentIndex === 0 ? matches.length - 1 : currentIndex - 1; // 순환
+    const prevMatch = matches[prevIndex];
+
+    this.currentGotoMatches.currentIndex = prevIndex;
+    this.gotoRow(prevMatch.rowIndex);
+  }
+
+  /**
+   * 현재 검색 매칭 정보 가져오기
+   */
+  getCurrentMatchInfo(): { current: number; total: number } | null {
+    if (
+      !this.currentGotoMatches ||
+      this.currentGotoMatches.matches.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      current: this.currentGotoMatches.currentIndex + 1, // 1-based
+      total: this.currentGotoMatches.matches.length,
+    };
   }
 
   /**
