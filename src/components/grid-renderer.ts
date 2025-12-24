@@ -1,0 +1,226 @@
+/**
+ * 그리드 렌더링 모듈
+ * 
+ * 헤더, 행, 셀 렌더링 관련 로직을 담당합니다.
+ */
+
+import type { Translation } from "@/types/translation";
+
+export interface ColumnWidths {
+  key: number;
+  context: number;
+  languages: number[];
+}
+
+export interface GridRendererCallbacks {
+  onCellDblClick?: (rowIndex: number, columnId: string, cell: HTMLElement) => void;
+  onCellFocus?: (rowIndex: number, columnId: string) => void;
+  updateCellStyle?: (rowId: string, columnId: string, cell?: HTMLElement) => void;
+}
+
+export interface GridRendererOptions {
+  languages: readonly string[];
+  readOnly?: boolean;
+  editableColumns: Set<string>;
+  callbacks: GridRendererCallbacks;
+}
+
+export class GridRenderer {
+  constructor(private options: GridRendererOptions) {}
+
+  /**
+   * 헤더 셀 생성
+   */
+  createHeaderCell(
+    text: string,
+    width: number,
+    left: number,
+    zIndex: number,
+    columnId?: string
+  ): HTMLElement {
+    const header = document.createElement("div");
+    header.className = "virtual-grid-header-cell";
+    header.setAttribute("role", "columnheader");
+    header.textContent = text;
+    if (columnId) {
+      header.setAttribute("data-column-id", columnId);
+    }
+    header.style.width = `${width}px`;
+    header.style.minWidth = `${width}px`;
+    header.style.maxWidth = `${width}px`;
+
+    if (left > 0 || zIndex > 0) {
+      header.style.position = "sticky";
+      header.style.left = `${left}px`;
+      header.style.zIndex = zIndex.toString();
+      header.style.backgroundColor = "#f8fafc";
+    }
+
+    header.style.overflow = "visible";
+
+    return header;
+  }
+
+  /**
+   * 행 생성
+   */
+  createRow(
+    translation: Translation,
+    rowIndex: number,
+    columnWidths: ColumnWidths
+  ): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "virtual-grid-row";
+    row.setAttribute("role", "row");
+    row.setAttribute("data-row-index", rowIndex.toString());
+    row.setAttribute("data-row-id", translation.id);
+
+    // Key 셀
+    const keyCell = this.createCell(
+      translation.id,
+      "key",
+      translation.key,
+      rowIndex,
+      true,
+      columnWidths.key,
+      0,
+      10
+    );
+    row.appendChild(keyCell);
+
+    // Context 셀
+    const contextCell = this.createCell(
+      translation.id,
+      "context",
+      translation.context || "",
+      rowIndex,
+      true,
+      columnWidths.context,
+      columnWidths.key,
+      10
+    );
+    row.appendChild(contextCell);
+
+    // 언어 셀들
+    this.options.languages.forEach((lang, index) => {
+      const value = translation.values[lang] || "";
+      const langWidth = columnWidths.languages[index]!;
+      const cell = this.createCell(
+        translation.id,
+        `values.${lang}`,
+        value,
+        rowIndex,
+        !this.options.readOnly,
+        langWidth,
+        0,
+        0
+      );
+      row.appendChild(cell);
+    });
+
+    return row;
+  }
+
+  /**
+   * 셀 생성
+   */
+  createCell(
+    rowId: string,
+    columnId: string,
+    value: string,
+    rowIndex: number,
+    editable: boolean,
+    width: number,
+    left: number,
+    zIndex: number
+  ): HTMLElement {
+    const cell = document.createElement("div");
+    cell.className = "virtual-grid-cell";
+    cell.setAttribute("role", "gridcell");
+    cell.setAttribute("data-row-id", rowId);
+    cell.setAttribute("data-column-id", columnId);
+    cell.setAttribute("data-row-index", rowIndex.toString());
+    cell.setAttribute("tabindex", editable ? "0" : "-1");
+
+    cell.style.width = `${width}px`;
+    cell.style.minWidth = `${width}px`;
+    cell.style.maxWidth = `${width}px`;
+
+    if (left > 0 || zIndex > 0) {
+      cell.style.position = "sticky";
+      cell.style.left = `${left}px`;
+      cell.style.zIndex = zIndex.toString();
+      cell.style.backgroundColor = "#fafafa";
+    }
+
+    // 셀 내용
+    const cellContent = document.createElement("div");
+    cellContent.className = "virtual-grid-cell-content";
+    cellContent.textContent = value;
+    cell.appendChild(cellContent);
+
+    // Dirty/Empty 상태에 따른 CSS 클래스 추가
+    if (this.options.callbacks.updateCellStyle) {
+      this.options.callbacks.updateCellStyle(rowId, columnId, cell);
+    }
+
+    // 더블클릭으로 편집 시작
+    if (editable && !this.options.readOnly) {
+      cell.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.options.callbacks.onCellDblClick) {
+          this.options.callbacks.onCellDblClick(rowIndex, columnId, cell);
+        }
+      });
+
+      // 포커스 이벤트
+      cell.addEventListener("focus", () => {
+        if (this.options.callbacks.onCellFocus) {
+          this.options.callbacks.onCellFocus(rowIndex, columnId);
+        }
+        cell.classList.add("focused");
+      });
+
+      cell.addEventListener("blur", () => {
+        cell.classList.remove("focused");
+      });
+    }
+
+    return cell;
+  }
+
+  /**
+   * 셀 내용 업데이트
+   */
+  updateCellContent(
+    cell: HTMLElement,
+    rowId: string,
+    columnId: string,
+    value: string,
+    rowIndex: number
+  ): void {
+    cell.innerHTML = "";
+    const cellContent = document.createElement("div");
+    cellContent.className = "virtual-grid-cell-content";
+    cellContent.textContent = value;
+    cell.appendChild(cellContent);
+
+    // 편집 가능한 셀은 더블클릭 이벤트 다시 추가
+    if (!this.options.readOnly && this.options.editableColumns.has(columnId)) {
+      cell.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.options.callbacks.onCellDblClick) {
+          this.options.callbacks.onCellDblClick(rowIndex, columnId, cell);
+        }
+      });
+    }
+
+    // 스타일 업데이트
+    if (this.options.callbacks.updateCellStyle) {
+      this.options.callbacks.updateCellStyle(rowId, columnId, cell);
+    }
+  }
+}
+
