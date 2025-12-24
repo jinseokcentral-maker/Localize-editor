@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CommandPalette } from "../command-palette";
 import { CommandRegistry } from "../command-registry";
+import { parseFuzzyFindInput } from "../command-palette-fuzzy-find";
 
 describe("CommandPalette - Fuzzy Find", () => {
   let registry: CommandRegistry;
@@ -23,53 +24,61 @@ describe("CommandPalette - Fuzzy Find", () => {
     });
   });
 
-  describe("parseInput", () => {
+  describe("parseFuzzyFindInput", () => {
     it("goto \"로 시작하면 fuzzy find 모드로 감지해야 함", () => {
-      const parsed = (palette as any).parseInput('goto "');
+      const parsed = parseFuzzyFindInput('goto "');
       expect(parsed.isFuzzyFindMode).toBe(true);
       expect(parsed.fuzzyFindQuery).toBe("");
+      expect(parsed.quoteChar).toBe('"');
     });
 
     it("goto \"h로 시작하면 fuzzy find 모드로 감지하고 쿼리를 추출해야 함", () => {
-      const parsed = (palette as any).parseInput('goto "h');
+      const parsed = parseFuzzyFindInput('goto "h');
       expect(parsed.isFuzzyFindMode).toBe(true);
       expect(parsed.fuzzyFindQuery).toBe("h");
+      expect(parsed.quoteChar).toBe('"');
     });
 
     it("goto \"hell로 시작하면 fuzzy find 모드로 감지하고 쿼리를 추출해야 함", () => {
-      const parsed = (palette as any).parseInput('goto "hell');
+      const parsed = parseFuzzyFindInput('goto "hell');
       expect(parsed.isFuzzyFindMode).toBe(true);
       expect(parsed.fuzzyFindQuery).toBe("hell");
+      expect(parsed.quoteChar).toBe('"');
     });
 
     it("goto \"hell\"로 완성되면 fuzzy find 모드로 감지하고 쿼리를 추출해야 함", () => {
-      const parsed = (palette as any).parseInput('goto "hell"');
+      const parsed = parseFuzzyFindInput('goto "hell"');
       expect(parsed.isFuzzyFindMode).toBe(true);
       expect(parsed.fuzzyFindQuery).toBe("hell");
+      expect(parsed.quoteChar).toBe('"');
     });
 
     it("go to \"hell\"도 fuzzy find 모드로 감지해야 함", () => {
-      const parsed = (palette as any).parseInput('go to "hell"');
+      const parsed = parseFuzzyFindInput('go to "hell"');
       expect(parsed.isFuzzyFindMode).toBe(true);
       expect(parsed.fuzzyFindQuery).toBe("hell");
+      expect(parsed.quoteChar).toBe('"');
     });
 
     it("goto 10은 fuzzy find 모드가 아니어야 함", () => {
-      const parsed = (palette as any).parseInput("goto 10");
+      const parsed = parseFuzzyFindInput("goto 10");
       expect(parsed.isFuzzyFindMode).toBe(false);
       expect(parsed.fuzzyFindQuery).toBe("");
+      expect(parsed.quoteChar).toBe(null);
     });
 
     it("goto top은 fuzzy find 모드가 아니어야 함", () => {
-      const parsed = (palette as any).parseInput("goto top");
+      const parsed = parseFuzzyFindInput("goto top");
       expect(parsed.isFuzzyFindMode).toBe(false);
       expect(parsed.fuzzyFindQuery).toBe("");
+      expect(parsed.quoteChar).toBe(null);
     });
 
     it("다른 명령은 fuzzy find 모드가 아니어야 함", () => {
-      const parsed = (palette as any).parseInput("search keyword");
+      const parsed = parseFuzzyFindInput("search keyword");
       expect(parsed.isFuzzyFindMode).toBe(false);
       expect(parsed.fuzzyFindQuery).toBe("");
+      expect(parsed.quoteChar).toBe(null);
     });
   });
 

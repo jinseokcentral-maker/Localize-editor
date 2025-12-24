@@ -23,6 +23,7 @@ import { GridRenderer, type ColumnWidths } from "./grid-renderer";
 import { getLangFromColumnId, getTranslationKey } from "./grid-utils";
 import { CommandPalette } from "./command-palette";
 import { CommandRegistry, type EditorMode } from "./command-registry";
+import { TextSearchMatcher, type SearchMatch } from "./text-search-matcher";
 import "@/styles/virtual-table-div.css";
 
 export interface VirtualTableDivOptions {
@@ -79,16 +80,7 @@ export class VirtualTableDiv {
   // Goto 텍스트 검색 관련 상태
   private currentGotoMatches: {
     keyword: string;
-    matches: Array<{
-      rowIndex: number;
-      translation: Translation;
-      score: number;
-      matchedFields: Array<{
-        field: string;
-        matchedText: string;
-        matchType: "exact" | "contains" | "fuzzy";
-      }>;
-    }>;
+    matches: SearchMatch[];
     currentIndex: number;
   } | null = null;
 
@@ -1328,176 +1320,22 @@ export class VirtualTableDiv {
    * @param keyword 검색 키워드
    * @returns 매치 결과 배열 (점수 순으로 정렬)
    */
-  findMatches(keyword: string): Array<{
-    rowIndex: number;
-    translation: Translation;
-    score: number;
-    matchedFields: Array<{
-      field: string;
-      matchedText: string;
-      matchType: "exact" | "contains" | "fuzzy";
-    }>;
-  }> {
-    if (!keyword.trim()) {
-      return [];
-    }
-
-    const searchKeyword = keyword.toLowerCase().trim();
-    const allTranslations = this.getFilteredTranslations();
-    const matches: Array<{
-      rowIndex: number;
-      translation: Translation;
-      score: number;
-      matchedFields: Array<{
-        field: string;
-        matchedText: string;
-        matchType: "exact" | "contains" | "fuzzy";
-      }>;
-    }> = [];
-
-    allTranslations.forEach((translation, index) => {
-      let score = 0;
-      const matchedFields: Array<{
-        field: string;
-        matchedText: string;
-        matchType: "exact" | "contains" | "fuzzy";
-      }> = [];
-
-      // Key 검색
-      const keyLower = translation.key.toLowerCase();
-      if (keyLower === searchKeyword) {
-        score += 50;
-        matchedFields.push({
-          field: "key",
-          matchedText: translation.key,
-          matchType: "exact",
-        });
-      } else if (keyLower.includes(searchKeyword)) {
-        score += 30;
-        matchedFields.push({
-          field: "key",
-          matchedText: translation.key,
-          matchType: "contains",
-        });
-      } else if (this.fuzzyMatch(keyLower, searchKeyword)) {
-        score += 15;
-        matchedFields.push({
-          field: "key",
-          matchedText: translation.key,
-          matchType: "fuzzy",
-        });
-      }
-
-      // Context 검색
-      if (translation.context) {
-        const contextLower = translation.context.toLowerCase();
-        if (contextLower === searchKeyword) {
-          score += 20;
-          matchedFields.push({
-            field: "context",
-            matchedText: translation.context,
-            matchType: "exact",
-          });
-        } else if (contextLower.includes(searchKeyword)) {
-          score += 20;
-          matchedFields.push({
-            field: "context",
-            matchedText: translation.context,
-            matchType: "contains",
-          });
-        } else if (this.fuzzyMatch(contextLower, searchKeyword)) {
-          score += 10;
-          matchedFields.push({
-            field: "context",
-            matchedText: translation.context,
-            matchType: "fuzzy",
-          });
-        }
-      }
-
-      // Language values 검색
-      this.options.languages.forEach((lang) => {
-        const value = translation.values[lang] || "";
-        const valueLower = value.toLowerCase();
-        if (valueLower === searchKeyword) {
-          score += 10;
-          matchedFields.push({
-            field: `values.${lang}`,
-            matchedText: value,
-            matchType: "exact",
-          });
-        } else if (valueLower.includes(searchKeyword)) {
-          score += 10;
-          matchedFields.push({
-            field: `values.${lang}`,
-            matchedText: value,
-            matchType: "contains",
-          });
-        } else if (this.fuzzyMatch(valueLower, searchKeyword)) {
-          score += 5;
-          matchedFields.push({
-            field: `values.${lang}`,
-            matchedText: value,
-            matchType: "fuzzy",
-          });
-        }
-      });
-
-      // 매치가 있으면 결과에 추가
-      if (score > 0) {
-        matches.push({
-          rowIndex: index,
-          translation,
-          score,
-          matchedFields,
-        });
-      }
+  findMatches(keyword: string): SearchMatch[] {
+    // 필터링된 translations로 매처 생성
+    const filteredTranslations = this.getFilteredTranslations();
+    const matcher = new TextSearchMatcher({
+      translations: filteredTranslations,
+      languages: this.options.languages,
     });
 
-    // 정렬: 점수 높은 순 → 행 번호 낮은 순
-    matches.sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score;
-      }
-      return a.rowIndex - b.rowIndex;
-    });
-
-    return matches;
-  }
-
-  /**
-   * 간단한 fuzzy match (부분 일치)
-   * @param text 검색 대상 텍스트
-   * @param pattern 검색 패턴
-   * @returns 매치 여부
-   */
-  private fuzzyMatch(text: string, pattern: string): boolean {
-    if (pattern.length === 0) return true;
-    if (pattern.length > text.length) return false;
-
-    let patternIndex = 0;
-    for (let i = 0; i < text.length && patternIndex < pattern.length; i++) {
-      if (text[i] === pattern[patternIndex]) {
-        patternIndex++;
-      }
-    }
-    return patternIndex === pattern.length;
+    return matcher.findMatches(keyword);
   }
 
   /**
    * 검색 결과의 첫 번째 매치로 이동
    * @param match 검색 결과 매치
    */
-  gotoToMatch(match: {
-    rowIndex: number;
-    translation: Translation;
-    score: number;
-    matchedFields: Array<{
-      field: string;
-      matchedText: string;
-      matchType: "exact" | "contains" | "fuzzy";
-    }>;
-  }): void {
+  gotoToMatch(match: SearchMatch): void {
     this.gotoRow(match.rowIndex);
   }
 

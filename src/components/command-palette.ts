@@ -7,31 +7,20 @@
 import type { Command, EditorMode } from "./command-registry";
 import { CommandRegistry } from "./command-registry";
 import { searchCommands, type SearchResult } from "./fuzzy-search";
+import {
+  parseFuzzyFindInput,
+  updateInputStyling,
+  createFuzzyFindList,
+  type FuzzyFindInputParserResult,
+  type FuzzyFindMatch,
+} from "./command-palette-fuzzy-find";
 import "@/styles/command-palette.css";
 
 export interface CommandPaletteCallbacks {
   onCommandExecute?: (command: Command, args?: string[]) => void;
   onClose?: () => void;
-  onFindMatches?: (keyword: string) => Array<{
-    rowIndex: number;
-    translation: any;
-    score: number;
-    matchedFields: Array<{
-      field: string;
-      matchedText: string;
-      matchType: "exact" | "contains" | "fuzzy";
-    }>;
-  }>;
-  onGotoMatch?: (match: {
-    rowIndex: number;
-    translation: any;
-    score: number;
-    matchedFields: Array<{
-      field: string;
-      matchedText: string;
-      matchType: "exact" | "contains" | "fuzzy";
-    }>;
-  }) => void;
+  onFindMatches?: (keyword: string) => FuzzyFindMatch[];
+  onGotoMatch?: (match: FuzzyFindMatch) => void;
 }
 
 export class CommandPalette {
@@ -248,18 +237,18 @@ export class CommandPalette {
     this.selectedIndex = 0;
 
     // Fuzzy find 모드 감지
-    const parsed = this.parseInput(query);
+    const parsed = parseFuzzyFindInput(query);
     if (parsed.isFuzzyFindMode) {
       this.isFuzzyFindMode = true;
       this.fuzzyFindQuery = parsed.fuzzyFindQuery;
       this.fuzzyFindQuoteChar = parsed.quoteChar;
-      this.updateInputStyling(query);
+      this.updateInputStyling(query, parsed);
       this.updateFuzzyFindResults();
     } else {
       this.isFuzzyFindMode = false;
       this.fuzzyFindQuery = "";
       this.fuzzyFindQuoteChar = null;
-      this.updateInputStyling(query);
+      this.updateInputStyling(query, parsed);
       this.fuzzyFindResults = [];
       this.updateCommands();
     }
@@ -268,7 +257,10 @@ export class CommandPalette {
   /**
    * 입력 필드 스타일링 업데이트 (따옴표 이후 텍스트를 bold/italic로 표시)
    */
-  private updateInputStyling(query: string): void {
+  private updateInputStyling(
+    query: string,
+    parsed: FuzzyFindInputParserResult
+  ): void {
     if (!this.input) return;
 
     // 기존 오버레이 제거
@@ -277,109 +269,8 @@ export class CommandPalette {
       this.inputOverlay = null;
     }
 
-    const parsed = this.parseInput(query);
-    if (!parsed.isFuzzyFindMode || !parsed.quoteChar) {
-      // 일반 모드: 스타일링 없음
-      return;
-    }
-
-    // 오버레이 생성 (input 위에 텍스트 렌더링)
-    this.inputOverlay = document.createElement("div");
-    this.inputOverlay.className = "command-palette-input-overlay";
-    this.inputOverlay.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      pointer-events: none;
-      padding: 12px 16px;
-      font-size: 16px;
-      font-family: system-ui, -apple-system, sans-serif;
-      white-space: pre;
-      overflow: hidden;
-      box-sizing: border-box;
-      line-height: 1.5;
-      border: none;
-      background: transparent;
-    `;
-
-    // 텍스트 파싱 및 스타일링
-    const quoteIndex = query.indexOf(parsed.quoteChar!);
-    const beforeQuote = query.substring(0, quoteIndex + 1);
-    const afterQuote = parsed.fuzzyFindQuery;
-
-    // 따옴표 이전 텍스트 (일반 스타일)
-    const beforeText = document.createTextNode(beforeQuote);
-    const beforeSpan = document.createElement("span");
-    beforeSpan.style.cssText = `color: #1e293b;`;
-    beforeSpan.appendChild(beforeText);
-    this.inputOverlay.appendChild(beforeSpan);
-
-    // 따옴표 이후 텍스트 (bold + italic)
-    if (afterQuote) {
-      const styledSpan = document.createElement("span");
-      styledSpan.style.cssText = `
-        font-weight: bold;
-        font-style: italic;
-        color: #1e293b;
-      `;
-      styledSpan.textContent = afterQuote;
-      this.inputOverlay.appendChild(styledSpan);
-    }
-
-    // input의 부모(wrapper)에 오버레이 추가
-    if (this.input.parentElement) {
-      this.input.parentElement.appendChild(this.inputOverlay);
-    }
-  }
-
-  /**
-   * 입력 파싱 (fuzzy find 모드 감지)
-   * " 또는 ' 이후 텍스트는 검색 키워드로 처리
-   * 닫는 따옴표가 있으면 제거 (검색 키워드에는 포함하지 않음)
-   */
-  private parseInput(query: string): {
-    isFuzzyFindMode: boolean;
-    fuzzyFindQuery: string;
-    quoteChar: '"' | "'" | null;
-  } {
-    const trimmed = query.trim();
-
-    // "goto "로 시작하는지 확인
-    if (!trimmed.startsWith("goto ") && !trimmed.startsWith("go to ")) {
-      return { isFuzzyFindMode: false, fuzzyFindQuery: "", quoteChar: null };
-    }
-
-    // "goto " 또는 "go to " 이후 부분 추출
-    const afterGoto = trimmed.startsWith("goto ")
-      ? trimmed.slice(5)
-      : trimmed.slice(6);
-
-    // " 또는 '로 시작하는지 확인
-    let quoteChar: '"' | "'" | null = null;
-    if (afterGoto.startsWith('"')) {
-      quoteChar = '"';
-    } else if (afterGoto.startsWith("'")) {
-      quoteChar = "'";
-    } else {
-      return { isFuzzyFindMode: false, fuzzyFindQuery: "", quoteChar: null };
-    }
-
-    // 따옴표 이후 부분 추출
-    const afterQuote = afterGoto.slice(1);
-
-    // 닫는 따옴표가 있으면 제거 (검색 키워드에는 포함하지 않음)
-    let searchQuery = afterQuote;
-    if (afterQuote.endsWith(quoteChar)) {
-      searchQuery = afterQuote.slice(0, -1);
-    }
-
-    return {
-      isFuzzyFindMode: true,
-      fuzzyFindQuery: searchQuery,
-      quoteChar,
-    };
+    // 새로운 오버레이 생성
+    this.inputOverlay = updateInputStyling(this.input, query, parsed);
   }
 
   /**
@@ -412,91 +303,21 @@ export class CommandPalette {
   private updateFuzzyFindList(): void {
     if (!this.list) return;
 
-    // 검색 중 표시 (따옴표 이후 텍스트가 없을 때)
-    if (!this.fuzzyFindQuery || this.fuzzyFindQuery.trim() === "") {
-      const emptyItem = document.createElement("div");
-      emptyItem.className = "command-palette-item command-palette-item-empty";
-      emptyItem.textContent = "Type to search...";
-      this.list.appendChild(emptyItem);
-      // selectedIndex 초기화
-      this.selectedIndex = 0;
-      return;
-    }
-
-    // 검색 결과가 없는 경우
-    if (this.fuzzyFindResults.length === 0) {
-      const emptyItem = document.createElement("div");
-      emptyItem.className = "command-palette-item command-palette-item-empty";
-      emptyItem.textContent = "No matches found";
-      this.list.appendChild(emptyItem);
-      // selectedIndex 초기화
-      this.selectedIndex = 0;
-      return;
-    }
-
-    // 검색 결과 헤더
-    const headerItem = document.createElement("div");
-    headerItem.className = "command-palette-item command-palette-item-empty";
-    headerItem.textContent = `Search Results (${this.fuzzyFindResults.length})`;
-    this.list.appendChild(headerItem);
-
     // selectedIndex가 범위를 벗어나면 조정
-    if (this.selectedIndex >= this.fuzzyFindResults.length) {
+    if (this.fuzzyFindResults.length > 0 && this.selectedIndex >= this.fuzzyFindResults.length) {
       this.selectedIndex = 0;
     }
 
-    // 검색 결과 항목들
-    this.fuzzyFindResults.forEach((result, index) => {
-      const item = document.createElement("div");
-      item.className = "command-palette-item";
-      item.setAttribute("role", "option");
-      item.setAttribute("aria-selected", (index === this.selectedIndex).toString());
-
-      if (index === this.selectedIndex) {
-        item.classList.add("command-palette-item-selected");
-      }
-
-      // 매칭된 필드 정보 표시
-      const label = document.createElement("div");
-      label.className = "command-palette-item-label";
-      
-      // Key, Context, 또는 Value 중 매칭된 필드 표시
-      const translation = result.translation;
-      let displayText = "";
-      if (result.matchedFields && result.matchedFields.length > 0) {
-        const matchedField = result.matchedFields[0];
-        if (matchedField.field === "key") {
-          displayText = `Key: ${translation.key}`;
-        } else if (matchedField.field === "context") {
-          displayText = `Context: ${translation.context || ""}`;
-        } else if (matchedField.field.startsWith("values.")) {
-          const lang = matchedField.field.replace("values.", "");
-          displayText = `${lang.toUpperCase()}: ${translation.values?.[lang] || ""}`;
-        } else {
-          displayText = translation.key || "";
-        }
-      } else {
-        displayText = translation.key || "";
-      }
-
-      label.textContent = displayText;
-
-      // Description (Row 번호)
-      const desc = document.createElement("div");
-      desc.className = "command-palette-item-description";
-      desc.textContent = `Row ${result.rowIndex + 1}`;
-      item.appendChild(desc);
-
-      item.appendChild(label);
-
-      // 클릭 이벤트
-      item.addEventListener("click", () => {
+    createFuzzyFindList(
+      this.list,
+      this.fuzzyFindQuery,
+      this.fuzzyFindResults,
+      this.selectedIndex,
+      (index) => {
         this.selectedIndex = index;
         this.executeSelectedCommand();
-      });
-
-      this.list.appendChild(item);
-    });
+      }
+    );
   }
 
   /**
