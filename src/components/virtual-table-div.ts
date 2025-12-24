@@ -21,6 +21,8 @@ import { ColumnResizer } from "./column-resizer";
 import { ColumnWidthCalculator } from "./column-width-calculator";
 import { GridRenderer, type ColumnWidths } from "./grid-renderer";
 import { getLangFromColumnId, getTranslationKey } from "./grid-utils";
+import { CommandPalette } from "./command-palette";
+import { CommandRegistry, type EditorMode } from "./command-registry";
 import "@/styles/virtual-table-div.css";
 
 export interface VirtualTableDivOptions {
@@ -61,6 +63,9 @@ export class VirtualTableDiv {
   private columnResizer: ColumnResizer;
   private columnWidthCalculator: ColumnWidthCalculator;
   private gridRenderer: GridRenderer;
+  private commandRegistry: CommandRegistry;
+  private commandPalette: CommandPalette;
+  private currentMode: EditorMode = "excel";
 
   // 컬럼 리사이즈 관련 상태
   private columnMinWidths: Map<string, number> = new Map();
@@ -115,6 +120,32 @@ export class VirtualTableDiv {
       }
     );
 
+    // CommandRegistry 초기화
+    this.commandRegistry = new CommandRegistry({
+      onCommandExecuted: () => {
+        // 명령 실행 후 추가 처리 (필요 시)
+      },
+    });
+
+    // 기본 명령어 등록
+    this.registerDefaultCommands();
+
+    // CommandPalette 초기화
+    this.commandPalette = new CommandPalette(this.commandRegistry, {
+      onCommandExecute: () => {
+        // 명령 실행 후 처리
+      },
+      onClose: () => {
+        // 팔레트 닫힘 후 포커스 복원
+        if (this.bodyElement) {
+          const focusedCell = this.focusManager.getFocusedCell();
+          if (focusedCell) {
+            this.focusCell(focusedCell.rowIndex, focusedCell.columnId);
+          }
+        }
+      },
+    });
+
     // KeyboardHandler 초기화
     this.keyboardHandlerModule = new KeyboardHandler(
       this.modifierKeyTracker,
@@ -130,6 +161,9 @@ export class VirtualTableDiv {
         getMaxRowIndex: () => options.translations.length - 1,
         focusCell: (rowIndex, columnId) => {
           this.focusCell(rowIndex, columnId);
+        },
+        onOpenCommandPalette: (mode) => {
+          this.commandPalette.open(mode as EditorMode);
         },
       }
     );
@@ -1044,6 +1078,238 @@ export class VirtualTableDiv {
   }
 
   /**
+   * 기본 명령어 등록
+   */
+  private registerDefaultCommands(): void {
+    // Goto 명령
+    this.commandRegistry.registerCommand({
+      id: "goto",
+      label: "Go to Row",
+      keywords: ["goto", "go", "row", "line", "jump"],
+      category: "navigation",
+      description: "Navigate to a specific row number",
+      execute: (args) => {
+        if (args && args.length > 0) {
+          const rowIndex = parseInt(args[0], 10);
+          if (!isNaN(rowIndex) && rowIndex > 0) {
+            this.gotoRow(rowIndex - 1); // 1-based to 0-based
+          }
+        }
+      },
+    });
+
+    // Search 명령
+    this.commandRegistry.registerCommand({
+      id: "search",
+      label: "Search",
+      keywords: ["search", "find", "query"],
+      category: "filter",
+      description: "Search for keywords in translations",
+      execute: (args) => {
+        if (args && args.length > 0) {
+          const keyword = args.join(" ");
+          this.searchKeyword(keyword);
+        }
+      },
+    });
+
+    // Filter Empty
+    this.commandRegistry.registerCommand({
+      id: "filter-empty",
+      label: "Filter: Empty Translations",
+      keywords: ["filter", "empty", "blank", "missing"],
+      category: "filter",
+      description: "Show only rows with empty translations",
+      execute: () => {
+        this.filterEmpty();
+      },
+    });
+
+    // Filter Changed
+    this.commandRegistry.registerCommand({
+      id: "filter-changed",
+      label: "Filter: Changed Cells",
+      keywords: ["filter", "changed", "dirty", "modified"],
+      category: "filter",
+      description: "Show only rows with changed cells",
+      execute: () => {
+        this.filterChanged();
+      },
+    });
+
+    // Filter Duplicate
+    this.commandRegistry.registerCommand({
+      id: "filter-duplicate",
+      label: "Filter: Duplicate Keys",
+      keywords: ["filter", "duplicate", "dupe"],
+      category: "filter",
+      description: "Show only rows with duplicate keys",
+      execute: () => {
+        this.filterDuplicate();
+      },
+    });
+
+    // Clear Filter
+    this.commandRegistry.registerCommand({
+      id: "clear-filter",
+      label: "Clear Filter",
+      keywords: ["clear", "filter", "reset", "show", "all"],
+      category: "filter",
+      description: "Clear all filters and show all rows",
+      execute: () => {
+        this.clearFilter();
+      },
+    });
+
+    // Undo
+    this.commandRegistry.registerCommand({
+      id: "undo",
+      label: "Undo",
+      keywords: ["undo", "revert"],
+      shortcut: "Cmd+Z",
+      category: "edit",
+      description: "Undo last action",
+      execute: () => {
+        this.handleUndo();
+      },
+    });
+
+    // Redo
+    this.commandRegistry.registerCommand({
+      id: "redo",
+      label: "Redo",
+      keywords: ["redo", "repeat"],
+      shortcut: "Cmd+Y",
+      category: "edit",
+      description: "Redo last undone action",
+      execute: () => {
+        this.handleRedo();
+      },
+    });
+
+    // Toggle Read Only
+    this.commandRegistry.registerCommand({
+      id: "readonly",
+      label: "Toggle Read Only",
+      keywords: ["readonly", "read", "only", "lock", "unlock"],
+      category: "edit",
+      description: "Toggle read-only mode",
+      execute: () => {
+        const newReadOnly = !this.options.readOnly;
+        this.setReadOnly(newReadOnly);
+      },
+    });
+
+    // Help
+    this.commandRegistry.registerCommand({
+      id: "help",
+      label: "Show Help",
+      keywords: ["help", "?", "documentation", "docs"],
+      category: "help",
+      description: "Show keyboard shortcuts and help",
+      execute: () => {
+        this.showHelp();
+      },
+    });
+  }
+
+  /**
+   * 특정 행으로 이동
+   */
+  private gotoRow(rowIndex: number): void {
+    if (rowIndex < 0 || rowIndex >= this.options.translations.length) {
+      return;
+    }
+
+    // 가상 스크롤러로 스크롤
+    if (this.rowVirtualizer) {
+      this.rowVirtualizer.scrollToIndex(rowIndex, {
+        align: "start",
+        behavior: "smooth",
+      });
+    }
+
+    // 첫 번째 편집 가능한 컬럼에 포커스
+    const columns = [
+      "key",
+      "context",
+      ...this.options.languages.map((lang) => `values.${lang}`),
+    ];
+    const firstEditableColumn = columns.find((col) =>
+      this.editableColumns.has(col)
+    );
+    if (firstEditableColumn) {
+      // 스크롤이 완료될 때까지 충분한 시간 대기
+      setTimeout(() => {
+        this.focusCell(rowIndex, firstEditableColumn);
+      }, 300);
+    }
+  }
+
+  /**
+   * 키워드 검색
+   */
+  private searchKeyword(keyword: string): void {
+    // TODO: 검색 기능 구현 (향후)
+    console.log("Search for:", keyword);
+    // 검색 결과로 필터링하거나 하이라이트
+  }
+
+  /**
+   * 빈 번역 필터
+   */
+  private filterEmpty(): void {
+    // TODO: 필터 기능 구현 (향후)
+    console.log("Filter empty translations");
+    // 빈 번역만 표시하도록 필터링
+  }
+
+  /**
+   * 변경된 셀 필터
+   */
+  private filterChanged(): void {
+    // TODO: 필터 기능 구현 (향후)
+    console.log("Filter changed cells");
+    // 변경된 셀만 표시하도록 필터링
+  }
+
+  /**
+   * 중복 Key 필터
+   */
+  private filterDuplicate(): void {
+    // TODO: 필터 기능 구현 (향후)
+    console.log("Filter duplicate keys");
+    // 중복된 Key만 표시하도록 필터링
+  }
+
+  /**
+   * 필터 제거
+   */
+  private clearFilter(): void {
+    // TODO: 필터 제거 구현 (향후)
+    console.log("Clear filter");
+    // 모든 필터 제거
+  }
+
+  /**
+   * 도움말 표시
+   */
+  private showHelp(): void {
+    // alert는 팔레트를 닫지 않으므로, 간단한 콘솔 로그로 대체
+    // 실제로는 팔레트가 닫히고 나중에 도움말 모달을 표시할 수 있음
+    console.log(
+      "Keyboard Shortcuts:\n\n" +
+        "Cmd/Ctrl+K: Open Command Palette\n" +
+        "Cmd/Ctrl+Z: Undo\n" +
+        "Cmd/Ctrl+Y: Redo\n" +
+        "Tab: Next cell\n" +
+        "Enter: Next row (in language columns)\n" +
+        "Arrow keys: Navigate cells\n" +
+        "Double-click: Edit cell"
+    );
+  }
+
+  /**
    * 변경사항 초기화
    */
   clearChanges(): void {
@@ -1059,6 +1325,11 @@ export class VirtualTableDiv {
     // KeyboardHandler 해제
     if (this.keyboardHandlerModule) {
       this.keyboardHandlerModule.detach();
+    }
+
+    // CommandPalette 정리
+    if (this.commandPalette && this.commandPalette.isPaletteOpen()) {
+      this.commandPalette.close();
     }
 
     // ModifierKeyTracker 해제

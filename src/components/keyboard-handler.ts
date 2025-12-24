@@ -20,6 +20,7 @@ export interface KeyboardHandlerCallbacks {
   getAllColumns?: () => string[];
   getMaxRowIndex?: () => number;
   focusCell?: (rowIndex: number, columnId: string) => void;
+  onOpenCommandPalette?: (mode: string) => void;
 }
 
 export class KeyboardHandler {
@@ -79,6 +80,17 @@ export class KeyboardHandler {
         e.stopPropagation();
         if (this.callbacks.onRedo) {
           this.callbacks.onRedo();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+K: 명령 팔레트 열기 (모든 모드에서 작동)
+      if (ctrlOrCmd && (e.key === "k" || e.code === "KeyK")) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.callbacks.onOpenCommandPalette) {
+          // 현재 모드는 기본적으로 "excel" (향후 모드 시스템 구현 시 동적으로 전달)
+          this.callbacks.onOpenCommandPalette("excel");
         }
         return;
       }
