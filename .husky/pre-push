@@ -3,5 +3,5 @@
 
 echo "Running tests before push..."
 pnpm test
-CI=true pnpm test:e2e -- --reporter=list
+CI=true TEST_PORT=3002 pnpm test:e2e -- --reporter=list
 

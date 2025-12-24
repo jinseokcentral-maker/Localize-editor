@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: process.env.TEST_PORT ? `http://localhost:${process.env.TEST_PORT}` : 'http://localhost:3001',
     trace: 'on-first-retry',
     headless: process.env.CI ? true : false, // CI에서는 headless, 로컬에서는 브라우저 표시
   },
@@ -27,8 +27,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3001',
+    command: process.env.TEST_PORT ? `PORT=${process.env.TEST_PORT} pnpm dev` : 'pnpm dev',
+    url: process.env.TEST_PORT ? `http://localhost:${process.env.TEST_PORT}` : 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
   },
 });

@@ -13,7 +13,7 @@ export default defineConfig(({ command, mode }) => {
     return {
       plugins: [tailwindcss()],
       server: {
-        port: 3001,
+        port: process.env.PORT ? parseInt(process.env.PORT) : 3001,
       },
       resolve: {
         alias: {
