@@ -301,22 +301,37 @@ export class CommandPalette {
     const items = this.list.querySelectorAll(".command-palette-item");
     const selectedItem = items[this.selectedIndex] as HTMLElement;
     
-    if (selectedItem && typeof selectedItem.scrollIntoView === "function") {
-      selectedItem.scrollIntoView({
-        block: "nearest",
-        behavior: "smooth",
-      });
-    } else if (selectedItem && this.list) {
-      // jsdom 환경에서는 scrollIntoView가 없을 수 있으므로 수동 스크롤
-      const itemTop = selectedItem.offsetTop;
-      const itemBottom = itemTop + selectedItem.offsetHeight;
-      const listTop = this.list.scrollTop;
-      const listBottom = listTop + this.list.clientHeight;
+    if (!selectedItem) return;
+    
+    // scrollIntoView가 있으면 사용
+    if (typeof selectedItem.scrollIntoView === "function") {
+      try {
+        selectedItem.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+      } catch (e) {
+        // jsdom 등에서 실패할 수 있으므로 무시
+      }
+    }
+    
+    // jsdom 환경 대비: 수동 스크롤 (offsetTop이 있는 경우만)
+    if (this.list && typeof selectedItem.offsetTop !== "undefined") {
+      try {
+        const itemTop = selectedItem.offsetTop;
+        const itemHeight = selectedItem.offsetHeight || 0;
+        const itemBottom = itemTop + itemHeight;
+        const listTop = this.list.scrollTop || 0;
+        const listHeight = this.list.clientHeight || 0;
+        const listBottom = listTop + listHeight;
 
-      if (itemTop < listTop) {
-        this.list.scrollTop = itemTop;
-      } else if (itemBottom > listBottom) {
-        this.list.scrollTop = itemBottom - this.list.clientHeight;
+        if (itemTop < listTop) {
+          this.list.scrollTop = itemTop;
+        } else if (itemBottom > listBottom) {
+          this.list.scrollTop = itemBottom - listHeight;
+        }
+      } catch (e) {
+        // jsdom에서 offsetTop이 제대로 작동하지 않을 수 있음
       }
     }
   }

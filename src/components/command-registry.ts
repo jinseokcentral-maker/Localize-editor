@@ -35,16 +35,16 @@ export class CommandRegistry {
    * 명령어 등록
    */
   registerCommand(command: Command): void {
-    // 이미 저장된 사용 횟수가 있으면 사용
-    const savedUsageCount = this.usageCounts.get(command.id) ?? command.usageCount ?? 0;
-    
     // 기본값 설정
     const fullCommand: Command = {
       ...command,
-      usageCount: savedUsageCount,
+      usageCount: command.usageCount ?? 0,
       availableInModes: command.availableInModes ?? ["all"],
     };
     this.commands.set(command.id, fullCommand);
+    
+    // 저장된 사용 횟수가 있으면 반영
+    this.applySavedUsageCount(command.id);
   }
 
   /**
@@ -114,17 +114,22 @@ export class CommandRegistry {
       if (stored) {
         const counts = JSON.parse(stored) as Record<string, number>;
         this.usageCounts = new Map(Object.entries(counts));
-        
-        // 명령어에 사용 횟수 반영
-        this.usageCounts.forEach((count, commandId) => {
-          const command = this.commands.get(commandId);
-          if (command) {
-            command.usageCount = count;
-          }
-        });
       }
     } catch (error) {
       console.warn("Failed to load command usage counts:", error);
+    }
+  }
+  
+  /**
+   * 명령어 등록 후 저장된 사용 횟수 반영
+   */
+  private applySavedUsageCount(commandId: string): void {
+    const savedCount = this.usageCounts.get(commandId);
+    if (savedCount !== undefined) {
+      const command = this.commands.get(commandId);
+      if (command) {
+        command.usageCount = savedCount;
+      }
     }
   }
 

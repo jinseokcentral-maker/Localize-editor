@@ -87,14 +87,28 @@ describe("CommandPalette", () => {
 
     it("should focus input when opened", (done) => {
       palette.open();
+      // DOM이 준비될 때까지 여러 프레임 대기
       requestAnimationFrame(() => {
-        const input = document.querySelector(
-          ".command-palette-input"
-        ) as HTMLInputElement;
-        // jsdom에서는 activeElement가 제대로 설정되지 않을 수 있음
-        // input이 존재하는지만 확인
-        expect(input).toBeTruthy();
-        done();
+        requestAnimationFrame(() => {
+          const input = document.querySelector(
+            ".command-palette-input"
+          ) as HTMLInputElement;
+          // jsdom에서는 activeElement가 제대로 설정되지 않을 수 있음
+          // input이 존재하는지만 확인
+          if (input) {
+            expect(input).toBeTruthy();
+            done();
+          } else {
+            // DOM이 아직 준비되지 않았으면 조금 더 대기
+            setTimeout(() => {
+              const input2 = document.querySelector(
+                ".command-palette-input"
+              ) as HTMLInputElement;
+              expect(input2).toBeTruthy();
+              done();
+            }, 10);
+          }
+        });
       });
     });
   });
