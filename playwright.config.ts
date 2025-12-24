@@ -29,7 +29,7 @@ export default defineConfig({
   webServer: {
     command: process.env.TEST_PORT ? `PORT=${process.env.TEST_PORT} pnpm dev` : 'pnpm dev',
     url: process.env.TEST_PORT ? `http://localhost:${process.env.TEST_PORT}` : 'http://localhost:3001',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true, // CI에서도 기존 서버 재사용 (포트 충돌 방지)
   },
 });
 

@@ -45,7 +45,8 @@ UNIT_PID=$!
 
 # E2E test with yellow prefixed output
 (
-  CI=true TEST_PORT=3002 pnpm exec playwright test --reporter=list > "$E2E_LOG" 2>&1
+  cd "$REPO_ROOT" || exit 1
+  TEST_PORT=3002 pnpm exec playwright test --reporter=list > "$E2E_LOG" 2>&1
   TEST_EXIT=$?
   prefix_output "E2E" "$YELLOW" < "$E2E_LOG"
   echo $TEST_EXIT > "$E2E_EXIT_FILE"
