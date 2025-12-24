@@ -380,6 +380,15 @@ export class CommandPalette {
       }
     }
     
+    // commandId가 "search"인 경우
+    if (commandId === "search") {
+      if (parts[0] === "search") {
+        // "search keyword" -> ["keyword"]
+        // "search keyword1 keyword2" -> ["keyword1", "keyword2"]
+        return parts.slice(1);
+      }
+    }
+    
     if (parts[0] === commandId || parts[0].startsWith(commandId)) {
       return parts.slice(1);
     }

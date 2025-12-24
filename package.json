@@ -67,6 +67,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@types/lodash": "^4.17.21",
     "effect": "^3.19.13",
+    "fuse.js": "^7.0.0",
     "jspreadsheet-ce": "^4.15.0",
     "jsuites": "^5.2.0",
     "lodash": "^4.17.21",

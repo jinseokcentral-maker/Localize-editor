@@ -70,6 +70,12 @@ export class VirtualTableDiv {
   // 컬럼 리사이즈 관련 상태
   private columnMinWidths: Map<string, number> = new Map();
 
+  // 필터 관련 상태
+  private originalTranslations: readonly Translation[] = [];
+  private currentFilter: "none" | "empty" | "changed" | "duplicate" | "search" =
+    "none";
+  private currentSearchKeyword: string = "";
+
   constructor(options: VirtualTableDivOptions) {
     this.container = options.container;
     this.options = options;
@@ -89,6 +95,9 @@ export class VirtualTableDiv {
     options.languages.forEach((lang) => {
       this.columnMinWidths.set(`values.${lang}`, 80);
     });
+
+    // 원본 데이터 보관 (필터링용)
+    this.originalTranslations = [...options.translations];
 
     // 원본 데이터 초기화
     this.changeTracker.initializeOriginalData(
@@ -313,7 +322,7 @@ export class VirtualTableDiv {
     const initialRect = getInitialRect();
 
     this.rowVirtualizer = new Virtualizer<HTMLElement, HTMLElement>({
-      count: this.options.translations.length,
+      count: this.getFilteredTranslations().length,
       getScrollElement: () => this.scrollElement,
       estimateSize: () => this.rowHeight,
       scrollToFn: elementScroll,
@@ -440,7 +449,8 @@ export class VirtualTableDiv {
 
     // 각 가상 아이템에 대해 행 생성
     virtualItems.forEach((virtualItem) => {
-      const translation = this.options.translations[virtualItem.index];
+      const filteredTranslations = this.getFilteredTranslations();
+      const translation = filteredTranslations[virtualItem.index];
       if (!translation) {
         return;
       }
@@ -1217,7 +1227,8 @@ export class VirtualTableDiv {
    * 특정 행으로 이동
    */
   private gotoRow(rowIndex: number): void {
-    if (rowIndex < 0 || rowIndex >= this.options.translations.length) {
+    const filteredTranslations = this.getFilteredTranslations();
+    if (rowIndex < 0 || rowIndex >= filteredTranslations.length) {
       return;
     }
 
@@ -1247,48 +1258,142 @@ export class VirtualTableDiv {
   }
 
   /**
+   * 필터링된 translations 반환
+   */
+  private getFilteredTranslations(): readonly Translation[] {
+    let filtered = [...this.originalTranslations];
+
+    // 검색 필터
+    if (this.currentFilter === "search" && this.currentSearchKeyword.trim()) {
+      const keyword = this.currentSearchKeyword.toLowerCase().trim();
+      filtered = filtered.filter((translation) => {
+        // Key 검색
+        if (translation.key.toLowerCase().includes(keyword)) {
+          return true;
+        }
+        // Context 검색
+        if (translation.context?.toLowerCase().includes(keyword)) {
+          return true;
+        }
+        // Language values 검색
+        return this.options.languages.some((lang) => {
+          const value = translation.values[lang] || "";
+          return value.toLowerCase().includes(keyword);
+        });
+      });
+    }
+
+    // 빈 번역 필터
+    if (this.currentFilter === "empty") {
+      filtered = filtered.filter((translation) => {
+        return this.options.languages.some((lang) => {
+          const value = translation.values[lang] || "";
+          return value.trim() === "";
+        });
+      });
+    }
+
+    // 변경된 셀 필터
+    if (this.currentFilter === "changed") {
+      filtered = filtered.filter((translation) => {
+        // Key 변경 체크
+        if (this.changeTracker.hasChange(translation.id, "key")) {
+          return true;
+        }
+        // Context 변경 체크
+        if (this.changeTracker.hasChange(translation.id, "context")) {
+          return true;
+        }
+        // Language values 변경 체크
+        return this.options.languages.some((lang) => {
+          return this.changeTracker.hasChange(translation.id, `values.${lang}`);
+        });
+      });
+    }
+
+    // 중복 Key 필터
+    if (this.currentFilter === "duplicate") {
+      const keyCounts = new Map<string, number>();
+      this.originalTranslations.forEach((t) => {
+        const count = keyCounts.get(t.key) || 0;
+        keyCounts.set(t.key, count + 1);
+      });
+
+      filtered = filtered.filter((translation) => {
+        return (keyCounts.get(translation.key) || 0) > 1;
+      });
+    }
+
+    return filtered;
+  }
+
+  /**
+   * 필터링된 translations로 그리드 업데이트
+   */
+  private applyFilter(): void {
+    // 필터링된 translations로 options 업데이트
+    const filtered = this.getFilteredTranslations();
+    (this.options as any).translations = filtered;
+
+    // 가상 스크롤러 재초기화
+    if (this.rowVirtualizer) {
+      // Virtualizer의 count를 직접 업데이트할 수 없으므로 재생성
+      this.initVirtualScrolling();
+    }
+
+    // 헤더와 바디 재렌더링
+    if (this.headerElement) {
+      this.headerElement.innerHTML = "";
+      this.renderHeader();
+    }
+
+    this.renderVirtualRows();
+  }
+
+  /**
    * 키워드 검색
    */
   private searchKeyword(keyword: string): void {
-    // TODO: 검색 기능 구현 (향후)
-    console.log("Search for:", keyword);
-    // 검색 결과로 필터링하거나 하이라이트
+    this.currentSearchKeyword = keyword;
+    this.currentFilter = keyword.trim() ? "search" : "none";
+    this.applyFilter();
   }
 
   /**
    * 빈 번역 필터
    */
   private filterEmpty(): void {
-    // TODO: 필터 기능 구현 (향후)
-    console.log("Filter empty translations");
-    // 빈 번역만 표시하도록 필터링
+    this.currentFilter = "empty";
+    this.currentSearchKeyword = "";
+    this.applyFilter();
   }
 
   /**
    * 변경된 셀 필터
    */
   private filterChanged(): void {
-    // TODO: 필터 기능 구현 (향후)
-    console.log("Filter changed cells");
-    // 변경된 셀만 표시하도록 필터링
+    this.currentFilter = "changed";
+    this.currentSearchKeyword = "";
+    this.applyFilter();
   }
 
   /**
    * 중복 Key 필터
    */
   private filterDuplicate(): void {
-    // TODO: 필터 기능 구현 (향후)
-    console.log("Filter duplicate keys");
-    // 중복된 Key만 표시하도록 필터링
+    this.currentFilter = "duplicate";
+    this.currentSearchKeyword = "";
+    this.applyFilter();
   }
 
   /**
    * 필터 제거
    */
   private clearFilter(): void {
-    // TODO: 필터 제거 구현 (향후)
-    console.log("Clear filter");
-    // 모든 필터 제거
+    this.currentFilter = "none";
+    this.currentSearchKeyword = "";
+    (this.options as any).translations = [...this.originalTranslations];
+    this.applyFilter();
   }
 
   /**
