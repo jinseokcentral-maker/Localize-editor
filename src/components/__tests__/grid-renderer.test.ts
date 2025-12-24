@@ -68,6 +68,7 @@ describe("GridRenderer", () => {
 
     it("should create row with correct structure", () => {
       const row = renderer.createRow(mockTranslation, 0, {
+        rowNumber: 50,
         key: 200,
         context: 200,
         languages: [150, 150],
@@ -81,27 +82,31 @@ describe("GridRenderer", () => {
 
     it("should create all cells for a row", () => {
       const row = renderer.createRow(mockTranslation, 0, {
+        rowNumber: 50,
         key: 200,
         context: 200,
         languages: [150, 150],
       });
 
       const cells = row.querySelectorAll(".virtual-grid-cell");
-      expect(cells.length).toBe(4); // key, context, en, ko
+      expect(cells.length).toBe(5); // row-number, key, context, en, ko
     });
 
     it("should set correct cell values", () => {
       const row = renderer.createRow(mockTranslation, 0, {
+        rowNumber: 50,
         key: 200,
         context: 200,
         languages: [150, 150],
       });
 
+      const rowNumberCell = row.querySelector('[data-column-id="row-number"]');
       const keyCell = row.querySelector('[data-column-id="key"]');
       const contextCell = row.querySelector('[data-column-id="context"]');
       const enCell = row.querySelector('[data-column-id="values.en"]');
       const koCell = row.querySelector('[data-column-id="values.ko"]');
 
+      expect(rowNumberCell?.textContent).toBe("1"); // rowIndex + 1
       expect(keyCell?.textContent).toBe("common.submit");
       expect(contextCell?.textContent).toBe("Submit button");
       expect(enCell?.textContent).toBe("Submit");
@@ -110,12 +115,13 @@ describe("GridRenderer", () => {
 
     it("should call updateCellStyle for each cell", () => {
       renderer.createRow(mockTranslation, 0, {
+        rowNumber: 50,
         key: 200,
         context: 200,
         languages: [150, 150],
       });
 
-      expect(callbacks.updateCellStyle).toHaveBeenCalledTimes(4);
+      expect(callbacks.updateCellStyle).toHaveBeenCalledTimes(5); // row-number, key, context, en, ko
     });
   });
 
@@ -213,23 +219,24 @@ describe("GridRenderer", () => {
       const readOnlyRenderer = new GridRenderer({
         languages: ["en"],
         readOnly: true,
-        editableColumns: new Set(["key"]),
+        editableColumns: new Set(["key", "values.en"]),
         callbacks,
       });
 
-      const cell = readOnlyRenderer.createCell(
+      // 읽기 전용 모드에서는 모든 셀 편집 불가
+      const keyCell = readOnlyRenderer.createCell(
         "1",
         "key",
         "common.submit",
         0,
-        true,
+        false, // editable = false (readOnly 모드에서 모든 셀은 편집 불가)
         200,
         0,
         0
       );
 
       const dblclickEvent = new MouseEvent("dblclick", { bubbles: true });
-      cell.dispatchEvent(dblclickEvent);
+      keyCell.dispatchEvent(dblclickEvent);
 
       expect(callbacks.onCellDblClick).not.toHaveBeenCalled();
     });

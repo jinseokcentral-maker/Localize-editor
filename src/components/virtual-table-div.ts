@@ -375,6 +375,7 @@ export class VirtualTableDiv {
           // 헤더의 실제 너비 사용 (헤더와 바디 동기화)
           // 마지막 컬럼은 끝까지 채우도록 재계산
           const fixedWidth =
+            headerWidths.rowNumber +
             headerWidths.key +
             headerWidths.context +
             headerWidths.languages.slice(0, -1).reduce((sum, w) => sum + w, 0);
@@ -390,6 +391,7 @@ export class VirtualTableDiv {
           );
 
           columnWidths = {
+            rowNumber: headerWidths.rowNumber,
             key: headerWidths.key,
             context: headerWidths.context,
             languages: [...headerWidths.languages.slice(0, -1), lastLangWidth],
@@ -482,6 +484,7 @@ export class VirtualTableDiv {
 
       // 초기 렌더링 시 계산된 컬럼 너비를 저장 (리사이즈 전 기본값)
       // 마지막 컬럼은 저장하지 않음 (항상 동적으로 계산)
+      this.columnWidths.set("row-number", columnWidths.rowNumber);
       this.columnWidths.set("key", columnWidths.key);
       this.columnWidths.set("context", columnWidths.context);
       this.options.languages.slice(0, -1).forEach((lang, index) => {
@@ -496,11 +499,22 @@ export class VirtualTableDiv {
     headerRow.style.minWidth = `${totalWidth}px`;
     headerRow.style.maxWidth = `${totalWidth}px`;
 
+    // 행 번호 헤더 (sticky, 맨 왼쪽)
+    const rowNumberHeaderCell = this.gridRenderer.createHeaderCell(
+      "",
+      columnWidths.rowNumber,
+      0,
+      15, // 가장 높은 z-index
+      "row-number"
+    );
+    rowNumberHeaderCell.classList.add("row-number-header");
+    headerRow.appendChild(rowNumberHeaderCell);
+
     // Key 컬럼 (sticky)
     const keyHeaderCell = this.gridRenderer.createHeaderCell(
       "Key",
       columnWidths.key,
-      0,
+      columnWidths.rowNumber, // 행 번호 컬럼 너비만큼 left 오프셋
       10,
       "key"
     );
@@ -511,7 +525,7 @@ export class VirtualTableDiv {
     const contextHeaderCell = this.gridRenderer.createHeaderCell(
       "Context",
       columnWidths.context,
-      columnWidths.key,
+      columnWidths.rowNumber + columnWidths.key, // 행 번호 + Key 너비만큼 left 오프셋
       10,
       "context"
     );
@@ -522,10 +536,12 @@ export class VirtualTableDiv {
     this.options.languages.forEach((lang, index) => {
       const langWidth = columnWidths.languages[index]!;
       const columnId = `values.${lang}`;
+      const leftOffset =
+        columnWidths.rowNumber + columnWidths.key + columnWidths.context;
       const headerCell = this.gridRenderer.createHeaderCell(
         lang.toUpperCase(),
         langWidth,
-        0,
+        leftOffset,
         0,
         columnId
       );
@@ -560,6 +576,15 @@ export class VirtualTableDiv {
         headerRow.style.maxWidth = `${totalWidth}px`;
       }
 
+      const rowNumberHeaderCell = this.headerElement.querySelector(
+        '[data-column-id="row-number"]'
+      ) as HTMLElement | null;
+      if (rowNumberHeaderCell) {
+        rowNumberHeaderCell.style.width = `${columnWidths.rowNumber}px`;
+        rowNumberHeaderCell.style.minWidth = `${columnWidths.rowNumber}px`;
+        rowNumberHeaderCell.style.maxWidth = `${columnWidths.rowNumber}px`;
+      }
+
       const keyHeaderCell = this.headerElement.querySelector(
         '[data-column-id="key"]'
       ) as HTMLElement | null;
@@ -567,6 +592,7 @@ export class VirtualTableDiv {
         keyHeaderCell.style.width = `${columnWidths.key}px`;
         keyHeaderCell.style.minWidth = `${columnWidths.key}px`;
         keyHeaderCell.style.maxWidth = `${columnWidths.key}px`;
+        keyHeaderCell.style.left = `${columnWidths.rowNumber}px`;
       }
 
       const contextHeaderCell = this.headerElement.querySelector(
@@ -576,7 +602,9 @@ export class VirtualTableDiv {
         contextHeaderCell.style.width = `${columnWidths.context}px`;
         contextHeaderCell.style.minWidth = `${columnWidths.context}px`;
         contextHeaderCell.style.maxWidth = `${columnWidths.context}px`;
-        contextHeaderCell.style.left = `${columnWidths.key}px`;
+        contextHeaderCell.style.left = `${
+          columnWidths.rowNumber + columnWidths.key
+        }px`;
       }
 
       this.options.languages.forEach((lang, index) => {
@@ -588,6 +616,9 @@ export class VirtualTableDiv {
           langHeaderCell.style.width = `${langWidth}px`;
           langHeaderCell.style.minWidth = `${langWidth}px`;
           langHeaderCell.style.maxWidth = `${langWidth}px`;
+          const leftOffset =
+            columnWidths.rowNumber + columnWidths.key + columnWidths.context;
+          langHeaderCell.style.left = `${leftOffset}px`;
         }
       });
     }
@@ -602,6 +633,16 @@ export class VirtualTableDiv {
         htmlRow.style.maxWidth = `${totalWidth}px`;
       });
 
+      const rowNumberCells = this.bodyElement.querySelectorAll(
+        '[data-column-id="row-number"]'
+      );
+      rowNumberCells.forEach((cell) => {
+        const htmlCell = cell as HTMLElement;
+        htmlCell.style.width = `${columnWidths.rowNumber}px`;
+        htmlCell.style.minWidth = `${columnWidths.rowNumber}px`;
+        htmlCell.style.maxWidth = `${columnWidths.rowNumber}px`;
+      });
+
       const keyCells = this.bodyElement.querySelectorAll(
         '[data-column-id="key"]'
       );
@@ -610,6 +651,7 @@ export class VirtualTableDiv {
         htmlCell.style.width = `${columnWidths.key}px`;
         htmlCell.style.minWidth = `${columnWidths.key}px`;
         htmlCell.style.maxWidth = `${columnWidths.key}px`;
+        htmlCell.style.left = `${columnWidths.rowNumber}px`;
       });
 
       const contextCells = this.bodyElement.querySelectorAll(
@@ -620,7 +662,7 @@ export class VirtualTableDiv {
         htmlCell.style.width = `${columnWidths.context}px`;
         htmlCell.style.minWidth = `${columnWidths.context}px`;
         htmlCell.style.maxWidth = `${columnWidths.context}px`;
-        htmlCell.style.left = `${columnWidths.key}px`;
+        htmlCell.style.left = `${columnWidths.rowNumber + columnWidths.key}px`;
       });
 
       this.options.languages.forEach((lang, index) => {
@@ -628,11 +670,14 @@ export class VirtualTableDiv {
           `[data-column-id="values.${lang}"]`
         );
         const langWidth = columnWidths.languages[index]!;
+        const leftOffset =
+          columnWidths.rowNumber + columnWidths.key + columnWidths.context;
         langCells.forEach((cell) => {
           const htmlCell = cell as HTMLElement;
           htmlCell.style.width = `${langWidth}px`;
           htmlCell.style.minWidth = `${langWidth}px`;
           htmlCell.style.maxWidth = `${langWidth}px`;
+          htmlCell.style.left = `${leftOffset}px`;
         });
       });
     }
@@ -642,6 +687,7 @@ export class VirtualTableDiv {
    * 헤더에서 실제 컬럼 너비 가져오기
    */
   private getColumnWidthsFromHeader(): {
+    rowNumber: number;
     key: number;
     context: number;
     languages: number[];
@@ -658,7 +704,13 @@ export class VirtualTableDiv {
     }
 
     const headerCells = headerRow.querySelectorAll(".virtual-grid-header-cell");
-    const widths: { key: number; context: number; languages: number[] } = {
+    const widths: {
+      rowNumber: number;
+      key: number;
+      context: number;
+      languages: number[];
+    } = {
+      rowNumber: 0,
       key: 0,
       context: 0,
       languages: [],
@@ -670,7 +722,9 @@ export class VirtualTableDiv {
         (headerCell as HTMLElement).offsetWidth ||
         (headerCell as HTMLElement).getBoundingClientRect().width;
 
-      if (columnId === "key") {
+      if (columnId === "row-number") {
+        widths.rowNumber = actualWidth;
+      } else if (columnId === "key") {
         widths.key = actualWidth;
       } else if (columnId === "context") {
         widths.context = actualWidth;
@@ -681,6 +735,7 @@ export class VirtualTableDiv {
 
     // 모든 너비가 유효한지 확인
     if (
+      widths.rowNumber > 0 &&
       widths.key > 0 &&
       widths.context > 0 &&
       widths.languages.length === this.options.languages.length
@@ -699,13 +754,9 @@ export class VirtualTableDiv {
     columnId: string,
     cell: HTMLElement
   ): void {
-    // 읽기 전용 모드 체크
+    // 읽기 전용 모드에서는 모든 셀 편집 불가
     if (this.options.readOnly) {
-      // 읽기 전용 모드에서는 언어 컬럼만 편집 불가
-      // Key와 Context는 읽기 전용 모드에서도 편집 가능
-      if (columnId.startsWith("values.")) {
-        return;
-      }
+      return;
     }
 
     const rowId = cell.getAttribute("data-row-id");
@@ -969,14 +1020,11 @@ export class VirtualTableDiv {
       cells.forEach((cell) => {
         const columnId = cell.getAttribute("data-column-id");
         const editable = columnId && this.editableColumns.has(columnId);
-        // 읽기 전용 모드에서는 언어 컬럼만 tabindex -1, Key/Context는 여전히 편집 가능
-        if (readOnly && columnId && columnId.startsWith("values.")) {
+        // 읽기 전용 모드에서는 모든 셀 편집 불가
+        if (readOnly) {
           cell.setAttribute("tabindex", "-1");
         } else {
-          cell.setAttribute(
-            "tabindex",
-            editable && !readOnly ? "0" : editable ? "0" : "-1"
-          );
+          cell.setAttribute("tabindex", editable ? "0" : "-1");
         }
       });
     }

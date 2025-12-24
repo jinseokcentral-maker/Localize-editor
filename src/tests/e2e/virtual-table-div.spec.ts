@@ -304,18 +304,33 @@ test.describe("VirtualTableDiv - 읽기 전용 모드", () => {
     // 읽기 전용 모드로 변경되었는지 확인
     await expect(toggleBtn).toContainText("읽기 전용");
 
-    // 언어 셀 더블클릭 시도
+    // 모든 셀 타입에 대해 편집 불가 확인
+    // 1. 언어 셀
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
-    // 더블클릭 시도
     await firstLangCell.dblclick();
     await page.waitForTimeout(200);
+    const langInput = page.locator(".virtual-grid-cell-input");
+    await expect(langInput).not.toBeVisible({ timeout: 2000 });
 
-    // 편집 input이 나타나지 않아야 함
-    const input = page.locator(".virtual-grid-cell-input");
-    await expect(input).not.toBeVisible({ timeout: 2000 });
+    // 2. Key 셀
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
+    await firstKeyCell.dblclick();
+    await page.waitForTimeout(200);
+    const keyInput = page.locator(".virtual-grid-cell-input");
+    await expect(keyInput).not.toBeVisible({ timeout: 2000 });
+
+    // 3. Context 셀
+    const firstContextCell = page
+      .locator('.virtual-grid-cell[data-column-id="context"]')
+      .first();
+    await firstContextCell.dblclick();
+    await page.waitForTimeout(200);
+    const contextInput = page.locator(".virtual-grid-cell-input");
+    await expect(contextInput).not.toBeVisible({ timeout: 2000 });
   });
 });
 

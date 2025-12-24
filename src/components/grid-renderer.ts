@@ -7,6 +7,7 @@
 import type { Translation } from "@/types/translation";
 
 export interface ColumnWidths {
+  rowNumber: number;
   key: number;
   context: number;
   languages: number[];
@@ -75,15 +76,29 @@ export class GridRenderer {
     row.setAttribute("data-row-index", rowIndex.toString());
     row.setAttribute("data-row-id", translation.id);
 
+    // 행 번호 셀 (Excel처럼 맨 왼쪽)
+    const rowNumberCell = this.createCell(
+      translation.id,
+      "row-number",
+      (rowIndex + 1).toString(), // 1부터 시작
+      rowIndex,
+      false, // 편집 불가
+      columnWidths.rowNumber,
+      0,
+      15 // 가장 높은 z-index로 sticky
+    );
+    rowNumberCell.classList.add("row-number-cell");
+    row.appendChild(rowNumberCell);
+
     // Key 셀
     const keyCell = this.createCell(
       translation.id,
       "key",
       translation.key,
       rowIndex,
-      true,
+      !this.options.readOnly, // 읽기 전용 모드면 편집 불가
       columnWidths.key,
-      0,
+      columnWidths.rowNumber, // 행 번호 컬럼 너비만큼 left 오프셋
       10
     );
     row.appendChild(keyCell);
@@ -94,9 +109,9 @@ export class GridRenderer {
       "context",
       translation.context || "",
       rowIndex,
-      true,
+      !this.options.readOnly, // 읽기 전용 모드면 편집 불가
       columnWidths.context,
-      columnWidths.key,
+      columnWidths.rowNumber + columnWidths.key, // 행 번호 + Key 너비만큼 left 오프셋
       10
     );
     row.appendChild(contextCell);
@@ -107,6 +122,7 @@ export class GridRenderer {
       const langWidth = columnWidths.languages[index]!;
       // 언어 셀은 읽기 전용 모드에서는 편집 불가
       // editable 파라미터는 실제 편집 가능 여부를 의미 (readOnly 체크 포함)
+      const leftOffset = columnWidths.rowNumber + columnWidths.key + columnWidths.context;
       const cell = this.createCell(
         translation.id,
         `values.${lang}`,
@@ -114,7 +130,7 @@ export class GridRenderer {
         rowIndex,
         !this.options.readOnly, // 읽기 전용 모드면 false
         langWidth,
-        0,
+        leftOffset,
         0
       );
       row.appendChild(cell);
@@ -167,9 +183,8 @@ export class GridRenderer {
     }
 
     // 더블클릭으로 편집 시작
-    // 읽기 전용 모드에서는 언어 컬럼만 편집 불가, Key/Context는 여전히 편집 가능
-    const isReadOnlyForThisColumn = this.options.readOnly && columnId.startsWith("values.");
-    if (editable && !isReadOnlyForThisColumn) {
+    // 읽기 전용 모드에서는 모든 셀 편집 불가
+    if (editable && !this.options.readOnly) {
       cell.addEventListener("dblclick", (e) => {
         e.preventDefault();
         e.stopPropagation();

@@ -59,7 +59,7 @@ describe("ColumnWidthCalculator", () => {
       const containerWidth = 1000;
       const result = calculator.calculateColumnWidths(containerWidth);
 
-      const fixedWidth = result.key + result.context + result.languages[0]!;
+      const fixedWidth = result.rowNumber + result.key + result.context + result.languages[0]!;
       const lastColumnWidth = result.languages[1]!;
       const totalWidth = fixedWidth + lastColumnWidth;
 
@@ -110,6 +110,7 @@ describe("ColumnWidthCalculator", () => {
       const result = calculator.applyColumnWidth("key", 300, containerWidth);
 
       const fixedWidth =
+        result.columnWidths.rowNumber +
         result.columnWidths.key +
         result.columnWidths.context +
         result.columnWidths.languages[0]!;

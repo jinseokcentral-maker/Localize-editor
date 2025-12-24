@@ -5,6 +5,7 @@
  */
 
 export interface ColumnWidthCalculation {
+  rowNumber: number;
   key: number;
   context: number;
   languages: number[];
@@ -45,6 +46,7 @@ export class ColumnWidthCalculator {
    * 기본 너비 가져오기
    */
   private getDefaultWidth(columnId: string): number {
+    if (columnId === "row-number") return 50;
     if (columnId === "key") return this.defaultKeyWidth;
     if (columnId === "context") return this.defaultContextWidth;
     return this.defaultLangWidth;
@@ -55,6 +57,7 @@ export class ColumnWidthCalculator {
    * 마지막 컬럼이 항상 끝까지 채워지도록 함
    */
   calculateColumnWidths(containerWidth: number): ColumnWidthCalculation {
+    const rowNumberWidth = this.getColumnWidthValue("row-number", 50); // 기본 50px
     const keyWidth = this.getColumnWidthValue("key", this.defaultKeyWidth);
     const contextWidth = this.getColumnWidthValue(
       "context",
@@ -66,6 +69,7 @@ export class ColumnWidthCalculator {
 
     // 마지막 컬럼을 제외한 나머지 컬럼들의 총 너비
     const fixedWidth =
+      rowNumberWidth +
       keyWidth +
       contextWidth +
       langWidths.slice(0, -1).reduce((sum, w) => sum + w, 0);
@@ -84,6 +88,7 @@ export class ColumnWidthCalculator {
     const otherLangWidths = langWidths.slice(0, -1);
 
     return {
+      rowNumber: rowNumberWidth,
       key: keyWidth,
       context: contextWidth,
       languages: [...otherLangWidths, lastLangWidth],
@@ -108,6 +113,8 @@ export class ColumnWidthCalculator {
       this.options.columnWidths.set(columnId, width);
     }
 
+    // 행 번호 컬럼은 리사이즈 불가 (항상 고정)
+    const rowNumberWidth = this.getColumnWidthValue("row-number", 50);
     const keyWidth =
       columnId === "key"
         ? width
@@ -127,7 +134,10 @@ export class ColumnWidthCalculator {
 
     // 마지막 컬럼 너비 = 컨테이너 너비 - 고정 너비
     const fixedWidth =
-      keyWidth + contextWidth + otherLangWidths.reduce((sum, w) => sum + w, 0);
+      rowNumberWidth +
+      keyWidth +
+      contextWidth +
+      otherLangWidths.reduce((sum, w) => sum + w, 0);
     const lastLangMinWidth = this.options.columnMinWidths.get(lastLangColumnId) || 80;
     const lastLangWidth = Math.max(
       lastLangMinWidth,
@@ -141,6 +151,7 @@ export class ColumnWidthCalculator {
 
     return {
       columnWidths: {
+        rowNumber: rowNumberWidth,
         key: keyWidth,
         context: contextWidth,
         languages: langWidths,
