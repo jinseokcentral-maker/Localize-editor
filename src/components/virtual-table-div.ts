@@ -24,7 +24,14 @@ import { getLangFromColumnId, getTranslationKey } from "./grid-utils";
 import { CommandPalette } from "./command-palette";
 import { CommandRegistry, type EditorMode } from "./command-registry";
 import { TextSearchMatcher, type SearchMatch } from "./text-search-matcher";
+import {
+  QuickSearch,
+  parseSearchQuery,
+  type QuickSearchMatch,
+} from "./quick-search";
+import { QuickSearchUI } from "./quick-search-ui";
 import "@/styles/virtual-table-div.css";
+import "@/styles/quick-search.css";
 
 export interface VirtualTableDivOptions {
   container: HTMLElement;
@@ -83,6 +90,12 @@ export class VirtualTableDiv {
     matches: SearchMatch[];
     currentIndex: number;
   } | null = null;
+
+  // 빠른 검색 관련 상태
+  private quickSearch: QuickSearch | null = null;
+  private quickSearchUI: QuickSearchUI | null = null;
+  private currentQuickSearchMatches: QuickSearchMatch[] = [];
+  private currentQuickSearchIndex: number = -1;
 
   constructor(options: VirtualTableDivOptions) {
     this.container = options.container;
@@ -148,6 +161,27 @@ export class VirtualTableDiv {
     this.registerDefaultCommands();
 
     // CommandPalette 초기화
+    // QuickSearch 초기화
+    this.quickSearch = new QuickSearch({
+      translations: options.translations,
+      languages: options.languages,
+    });
+
+    this.quickSearchUI = new QuickSearchUI(this.container, {
+      onSearch: (query) => {
+        this.handleQuickSearch(query);
+      },
+      onClose: () => {
+        this.closeQuickSearch();
+      },
+      onNextMatch: () => {
+        this.goToNextQuickSearchMatch();
+      },
+      onPrevMatch: () => {
+        this.goToPrevQuickSearchMatch();
+      },
+    });
+
     this.commandPalette = new CommandPalette(this.commandRegistry, {
       onCommandExecute: () => {
         // 명령 실행 후 처리
@@ -202,6 +236,18 @@ export class VirtualTableDiv {
         },
         onOpenCommandPalette: (mode) => {
           this.commandPalette.open(mode as EditorMode);
+        },
+        onOpenQuickSearch: () => {
+          this.openQuickSearch();
+        },
+        onQuickSearchNext: () => {
+          this.goToNextQuickSearchMatch();
+        },
+        onQuickSearchPrev: () => {
+          this.goToPrevQuickSearchMatch();
+        },
+        isQuickSearchMode: () => {
+          return this.quickSearchUI?.isSearchMode() || false;
         },
         isEditableColumn: (columnId) => {
           return this.editableColumns.has(columnId);
@@ -510,6 +556,9 @@ export class VirtualTableDiv {
       row.setAttribute("data-index", virtualItem.index.toString());
 
       this.bodyElement!.appendChild(row);
+
+      // 빠른 검색 하이라이트 적용
+      this.applyQuickSearchHighlight(row, virtualItem.index);
 
       // 편집 중인 셀이면 다시 편집 모드로 전환
       if (editingCellData && translation.id === editingCellData.rowId) {
@@ -1861,6 +1910,234 @@ export class VirtualTableDiv {
   clearChanges(): void {
     this.changeTracker.clearChanges((rowId, field) => {
       this.updateCellStyle(rowId, field);
+    });
+  }
+
+  /**
+   * 빠른 검색 모드 열기
+   */
+  private openQuickSearch(): void {
+    if (this.quickSearchUI) {
+      this.quickSearchUI.open();
+    }
+  }
+
+  /**
+   * 빠른 검색 모드 닫기
+   */
+  private closeQuickSearch(): void {
+    if (this.quickSearchUI) {
+      this.quickSearchUI.close();
+    }
+    this.currentQuickSearchMatches = [];
+    this.currentQuickSearchIndex = -1;
+    // 하이라이트 제거를 위해 다시 렌더링
+    if (this.bodyElement) {
+      this.renderVirtualRows();
+    }
+  }
+
+  /**
+   * 빠른 검색 실행
+   */
+  private handleQuickSearch(query: string): void {
+    if (!this.quickSearch || !this.quickSearchUI) {
+      return;
+    }
+
+    const parsedQuery = parseSearchQuery(query);
+    if (!parsedQuery) {
+      this.currentQuickSearchMatches = [];
+      this.currentQuickSearchIndex = -1;
+      this.quickSearchUI.updateStatus(0, 0);
+      // 하이라이트 제거를 위해 다시 렌더링
+      if (this.bodyElement) {
+        this.renderVirtualRows();
+      }
+      return;
+    }
+
+    const matches = this.quickSearch.findMatches(parsedQuery);
+    this.currentQuickSearchMatches = matches;
+    this.currentQuickSearchIndex = matches.length > 0 ? 0 : -1;
+
+    if (matches.length > 0) {
+      this.quickSearchUI.updateStatus(
+        this.currentQuickSearchIndex,
+        matches.length
+      );
+      // 첫 번째 매칭으로 이동
+      this.goToQuickSearchMatch(matches[0]);
+    } else {
+      this.quickSearchUI.updateStatus(0, 0);
+    }
+
+    // 하이라이트를 위해 다시 렌더링
+    if (this.bodyElement) {
+      this.renderVirtualRows();
+    }
+  }
+
+  /**
+   * 다음 매칭으로 이동
+   */
+  private goToNextQuickSearchMatch(): void {
+    if (this.currentQuickSearchMatches.length === 0) {
+      return;
+    }
+
+    // currentQuickSearchIndex가 유효하지 않으면 0으로 설정
+    if (
+      this.currentQuickSearchIndex < 0 ||
+      this.currentQuickSearchIndex >= this.currentQuickSearchMatches.length
+    ) {
+      this.currentQuickSearchIndex = 0;
+    }
+
+    this.currentQuickSearchIndex =
+      (this.currentQuickSearchIndex + 1) %
+      this.currentQuickSearchMatches.length;
+    const match = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
+    this.goToQuickSearchMatch(match);
+
+    if (this.quickSearchUI) {
+      this.quickSearchUI.updateStatus(
+        this.currentQuickSearchIndex,
+        this.currentQuickSearchMatches.length
+      );
+    }
+  }
+
+  /**
+   * 이전 매칭으로 이동
+   */
+  private goToPrevQuickSearchMatch(): void {
+    if (this.currentQuickSearchMatches.length === 0) {
+      return;
+    }
+
+    this.currentQuickSearchIndex =
+      this.currentQuickSearchIndex <= 0
+        ? this.currentQuickSearchMatches.length - 1
+        : this.currentQuickSearchIndex - 1;
+    const match = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
+    this.goToQuickSearchMatch(match);
+
+    if (this.quickSearchUI) {
+      this.quickSearchUI.updateStatus(
+        this.currentQuickSearchIndex,
+        this.currentQuickSearchMatches.length
+      );
+    }
+  }
+
+  /**
+   * 특정 매칭으로 이동
+   */
+  private goToQuickSearchMatch(match: QuickSearchMatch): void {
+    // 스크롤하여 셀이 보이도록 (먼저 스크롤)
+    if (this.rowVirtualizer && this.scrollElement) {
+      const virtualItems = this.rowVirtualizer.getVirtualItems();
+      const rowElement = virtualItems.find(
+        (item) => item.index === match.rowIndex
+      );
+      if (rowElement && this.bodyElement) {
+        const row = this.bodyElement.querySelector(
+          `[data-index="${match.rowIndex}"]`
+        ) as HTMLElement;
+        if (row) {
+          // smooth 스크롤 대신 즉시 스크롤 (테스트 안정성)
+          row.scrollIntoView({ behavior: "auto", block: "center" });
+        }
+      } else {
+        // 가상화된 범위 밖에 있으면 스크롤 위치 조정
+        const rowTop = match.rowIndex * this.rowHeight;
+        this.scrollElement.scrollTop =
+          rowTop - this.scrollElement.clientHeight / 2;
+      }
+    }
+
+    // 셀에 포커스 (스크롤 후)
+    requestAnimationFrame(() => {
+      this.focusCell(match.rowIndex, match.columnId);
+
+      // 하이라이트를 위해 다시 렌더링
+      if (this.bodyElement) {
+        this.renderVirtualRows();
+      }
+    });
+  }
+
+  /**
+   * 빠른 검색 하이라이트 적용
+   */
+  private applyQuickSearchHighlight(row: HTMLElement, rowIndex: number): void {
+    if (this.currentQuickSearchMatches.length === 0) {
+      return;
+    }
+
+    // 모든 셀에서 하이라이트 제거
+    const cells = row.querySelectorAll(".virtual-grid-cell");
+    cells.forEach((cell) => {
+      cell.classList.remove(
+        "quick-search-matched",
+        "quick-search-current-match"
+      );
+      const content = cell.querySelector(".virtual-grid-cell-content");
+      if (content) {
+        // 하이라이트 제거 (원본 텍스트로 복원)
+        const originalText = content.getAttribute("data-original-text");
+        if (originalText !== null) {
+          content.textContent = originalText;
+          content.removeAttribute("data-original-text");
+        }
+      }
+    });
+
+    // 매칭된 셀에 하이라이트 적용
+    this.currentQuickSearchMatches.forEach((match) => {
+      if (match.rowIndex !== rowIndex) {
+        return;
+      }
+
+      const cell = row.querySelector(
+        `[data-column-id="${match.columnId}"]`
+      ) as HTMLElement;
+      if (!cell) {
+        return;
+      }
+
+      const content = cell.querySelector(".virtual-grid-cell-content");
+      if (!content) {
+        return;
+      }
+
+      // 원본 텍스트 저장
+      if (!content.getAttribute("data-original-text")) {
+        content.setAttribute("data-original-text", match.matchedText);
+      }
+
+      // 하이라이트 적용
+      const highlighted = QuickSearch.highlightText(
+        match.matchedText,
+        match.matchIndices
+      );
+      content.innerHTML = highlighted;
+
+      // 매칭된 셀 클래스 추가
+      cell.classList.add("quick-search-matched");
+
+      // 현재 매칭 셀 강조
+      if (
+        this.currentQuickSearchIndex >= 0 &&
+        this.currentQuickSearchIndex < this.currentQuickSearchMatches.length &&
+        this.currentQuickSearchMatches[this.currentQuickSearchIndex]
+          .rowIndex === rowIndex &&
+        this.currentQuickSearchMatches[this.currentQuickSearchIndex]
+          .columnId === match.columnId
+      ) {
+        cell.classList.add("quick-search-current-match");
+      }
     });
   }
 

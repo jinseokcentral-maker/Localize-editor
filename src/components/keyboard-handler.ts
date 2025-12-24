@@ -22,6 +22,10 @@ export interface KeyboardHandlerCallbacks {
   getMaxRowIndex?: () => number;
   focusCell?: (rowIndex: number, columnId: string) => void;
   onOpenCommandPalette?: (mode: string) => void;
+  onOpenQuickSearch?: () => void;
+  onQuickSearchNext?: () => void;
+  onQuickSearchPrev?: () => void;
+  isQuickSearchMode?: () => boolean;
   isEditableColumn?: (columnId: string) => boolean;
   isReadOnly?: () => boolean;
 }
@@ -98,6 +102,44 @@ export class KeyboardHandler {
         return;
       }
 
+      // / 키: 빠른 검색 모드 진입 (검색 모드가 아닐 때만, input 필드가 아닐 때만)
+      if (
+        (e.key === "/" || e.code === "Slash") &&
+        !isInputField &&
+        (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.callbacks.onOpenQuickSearch) {
+          this.callbacks.onOpenQuickSearch();
+        }
+        return;
+      }
+
+      // n/N 키: 빠른 검색에서 다음/이전 매칭 이동 (검색 모드일 때만)
+      if (
+        this.callbacks.isQuickSearchMode &&
+        this.callbacks.isQuickSearchMode() &&
+        !isInputField
+      ) {
+        if (e.key === "n" && !e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.callbacks.onQuickSearchNext) {
+            this.callbacks.onQuickSearchNext();
+          }
+          return;
+        }
+        if (e.key === "N" || (e.key === "n" && e.shiftKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.callbacks.onQuickSearchPrev) {
+            this.callbacks.onQuickSearchPrev();
+          }
+          return;
+        }
+      }
+
       // F2: 셀 편집 시작 (Excel 스타일)
       if (e.key === "F2" || e.code === "F2") {
         if (this.focusManager.hasFocus() && !isInputField) {
@@ -122,7 +164,14 @@ export class KeyboardHandler {
       // Enter: 편집 시작 또는 네비게이션
       // - 언어 컬럼이 아닌 경우: 편집 시작
       // - 언어 컬럼인 경우: 아래 행으로 이동 (기존 동작)
-      if (e.key === "Enter" && !e.shiftKey && this.focusManager.hasFocus() && !isInputField) {
+      // 검색 모드일 때는 검색 UI가 Enter 키를 처리하도록 함
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey &&
+        this.focusManager.hasFocus() &&
+        !isInputField &&
+        (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())
+      ) {
         const focusedCell = this.focusManager.getFocusedCell();
         if (focusedCell) {
           const isLanguageColumn = focusedCell.columnId.startsWith("values.");

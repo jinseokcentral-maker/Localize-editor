@@ -1,0 +1,108 @@
+/**
+ * 빠른 검색 (Quick Search) 스타일
+ */
+
+.quick-search-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.quick-search-overlay.quick-search-overlay-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.quick-search-bar {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-width: 400px;
+  max-width: 600px;
+}
+
+.quick-search-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  user-select: none;
+}
+
+.quick-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1e293b;
+  background: transparent;
+  padding: 4px 0;
+}
+
+.quick-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.quick-search-status {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.quick-search-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.quick-search-close:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* 검색 하이라이트 스타일 */
+.quick-search-highlight {
+  background-color: #fef08a; /* yellow-200 */
+  color: #1e293b;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* 매칭된 셀 하이라이트 */
+.virtual-grid-cell.quick-search-matched {
+  background-color: #fef08a !important;
+}
+
+.virtual-grid-cell.quick-search-current-match {
+  background-color: #fde047 !important; /* yellow-300 */
+  border: 2px solid #facc15; /* yellow-400 */
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2);
+}
+
