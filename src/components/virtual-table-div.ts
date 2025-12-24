@@ -30,8 +30,10 @@ import {
   type QuickSearchMatch,
 } from "./quick-search";
 import { QuickSearchUI } from "./quick-search-ui";
+import { StatusBar } from "./status-bar";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
+import "@/styles/status-bar.css";
 
 export interface VirtualTableDivOptions {
   container: HTMLElement;
@@ -97,6 +99,9 @@ export class VirtualTableDiv {
   private currentQuickSearchMatches: QuickSearchMatch[] = [];
   private currentQuickSearchIndex: number = -1;
 
+  // 상태바
+  private statusBar: StatusBar | null = null;
+
   constructor(options: VirtualTableDivOptions) {
     this.container = options.container;
     this.options = options;
@@ -132,7 +137,17 @@ export class VirtualTableDiv {
       this.changeTracker,
       this.undoRedoManager,
       {
-        onCellChange: options.onCellChange,
+        onCellChange: (id, columnId, value) => {
+          // 상태바 업데이트 (변경사항 수 변경)
+          this.updateStatusBar();
+          // 원래 콜백 호출
+          if (options.onCellChange) {
+            options.onCellChange(id, columnId, value);
+          }
+        },
+        onEditStateChange: () => {
+          this.updateStatusBar();
+        },
         updateCellStyle: (rowId, columnId) => {
           this.updateCellStyle(rowId, columnId);
         },
@@ -294,6 +309,7 @@ export class VirtualTableDiv {
         },
         onCellFocus: (rowIndex, columnId) => {
           this.focusManager.focusCell(rowIndex, columnId);
+          this.updateStatusBar();
         },
         updateCellStyle: (rowId, columnId, cell) => {
           this.updateCellStyle(rowId, columnId, cell);
@@ -353,6 +369,9 @@ export class VirtualTableDiv {
 
     // 키보드 이벤트 리스너 추가
     this.attachKeyboardListeners();
+
+    // 상태바 초기화
+    this.initStatusBar();
   }
 
   /**
@@ -891,6 +910,9 @@ export class VirtualTableDiv {
     if (!rowId) return;
 
     this.cellEditor.startEditing(rowIndex, columnId, rowId, cell);
+
+    // 상태바 업데이트 (편집 모드로 변경)
+    this.updateStatusBar();
   }
 
   /**
@@ -924,6 +946,9 @@ export class VirtualTableDiv {
    */
   private stopEditing(): void {
     this.cellEditor.stopEditing(this.bodyElement || undefined);
+
+    // 상태바 업데이트 (Normal 모드로 변경)
+    this.updateStatusBar();
   }
 
   /**
@@ -989,6 +1014,9 @@ export class VirtualTableDiv {
 
     // 먼저 FocusManager에 포커스 상태 저장
     this.focusManager.focusCell(rowIndex, columnId);
+
+    // 상태바 업데이트
+    this.updateStatusBar();
 
     // 셀이 DOM에 있는지 확인
     let cell = this.bodyElement.querySelector(
@@ -1057,6 +1085,9 @@ export class VirtualTableDiv {
     }
 
     this.applyUndoRedoAction(action);
+
+    // 상태바 업데이트 (변경사항 수 변경/포커스 유지)
+    this.updateStatusBar();
   }
 
   /**
@@ -1075,6 +1106,9 @@ export class VirtualTableDiv {
     }
 
     this.applyUndoRedoAction(action);
+
+    // 상태바 업데이트 (변경사항 수 변경)
+    this.updateStatusBar();
   }
 
   /**
@@ -1648,6 +1682,9 @@ export class VirtualTableDiv {
     }
 
     this.renderVirtualRows();
+
+    // 상태바 업데이트 (필터 변경으로 인한 행 수 변경)
+    this.updateStatusBar();
   }
 
   /**
@@ -2179,5 +2216,123 @@ export class VirtualTableDiv {
     this.headerElement = null;
     this.bodyElement = null;
     this.rowVirtualizer = null;
+
+    // 상태바 정리
+    if (this.statusBar) {
+      this.statusBar.destroy();
+      this.statusBar = null;
+    }
+  }
+
+  /**
+   * 상태바 초기화
+   */
+  private initStatusBar(): void {
+    this.statusBar = new StatusBar(this.container, {
+      onStatusUpdate: () => {
+        // 필요 시 추가 처리
+      },
+    });
+    this.statusBar.create();
+    this.updateStatusBar();
+  }
+
+  /**
+   * 상태바 정보 수집 및 업데이트
+   */
+  private updateStatusBar(): void {
+    if (!this.statusBar) {
+      return;
+    }
+
+    // 현재 모드 확인 (편집 중이면 "Editing", 아니면 "Normal")
+    const isEditing = this.cellEditor.getEditingCell() !== null;
+    const mode = isEditing ? "Editing" : "Normal";
+
+    // 현재 포커스된 셀 정보
+    const focusedCell = this.focusManager.getFocusedCell();
+    const totalRows = this.getFilteredTranslations().length;
+
+    let rowIndex =
+      focusedCell && typeof focusedCell.rowIndex === "number"
+        ? focusedCell.rowIndex
+        : null;
+
+    if (totalRows > 0) {
+      if (rowIndex === null) {
+        rowIndex = 0; // 포커스가 없어도 첫 행 기준으로 표시
+      } else if (rowIndex >= totalRows) {
+        rowIndex = totalRows - 1;
+      }
+    } else {
+      rowIndex = 0; // 빈 그리드인 경우 0/0 형태로 표시
+    }
+
+    const columnId = focusedCell ? focusedCell.columnId : null;
+
+    // 변경사항 수
+    const changesCount = this.changeTracker.getChanges().length;
+
+    // 빈 번역 수 계산
+    const emptyCount = this.countEmptyTranslations();
+
+    // 중복 Key 수 계산
+    const duplicateCount = this.countDuplicateKeys();
+
+    // 상태바 업데이트
+    this.statusBar.update({
+      mode,
+      rowIndex,
+      totalRows,
+      columnId,
+      changesCount,
+      emptyCount,
+      duplicateCount,
+    });
+  }
+
+  /**
+   * 빈 번역 수 계산
+   */
+  private countEmptyTranslations(): number {
+    const translations = this.getFilteredTranslations();
+    let emptyCount = 0;
+
+    translations.forEach((translation) => {
+      this.options.languages.forEach((lang) => {
+        const value = translation.values[lang] || "";
+        if (!value || (typeof value === "string" && value.trim() === "")) {
+          emptyCount++;
+        }
+      });
+    });
+
+    return emptyCount;
+  }
+
+  /**
+   * 중복 Key 수 계산
+   */
+  private countDuplicateKeys(): number {
+    const translations = this.getFilteredTranslations();
+    const keyMap = new Map<string, number>();
+
+    // 각 Key의 출현 횟수 계산
+    translations.forEach((translation) => {
+      const key = translation.key.trim();
+      if (key) {
+        keyMap.set(key, (keyMap.get(key) || 0) + 1);
+      }
+    });
+
+    // 중복된 Key 수 계산 (2개 이상인 Key)
+    let duplicateCount = 0;
+    keyMap.forEach((count) => {
+      if (count > 1) {
+        duplicateCount += count - 1; // 중복된 개수만 카운트
+      }
+    });
+
+    return duplicateCount;
   }
 }

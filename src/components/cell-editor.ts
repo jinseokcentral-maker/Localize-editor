@@ -39,6 +39,7 @@ export interface CellEditorCallbacks {
     columnId: string,
     value: string
   ) => void;
+  onEditStateChange?: (isEditing: boolean) => void;
 }
 
 export class CellEditor {
@@ -106,6 +107,9 @@ export class CellEditor {
 
     // 편집 상태 설정
     this.editingCell = { rowIndex, columnId, rowId };
+    if (this.callbacks.onEditStateChange) {
+      this.callbacks.onEditStateChange(true);
+    }
 
     // Key 컬럼 편집 중 실시간 중복 체크
     let isDuplicateKey = false;
@@ -153,6 +157,9 @@ export class CellEditor {
 
       this.editingCell = null;
       this.isFinishingEdit = false;
+      if (this.callbacks.onEditStateChange) {
+        this.callbacks.onEditStateChange(false);
+      }
     };
 
     // 이벤트 리스너 등록
@@ -192,6 +199,9 @@ export class CellEditor {
 
     // 편집 상태 설정
     this.editingCell = { rowIndex, columnId, rowId };
+    if (this.callbacks.onEditStateChange) {
+      this.callbacks.onEditStateChange(true);
+    }
 
     // Key 컬럼 편집 중 실시간 중복 체크
     let isDuplicateKey = false;
@@ -239,6 +249,9 @@ export class CellEditor {
 
       this.editingCell = null;
       this.isFinishingEdit = false;
+      if (this.callbacks.onEditStateChange) {
+        this.callbacks.onEditStateChange(false);
+      }
     };
 
     // 이벤트 리스너 등록

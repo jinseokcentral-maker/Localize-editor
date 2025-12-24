@@ -261,3 +261,5 @@ class VirtualTableDiv {
 3. **Phase 3 (필수)**: 이동 기능
 4. **Phase 4 (선택)**: 순환 이동
 
+
+
