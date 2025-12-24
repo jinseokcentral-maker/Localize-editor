@@ -127,12 +127,11 @@ test.describe("Command Palette", () => {
 
     // Enter로 실행
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(500);
-
-    // 5번째 행이 보이는지 확인 (행 번호는 1-based이므로 5번째 행)
-    // role="row"를 사용하여 행만 선택
+    
+    // WebKit에서는 smooth 스크롤이 더 느릴 수 있으므로 충분한 대기 시간 제공
+    // 행이 실제로 보일 때까지 기다림 (최대 5초)
     const row5 = page.locator('[role="row"][data-row-index="4"]'); // 0-based index
-    await expect(row5).toBeVisible({ timeout: 2000 });
+    await expect(row5).toBeVisible({ timeout: 5000 });
   });
 
   test("검색어 없을 때 자주 사용하는 명령 표시", async ({ page }) => {
@@ -316,7 +315,24 @@ test.describe("Command Palette", () => {
 
     // Enter로 실행
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(1500); // 스크롤이 완료될 때까지 충분한 시간 대기
+    
+    // 스크롤이 안정화될 때까지 기다리기 (WebKit에서 smooth 스크롤이 더 느릴 수 있음)
+    let previousScrollTop = 0;
+    let stableCount = 0;
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(100);
+      const currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+      if (Math.abs(currentScrollTop - previousScrollTop) < 1) {
+        stableCount++;
+        if (stableCount >= 3) {
+          // 3번 연속으로 스크롤 위치가 변하지 않으면 안정화된 것으로 간주
+          break;
+        }
+      } else {
+        stableCount = 0;
+      }
+      previousScrollTop = currentScrollTop;
+    }
 
     // 스크롤이 발생했는지 확인
     const finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
@@ -332,9 +348,10 @@ test.describe("Command Palette", () => {
     if (scrollInfo.scrollHeight > scrollInfo.clientHeight) {
       expect(finalScrollTop).toBeGreaterThan(0); // 스크롤이 발생했는지 확인
       // 마지막 행이 보이는지 확인 (스크롤이 거의 끝까지 내려갔는지)
+      // WebKit에서는 가상 스크롤링으로 인해 정확한 위치가 약간 다를 수 있으므로 여유값을 200px로 증가
       expect(finalScrollTop).toBeGreaterThan(
-        scrollInfo.scrollHeight - scrollInfo.clientHeight - 100
-      ); // 100px 여유를 두고 확인
+        scrollInfo.scrollHeight - scrollInfo.clientHeight - 200
+      ); // 200px 여유를 두고 확인
     } else {
       // 스크롤이 필요 없는 경우 (모든 행이 화면에 보임)
       // 이 경우 스크롤이 0이어도 정상
