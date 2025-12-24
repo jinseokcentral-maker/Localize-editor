@@ -49,7 +49,7 @@ UNIT_PID=$!
   # 포트 충돌 방지를 위해 랜덤 포트 사용 (3002-3010 범위)
   RANDOM_PORT=$((3002 + RANDOM % 9))
   # CI 환경에서는 headless 모드로 실행
-  CI=true TEST_PORT=$RANDOM_PORT pnpm exec playwright test --reporter=list > "$E2E_LOG" 2>&1
+  CI=true TEST_PORT=$RANDOM_PORT pnpm exec playwright test --reporter=list --workers=12 > "$E2E_LOG" 2>&1
   TEST_EXIT=$?
   prefix_output "E2E" "$YELLOW" < "$E2E_LOG"
   echo $TEST_EXIT > "$E2E_EXIT_FILE"

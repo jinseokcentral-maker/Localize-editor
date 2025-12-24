@@ -17,10 +17,13 @@ export interface KeyboardHandlerCallbacks {
     rowIndex: number,
     columnId: string
   ) => void;
+  onStartEditing?: (rowIndex: number, columnId: string) => void;
   getAllColumns?: () => string[];
   getMaxRowIndex?: () => number;
   focusCell?: (rowIndex: number, columnId: string) => void;
   onOpenCommandPalette?: (mode: string) => void;
+  isEditableColumn?: (columnId: string) => boolean;
+  isReadOnly?: () => boolean;
 }
 
 export class KeyboardHandler {
@@ -93,6 +96,56 @@ export class KeyboardHandler {
           this.callbacks.onOpenCommandPalette("excel");
         }
         return;
+      }
+
+      // F2: 셀 편집 시작 (Excel 스타일)
+      if (e.key === "F2" || e.code === "F2") {
+        if (this.focusManager.hasFocus() && !isInputField) {
+          e.preventDefault();
+          e.stopPropagation();
+          const focusedCell = this.focusManager.getFocusedCell();
+          if (focusedCell && this.callbacks.onStartEditing) {
+            // 편집 가능한 컬럼인지 확인
+            if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+              return;
+            }
+            // 읽기 전용 모드 확인
+            if (this.callbacks.isReadOnly && this.callbacks.isReadOnly()) {
+              return;
+            }
+            this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
+          }
+        }
+        return;
+      }
+
+      // Enter: 편집 시작 또는 네비게이션
+      // - 언어 컬럼이 아닌 경우: 편집 시작
+      // - 언어 컬럼인 경우: 아래 행으로 이동 (기존 동작)
+      if (e.key === "Enter" && !e.shiftKey && this.focusManager.hasFocus() && !isInputField) {
+        const focusedCell = this.focusManager.getFocusedCell();
+        if (focusedCell) {
+          const isLanguageColumn = focusedCell.columnId.startsWith("values.");
+          
+          // 언어 컬럼이 아닌 경우 편집 시작
+          if (!isLanguageColumn) {
+            // 편집 가능한 컬럼인지 확인
+            if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+              return;
+            }
+            // 읽기 전용 모드 확인
+            if (this.callbacks.isReadOnly && this.callbacks.isReadOnly()) {
+              return;
+            }
+            if (this.callbacks.onStartEditing) {
+              e.preventDefault();
+              e.stopPropagation();
+              this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
+              return;
+            }
+          }
+          // 언어 컬럼인 경우는 기존 네비게이션 로직으로 처리
+        }
       }
 
       // 키보드 네비게이션 (셀 포커스가 있을 때만, input 필드가 아닌 경우)
@@ -170,7 +223,8 @@ export class KeyboardHandler {
       }
     }
 
-    // Enter / Shift+Enter
+    // Enter / Shift+Enter (언어 컬럼에서만 네비게이션)
+    // 언어 컬럼이 아닌 경우는 위에서 편집 시작으로 처리됨
     if (e.key === "Enter" && columnId.startsWith("values.")) {
       e.preventDefault();
       e.stopPropagation();

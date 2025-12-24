@@ -188,6 +188,9 @@ export class VirtualTableDiv {
       {
         onUndo: () => this.handleUndo(),
         onRedo: () => this.handleRedo(),
+        onStartEditing: (rowIndex, columnId) => {
+          this.startEditingFromKeyboard(rowIndex, columnId);
+        },
         getAllColumns: () => [
           "key",
           "context",
@@ -199,6 +202,12 @@ export class VirtualTableDiv {
         },
         onOpenCommandPalette: (mode) => {
           this.commandPalette.open(mode as EditorMode);
+        },
+        isEditableColumn: (columnId) => {
+          return this.editableColumns.has(columnId);
+        },
+        isReadOnly: () => {
+          return this.options.readOnly || false;
         },
       }
     );
@@ -817,7 +826,7 @@ export class VirtualTableDiv {
   }
 
   /**
-   * 편집 시작
+   * 편집 시작 (더블클릭 또는 키보드)
    */
   private startEditing(
     rowIndex: number,
@@ -833,6 +842,32 @@ export class VirtualTableDiv {
     if (!rowId) return;
 
     this.cellEditor.startEditing(rowIndex, columnId, rowId, cell);
+  }
+
+  /**
+   * 키보드로 편집 시작 (F2 또는 Enter)
+   */
+  private startEditingFromKeyboard(rowIndex: number, columnId: string): void {
+    if (!this.bodyElement) return;
+
+    // 편집 가능한 컬럼인지 확인
+    if (!this.editableColumns.has(columnId)) {
+      return;
+    }
+
+    // 읽기 전용 모드 확인
+    if (this.options.readOnly) {
+      return;
+    }
+
+    // 셀 찾기
+    const cell = this.bodyElement.querySelector(
+      `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
+    ) as HTMLElement;
+
+    if (cell) {
+      this.startEditing(rowIndex, columnId, cell);
+    }
   }
 
   /**
@@ -903,13 +938,57 @@ export class VirtualTableDiv {
   private focusCell(rowIndex: number, columnId: string): void {
     if (!this.bodyElement) return;
 
-    const cell = this.bodyElement.querySelector(
+    // 먼저 FocusManager에 포커스 상태 저장
+    this.focusManager.focusCell(rowIndex, columnId);
+
+    // 셀이 DOM에 있는지 확인
+    let cell = this.bodyElement.querySelector(
       `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
     ) as HTMLElement;
 
-    if (cell) {
+    // 셀이 없으면 (가상 스크롤링으로 인해 아직 렌더링되지 않음) 스크롤하여 보이게 함
+    if (!cell && this.rowVirtualizer) {
+      // 스크롤 수행
+      this.rowVirtualizer.scrollToIndex(rowIndex, {
+        align: "start",
+        behavior: "auto",
+      });
+
+      // 스크롤 후 즉시 렌더링 강제 (가능한 경우)
+      if (this.renderScheduled === false) {
+        this.renderVirtualRows();
+      }
+
+      // 스크롤 후 셀이 렌더링될 때까지 대기 (여러 프레임 기다림)
+      const tryFocus = (attempts: number = 0) => {
+        if (attempts > 20) return; // 최대 20번 시도 (약 1초)
+
+        // 즉시 한 번 확인
+        cell = this.bodyElement!.querySelector(
+          `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
+        ) as HTMLElement;
+
+        if (cell) {
+          // 셀을 찾았으면 포커스 설정
+          cell.focus();
+          // 포커스 이벤트가 발생하도록 강제
+          cell.dispatchEvent(new FocusEvent("focus", { bubbles: true }));
+          return;
+        }
+
+        // 아직 렌더링되지 않았으면 다음 프레임에서 다시 시도
+        requestAnimationFrame(() => {
+          tryFocus(attempts + 1);
+        });
+      };
+
+      // 즉시 한 번 시도
+      tryFocus(0);
+    } else if (cell) {
+      // 셀이 이미 있으면 바로 포커스
       cell.focus();
-      this.focusManager.focusCell(rowIndex, columnId);
+      // 포커스 이벤트가 발생하도록 강제
+      cell.dispatchEvent(new FocusEvent("focus", { bubbles: true }));
     }
   }
 
