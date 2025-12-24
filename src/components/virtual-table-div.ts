@@ -699,6 +699,15 @@ export class VirtualTableDiv {
     columnId: string,
     cell: HTMLElement
   ): void {
+    // 읽기 전용 모드 체크
+    if (this.options.readOnly) {
+      // 읽기 전용 모드에서는 언어 컬럼만 편집 불가
+      // Key와 Context는 읽기 전용 모드에서도 편집 가능
+      if (columnId.startsWith("values.")) {
+        return;
+      }
+    }
+
     const rowId = cell.getAttribute("data-row-id");
     if (!rowId) return;
 
@@ -927,6 +936,25 @@ export class VirtualTableDiv {
    */
   setReadOnly(readOnly: boolean): void {
     this.options = { ...this.options, readOnly };
+
+    // GridRenderer의 readOnly 옵션도 업데이트
+    this.gridRenderer = new GridRenderer({
+      languages: this.options.languages,
+      readOnly: readOnly,
+      editableColumns: this.editableColumns,
+      callbacks: {
+        onCellDblClick: (rowIndex, columnId, cell) => {
+          this.startEditing(rowIndex, columnId, cell);
+        },
+        onCellFocus: (rowIndex, columnId) => {
+          this.focusManager.focusCell(rowIndex, columnId);
+        },
+        updateCellStyle: (rowId, columnId, cell) => {
+          this.updateCellStyle(rowId, columnId, cell);
+        },
+      },
+    });
+
     if (this.gridElement) {
       if (readOnly) {
         this.gridElement.classList.add("readonly");
@@ -934,14 +962,29 @@ export class VirtualTableDiv {
         this.gridElement.classList.remove("readonly");
       }
     }
+
     // 모든 셀의 tabindex 업데이트
     if (this.bodyElement) {
       const cells = this.bodyElement.querySelectorAll(".virtual-grid-cell");
       cells.forEach((cell) => {
         const columnId = cell.getAttribute("data-column-id");
         const editable = columnId && this.editableColumns.has(columnId);
-        cell.setAttribute("tabindex", editable && !readOnly ? "0" : "-1");
+        // 읽기 전용 모드에서는 언어 컬럼만 tabindex -1, Key/Context는 여전히 편집 가능
+        if (readOnly && columnId && columnId.startsWith("values.")) {
+          cell.setAttribute("tabindex", "-1");
+        } else {
+          cell.setAttribute(
+            "tabindex",
+            editable && !readOnly ? "0" : editable ? "0" : "-1"
+          );
+        }
       });
+    }
+
+    // 바디 다시 렌더링하여 새로운 GridRenderer 옵션 적용
+    // 이렇게 하면 모든 셀이 새로운 readOnly 옵션으로 다시 생성됨
+    if (this.bodyElement && this.rowVirtualizer) {
+      this.renderVirtualRows();
     }
   }
 

@@ -105,12 +105,14 @@ export class GridRenderer {
     this.options.languages.forEach((lang, index) => {
       const value = translation.values[lang] || "";
       const langWidth = columnWidths.languages[index]!;
+      // 언어 셀은 읽기 전용 모드에서는 편집 불가
+      // editable 파라미터는 실제 편집 가능 여부를 의미 (readOnly 체크 포함)
       const cell = this.createCell(
         translation.id,
         `values.${lang}`,
         value,
         rowIndex,
-        !this.options.readOnly,
+        !this.options.readOnly, // 읽기 전용 모드면 false
         langWidth,
         0,
         0
@@ -165,7 +167,9 @@ export class GridRenderer {
     }
 
     // 더블클릭으로 편집 시작
-    if (editable && !this.options.readOnly) {
+    // 읽기 전용 모드에서는 언어 컬럼만 편집 불가, Key/Context는 여전히 편집 가능
+    const isReadOnlyForThisColumn = this.options.readOnly && columnId.startsWith("values.");
+    if (editable && !isReadOnlyForThisColumn) {
       cell.addEventListener("dblclick", (e) => {
         e.preventDefault();
         e.stopPropagation();

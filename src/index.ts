@@ -5,13 +5,13 @@
  */
 
 // Main classes
-export { LocaleEditor } from "./components/locale-editor";
+export { VirtualTableDiv } from "./components/virtual-table-div";
+export type { VirtualTableDivOptions } from "./components/virtual-table-div";
 export { ChangeTracker } from "./components/change-tracker";
 
 // Types
 export type {
   Translation,
-  LocaleEditorOptions,
   TranslationChange,
 } from "./types/translation";
 
