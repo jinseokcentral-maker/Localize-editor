@@ -265,5 +265,209 @@ test.describe("Command Palette", () => {
     const overlay = page.locator(".command-palette-overlay");
     await expect(overlay).toBeVisible({ timeout: 1000 });
   });
+
+  test("goto top 명령 실행 및 첫 번째 행 이동 확인", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto top" 입력
+    const input = page.locator(".command-palette-input");
+    await input.fill("goto top");
+    await page.waitForTimeout(200);
+
+    // Enter로 실행
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // 첫 번째 행이 보이는지 확인
+    const firstRow = page.locator('[role="row"][data-row-index="0"]');
+    await expect(firstRow).toBeVisible({ timeout: 2000 });
+  });
+
+  test("goto bottom 명령 실행 및 마지막 행 이동 확인", async ({ page }) => {
+    // 그리드가 렌더링될 때까지 대기
+    await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+    await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
+
+    // 초기 스크롤 위치 확인 (맨 위에 있어야 함)
+    const scrollContainer = page.locator(".virtual-grid-scroll-container");
+    const initialScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    expect(initialScrollTop).toBe(0); // 초기에는 맨 위에 있어야 함
+
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "goto bottom" 입력
+    const input = page.locator(".command-palette-input");
+    await input.fill("goto bottom");
+    await page.waitForTimeout(200);
+
+    // Enter로 실행
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(1500); // 스크롤이 완료될 때까지 충분한 시간 대기
+
+    // 스크롤이 발생했는지 확인
+    const finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    
+    // 스크롤 높이와 컨테이너 높이를 비교하여 스크롤이 필요한지 확인
+    const scrollInfo = await scrollContainer.evaluate((el) => ({
+      scrollTop: el.scrollTop,
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+    }));
+
+    // 스크롤이 필요한 경우 (scrollHeight > clientHeight) 스크롤이 발생했어야 함
+    if (scrollInfo.scrollHeight > scrollInfo.clientHeight) {
+      expect(finalScrollTop).toBeGreaterThan(0); // 스크롤이 발생했는지 확인
+      // 마지막 행이 보이는지 확인 (스크롤이 거의 끝까지 내려갔는지)
+      expect(finalScrollTop).toBeGreaterThan(
+        scrollInfo.scrollHeight - scrollInfo.clientHeight - 100
+      ); // 100px 여유를 두고 확인
+    } else {
+      // 스크롤이 필요 없는 경우 (모든 행이 화면에 보임)
+      // 이 경우 스크롤이 0이어도 정상
+      expect(finalScrollTop).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  test("help 명령 실행 및 도움말 모달 표시", async ({ page }) => {
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "help" 입력
+    const input = page.locator(".command-palette-input");
+    await input.fill("help");
+    await page.waitForTimeout(200);
+
+    // Enter로 실행
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // 팔레트가 닫혔는지 확인
+    const paletteOverlay = page.locator(".command-palette-overlay");
+    await expect(paletteOverlay).not.toBeVisible({ timeout: 1000 });
+
+    // Help 모달이 표시되었는지 확인
+    const helpModal = page.locator(".help-modal-overlay");
+    await expect(helpModal).toBeVisible({ timeout: 2000 });
+
+    // Help 모달의 제목 확인
+    const helpTitle = page.locator(".help-modal-title");
+    await expect(helpTitle).toBeVisible();
+    await expect(helpTitle).toHaveText("Keyboard Shortcuts");
+
+    // Keyboard Shortcuts 섹션 확인
+    const shortcutsSection = page.locator(".help-modal-section").first();
+    await expect(shortcutsSection).toBeVisible();
+
+    // Available Commands 섹션 확인
+    const commandsSection = page.locator(".help-modal-section").last();
+    await expect(commandsSection).toBeVisible();
+
+    // "goto top" 명령이 목록에 있는지 확인
+    const commandList = page.locator(".help-modal-command-list");
+    await expect(commandList).toBeVisible();
+    const commandText = await commandList.textContent();
+    expect(commandText).toContain("goto top");
+    expect(commandText).toContain("goto bottom");
+  });
+
+  test("help 모달 닫기 (Escape 키)", async ({ page }) => {
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "help" 입력 및 실행
+    const input = page.locator(".command-palette-input");
+    await input.fill("help");
+    await page.waitForTimeout(200);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // Help 모달이 표시되었는지 확인
+    const helpModal = page.locator(".help-modal-overlay");
+    await expect(helpModal).toBeVisible({ timeout: 2000 });
+
+    // Escape 키로 닫기
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+
+    // Help 모달이 닫혔는지 확인
+    await expect(helpModal).not.toBeVisible({ timeout: 1000 });
+  });
+
+  test("help 모달 닫기 (닫기 버튼)", async ({ page }) => {
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "help" 입력 및 실행
+    const input = page.locator(".command-palette-input");
+    await input.fill("help");
+    await page.waitForTimeout(200);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // Help 모달이 표시되었는지 확인
+    const helpModal = page.locator(".help-modal-overlay");
+    await expect(helpModal).toBeVisible({ timeout: 2000 });
+
+    // 닫기 버튼 클릭
+    const closeButton = page.locator(".help-modal-close");
+    await closeButton.click();
+    await page.waitForTimeout(200);
+
+    // Help 모달이 닫혔는지 확인
+    await expect(helpModal).not.toBeVisible({ timeout: 1000 });
+  });
+
+  test("help 모달 닫기 (오버레이 클릭)", async ({ page }) => {
+    // 팔레트 열기
+    const isMac = process.platform === "darwin";
+    const modifierKey = isMac ? "Meta" : "Control";
+    await page.keyboard.press(`${modifierKey}+KeyK`);
+
+    await page.waitForTimeout(100);
+
+    // "help" 입력 및 실행
+    const input = page.locator(".command-palette-input");
+    await input.fill("help");
+    await page.waitForTimeout(200);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+
+    // Help 모달이 표시되었는지 확인
+    const helpModal = page.locator(".help-modal-overlay");
+    await expect(helpModal).toBeVisible({ timeout: 2000 });
+
+    // 오버레이 클릭 (모달 외부 클릭)
+    await helpModal.click({ position: { x: 10, y: 10 } });
+    await page.waitForTimeout(200);
+
+    // Help 모달이 닫혔는지 확인
+    await expect(helpModal).not.toBeVisible({ timeout: 1000 });
+  });
 });
 

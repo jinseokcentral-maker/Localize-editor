@@ -1,0 +1,211 @@
+/**
+ * Help Modal 스타일
+ * VS Code 스타일의 도움말 모달
+ */
+
+.help-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1001; /* Command Palette보다 위에 표시 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.help-modal {
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.15s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.help-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8fafc;
+}
+
+.help-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.help-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.1s;
+}
+
+.help-modal-close:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.help-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.help-modal-section {
+  margin-bottom: 32px;
+}
+
+.help-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.help-modal-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.help-modal-shortcut-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-modal-shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.help-modal-shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.help-modal-shortcut-description {
+  font-size: 14px;
+  color: #475569;
+  flex: 1;
+}
+
+.help-modal-shortcut-keys {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.help-modal-shortcut-key {
+  padding: 4px 8px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+}
+
+.help-modal-shortcut-key-separator {
+  color: #94a3b8;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+.help-modal-command-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-modal-command-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.help-modal-command-item:last-child {
+  border-bottom: none;
+}
+
+.help-modal-command-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+  font-family: monospace;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.help-modal-command-description {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* 스크롤바 스타일 */
+.help-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.help-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.help-modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.help-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

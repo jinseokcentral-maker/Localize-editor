@@ -1095,11 +1095,26 @@ export class VirtualTableDiv {
     this.commandRegistry.registerCommand({
       id: "goto",
       label: "Go to Row",
-      keywords: ["goto", "go", "row", "line", "jump"],
+      keywords: ["goto", "go", "row", "line", "jump", "top", "bottom"],
       category: "navigation",
-      description: "Navigate to a specific row number",
+      description: "Navigate to a specific row number, or use 'top'/'bottom'",
       execute: (args) => {
         if (args && args.length > 0) {
+          const arg = args[0].toLowerCase();
+
+          // "top" 또는 "first" 키워드 처리
+          if (arg === "top" || arg === "first" || arg === "1") {
+            this.gotoTop();
+            return;
+          }
+
+          // "bottom" 또는 "last" 키워드 처리
+          if (arg === "bottom" || arg === "last") {
+            this.gotoBottom();
+            return;
+          }
+
+          // 숫자 처리
           const rowIndex = parseInt(args[0], 10);
           if (!isNaN(rowIndex) && rowIndex > 0) {
             this.gotoRow(rowIndex - 1); // 1-based to 0-based
@@ -1258,6 +1273,23 @@ export class VirtualTableDiv {
   }
 
   /**
+   * 첫 번째 행으로 이동
+   */
+  private gotoTop(): void {
+    this.gotoRow(0);
+  }
+
+  /**
+   * 마지막 행으로 이동
+   */
+  private gotoBottom(): void {
+    const filteredTranslations = this.getFilteredTranslations();
+    if (filteredTranslations.length > 0) {
+      this.gotoRow(filteredTranslations.length - 1);
+    }
+  }
+
+  /**
    * 필터링된 translations 반환
    */
   private getFilteredTranslations(): readonly Translation[] {
@@ -1397,21 +1429,211 @@ export class VirtualTableDiv {
   }
 
   /**
-   * 도움말 표시
+   * 도움말 표시 (모달 UI)
    */
   private showHelp(): void {
-    // alert는 팔레트를 닫지 않으므로, 간단한 콘솔 로그로 대체
-    // 실제로는 팔레트가 닫히고 나중에 도움말 모달을 표시할 수 있음
-    console.log(
-      "Keyboard Shortcuts:\n\n" +
-        "Cmd/Ctrl+K: Open Command Palette\n" +
-        "Cmd/Ctrl+Z: Undo\n" +
-        "Cmd/Ctrl+Y: Redo\n" +
-        "Tab: Next cell\n" +
-        "Enter: Next row (in language columns)\n" +
-        "Arrow keys: Navigate cells\n" +
-        "Double-click: Edit cell"
-    );
+    // 기존 모달이 있으면 제거
+    const existingModal = document.querySelector(".help-modal-overlay");
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Help 모달 CSS 로드 (한 번만)
+    if (!document.querySelector('link[href*="help-modal.css"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = new URL("../styles/help-modal.css", import.meta.url).href;
+      document.head.appendChild(link);
+    }
+
+    // Overlay
+    const overlay = document.createElement("div");
+    overlay.className = "help-modal-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "Keyboard Shortcuts Help");
+    overlay.setAttribute("aria-modal", "true");
+
+    // Modal
+    const modal = document.createElement("div");
+    modal.className = "help-modal";
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "help-modal-header";
+
+    const title = document.createElement("h2");
+    title.className = "help-modal-title";
+    title.textContent = "Keyboard Shortcuts";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "help-modal-close";
+    closeButton.innerHTML = "×";
+    closeButton.setAttribute("aria-label", "Close");
+    closeButton.onclick = () => overlay.remove();
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+
+    // Content
+    const content = document.createElement("div");
+    content.className = "help-modal-content";
+
+    // Keyboard Shortcuts Section
+    const shortcutsSection = document.createElement("div");
+    shortcutsSection.className = "help-modal-section";
+
+    const shortcutsTitle = document.createElement("h3");
+    shortcutsTitle.className = "help-modal-section-title";
+    shortcutsTitle.textContent = "Keyboard Shortcuts";
+    shortcutsSection.appendChild(shortcutsTitle);
+
+    const shortcutsList = document.createElement("ul");
+    shortcutsList.className = "help-modal-shortcut-list";
+
+    const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    const cmdKey = isMac ? "Cmd" : "Ctrl";
+
+    const shortcuts = [
+      { description: "Open Command Palette", keys: [cmdKey, "K"] },
+      { description: "Undo", keys: [cmdKey, "Z"] },
+      { description: "Redo", keys: [cmdKey, "Y"] },
+      { description: "Navigate to next cell", keys: ["Tab"] },
+      {
+        description: "Navigate to next row (in language columns)",
+        keys: ["Enter"],
+      },
+      { description: "Navigate cells", keys: ["Arrow", "Keys"] },
+      { description: "Edit cell", keys: ["Double", "Click"] },
+    ];
+
+    shortcuts.forEach((shortcut) => {
+      const item = document.createElement("li");
+      item.className = "help-modal-shortcut-item";
+
+      const description = document.createElement("span");
+      description.className = "help-modal-shortcut-description";
+      description.textContent = shortcut.description;
+
+      const keys = document.createElement("div");
+      keys.className = "help-modal-shortcut-keys";
+
+      shortcut.keys.forEach((key, index) => {
+        if (index > 0) {
+          const separator = document.createElement("span");
+          separator.className = "help-modal-shortcut-key-separator";
+          separator.textContent = "+";
+          keys.appendChild(separator);
+        }
+
+        const keyElement = document.createElement("kbd");
+        keyElement.className = "help-modal-shortcut-key";
+        keyElement.textContent = key;
+        keys.appendChild(keyElement);
+      });
+
+      item.appendChild(description);
+      item.appendChild(keys);
+      shortcutsList.appendChild(item);
+    });
+
+    shortcutsSection.appendChild(shortcutsList);
+    content.appendChild(shortcutsSection);
+
+    // Commands Section
+    const commandsSection = document.createElement("div");
+    commandsSection.className = "help-modal-section";
+
+    const commandsTitle = document.createElement("h3");
+    commandsTitle.className = "help-modal-section-title";
+    commandsTitle.textContent = "Available Commands";
+    commandsSection.appendChild(commandsTitle);
+
+    const commandsList = document.createElement("ul");
+    commandsList.className = "help-modal-command-list";
+
+    const commands = [
+      {
+        name: "goto <number>",
+        description: "Navigate to a specific row number",
+      },
+      { name: "goto top", description: "Navigate to the first row" },
+      { name: "goto bottom", description: "Navigate to the last row" },
+      {
+        name: "search <keyword>",
+        description: "Search for keywords in translations",
+      },
+      {
+        name: "filter empty",
+        description: "Show only rows with empty translations",
+      },
+      {
+        name: "filter changed",
+        description: "Show only rows with changed cells",
+      },
+      {
+        name: "filter duplicate",
+        description: "Show only rows with duplicate keys",
+      },
+      {
+        name: "clear filter",
+        description: "Clear all filters and show all rows",
+      },
+      { name: "undo", description: "Undo last action" },
+      { name: "redo", description: "Redo last undone action" },
+      { name: "readonly", description: "Toggle read-only mode" },
+      { name: "help", description: "Show this help dialog" },
+    ];
+
+    commands.forEach((command) => {
+      const item = document.createElement("li");
+      item.className = "help-modal-command-item";
+
+      const name = document.createElement("div");
+      name.className = "help-modal-command-name";
+      name.textContent = command.name;
+
+      const description = document.createElement("div");
+      description.className = "help-modal-command-description";
+      description.textContent = command.description;
+
+      item.appendChild(name);
+      item.appendChild(description);
+      commandsList.appendChild(item);
+    });
+
+    commandsSection.appendChild(commandsList);
+    content.appendChild(commandsSection);
+
+    // Assemble
+    modal.appendChild(header);
+    modal.appendChild(content);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Overlay 클릭 시 닫기
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+
+    // Escape 키로 닫기
+    const escapeHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        overlay.remove();
+        document.removeEventListener("keydown", escapeHandler);
+      }
+    };
+    document.addEventListener("keydown", escapeHandler);
+
+    // 모달이 제거될 때 이벤트 리스너 정리
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(overlay)) {
+        document.removeEventListener("keydown", escapeHandler);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /**
