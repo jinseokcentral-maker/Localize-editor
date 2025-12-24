@@ -28,6 +28,8 @@ export interface KeyboardHandlerCallbacks {
   isQuickSearchMode?: () => boolean;
   isEditableColumn?: (columnId: string) => boolean;
   isReadOnly?: () => boolean;
+  onOpenFind?: () => void;
+  onOpenReplace?: () => void;
 }
 
 export class KeyboardHandler {
@@ -98,6 +100,26 @@ export class KeyboardHandler {
         if (this.callbacks.onOpenCommandPalette) {
           // 현재 모드는 기본적으로 "excel" (향후 모드 시스템 구현 시 동적으로 전달)
           this.callbacks.onOpenCommandPalette("excel");
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+F: 찾기 열기 (input 필드가 아닐 때만)
+      if (ctrlOrCmd && (e.key === "f" || e.code === "KeyF") && !isInputField) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.callbacks.onOpenFind) {
+          this.callbacks.onOpenFind();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+H: 바꾸기 열기 (input 필드가 아닐 때만)
+      if (ctrlOrCmd && (e.key === "h" || e.code === "KeyH") && !isInputField) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.callbacks.onOpenReplace) {
+          this.callbacks.onOpenReplace();
         }
         return;
       }

@@ -31,6 +31,7 @@ import {
 } from "./quick-search";
 import { QuickSearchUI } from "./quick-search-ui";
 import { StatusBar } from "./status-bar";
+import { FindReplace, type FindMatch } from "./find-replace";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
 import "@/styles/status-bar.css";
@@ -101,6 +102,9 @@ export class VirtualTableDiv {
 
   // 상태바
   private statusBar: StatusBar | null = null;
+
+  // 찾기/바꾸기
+  private findReplace: FindReplace | null = null;
 
   constructor(options: VirtualTableDivOptions) {
     this.container = options.container;
@@ -270,6 +274,12 @@ export class VirtualTableDiv {
         isReadOnly: () => {
           return this.options.readOnly || false;
         },
+        onOpenFind: () => {
+          this.openFindReplace("find");
+        },
+        onOpenReplace: () => {
+          this.openFindReplace("replace");
+        },
       }
     );
 
@@ -314,6 +324,27 @@ export class VirtualTableDiv {
         updateCellStyle: (rowId, columnId, cell) => {
           this.updateCellStyle(rowId, columnId, cell);
         },
+      },
+    });
+
+    // FindReplace 초기화
+    this.findReplace = new FindReplace({
+      translations: options.translations,
+      languages: options.languages,
+      onFind: (matches) => {
+        if (matches.length > 0) {
+          const match = matches[0];
+          this.gotoToFindMatch(match);
+        }
+      },
+      onReplace: (match, replacement) => {
+        this.replaceFindMatch(match, replacement);
+      },
+      onReplaceAll: (matches, replacement) => {
+        this.replaceAllFindMatches(matches, replacement);
+      },
+      onClose: () => {
+        // 찾기/바꾸기 닫힘 후 처리
       },
     });
   }
@@ -1572,6 +1603,97 @@ export class VirtualTableDiv {
 
     this.currentGotoMatches.currentIndex = prevIndex;
     this.gotoRow(prevMatch.rowIndex);
+  }
+
+  /**
+   * 찾기/바꾸기 열기
+   */
+  private openFindReplace(mode: "find" | "replace"): void {
+    if (!this.findReplace) return;
+    this.findReplace.open(mode);
+  }
+
+  /**
+   * 찾기 매칭으로 이동
+   */
+  private gotoToFindMatch(match: FindMatch): void {
+    this.gotoRow(match.rowIndex);
+    // 해당 셀에 포커스
+    this.focusCell(match.rowIndex, match.columnId);
+    // 편집 모드로 시작 (선택적)
+    // this.startEditingFromKeyboard(match.rowIndex, match.columnId);
+  }
+
+  /**
+   * 찾기 매칭 바꾸기
+   */
+  private replaceFindMatch(match: FindMatch, replacement: string): void {
+    const translations = this.getFilteredTranslations();
+    if (match.rowIndex < 0 || match.rowIndex >= translations.length) {
+      return;
+    }
+
+    const translation = translations[match.rowIndex];
+    let currentValue: string | null = null;
+
+    if (match.columnId === "key") {
+      currentValue = translation.key;
+    } else if (match.columnId === "context") {
+      currentValue = translation.context || null;
+    } else if (match.columnId.startsWith("values.")) {
+      const lang = match.columnId.replace("values.", "");
+      currentValue = translation.values[lang] || null;
+    }
+
+    if (currentValue === null) return;
+
+    // 매칭된 부분을 replacement로 교체
+    const before = currentValue.substring(0, match.matchIndex);
+    const after = currentValue.substring(match.matchIndex + match.matchLength);
+    const newValue = before + replacement + after;
+
+    // 셀 값 변경
+    if (match.columnId === "key") {
+      // Key는 직접 변경 불가 (readonly)
+      return;
+    } else if (match.columnId === "context") {
+      this.cellEditor.applyChange(
+        translation.id,
+        "context",
+        newValue,
+        this.getFilteredTranslations()
+      );
+    } else if (match.columnId.startsWith("values.")) {
+      const lang = match.columnId.replace("values.", "");
+      this.cellEditor.applyChange(
+        translation.id,
+        `values.${lang}`,
+        newValue,
+        this.getFilteredTranslations()
+      );
+    }
+
+    // 상태바 업데이트
+    this.updateStatusBar();
+    // 렌더링 업데이트
+    this.scheduleRender();
+  }
+
+  /**
+   * 모든 찾기 매칭 바꾸기
+   */
+  private replaceAllFindMatches(matches: FindMatch[], replacement: string): void {
+    // 역순으로 처리하여 인덱스 변경 문제 방지
+    const sortedMatches = [...matches].sort((a, b) => {
+      if (a.rowIndex !== b.rowIndex) {
+        return b.rowIndex - a.rowIndex; // 행 번호 역순
+      }
+      return b.matchIndex - a.matchIndex; // 같은 행이면 인덱스 역순
+    });
+
+    sortedMatches.forEach((match) => {
+      this.replaceFindMatch(match, replacement);
+    });
   }
 
   /**
