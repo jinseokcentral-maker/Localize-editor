@@ -301,11 +301,23 @@ export class CommandPalette {
     const items = this.list.querySelectorAll(".command-palette-item");
     const selectedItem = items[this.selectedIndex] as HTMLElement;
     
-    if (selectedItem) {
+    if (selectedItem && typeof selectedItem.scrollIntoView === "function") {
       selectedItem.scrollIntoView({
         block: "nearest",
         behavior: "smooth",
       });
+    } else if (selectedItem && this.list) {
+      // jsdom 환경에서는 scrollIntoView가 없을 수 있으므로 수동 스크롤
+      const itemTop = selectedItem.offsetTop;
+      const itemBottom = itemTop + selectedItem.offsetHeight;
+      const listTop = this.list.scrollTop;
+      const listBottom = listTop + this.list.clientHeight;
+
+      if (itemTop < listTop) {
+        this.list.scrollTop = itemTop;
+      } else if (itemBottom > listBottom) {
+        this.list.scrollTop = itemBottom - this.list.clientHeight;
+      }
     }
   }
 

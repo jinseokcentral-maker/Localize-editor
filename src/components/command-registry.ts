@@ -35,10 +35,13 @@ export class CommandRegistry {
    * 명령어 등록
    */
   registerCommand(command: Command): void {
+    // 이미 저장된 사용 횟수가 있으면 사용
+    const savedUsageCount = this.usageCounts.get(command.id) ?? command.usageCount ?? 0;
+    
     // 기본값 설정
     const fullCommand: Command = {
       ...command,
-      usageCount: command.usageCount ?? 0,
+      usageCount: savedUsageCount,
       availableInModes: command.availableInModes ?? ["all"],
     };
     this.commands.set(command.id, fullCommand);

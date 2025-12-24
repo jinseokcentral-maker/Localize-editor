@@ -200,7 +200,8 @@ describe("CommandRegistry", () => {
       // localStorage 초기화
       localStorage.clear();
 
-      registry.registerCommand({
+      const registry1 = new CommandRegistry();
+      registry1.registerCommand({
         id: "test",
         label: "Test",
         keywords: [],
@@ -208,12 +209,18 @@ describe("CommandRegistry", () => {
         execute: mockExecute,
       });
 
-      registry.incrementUsage("test");
-      registry.incrementUsage("test");
+      registry1.incrementUsage("test");
+      registry1.incrementUsage("test");
+
+      // localStorage에 저장되었는지 확인
+      const stored = localStorage.getItem("command-palette-usage");
+      expect(stored).toBeTruthy();
+      const counts = JSON.parse(stored!);
+      expect(counts.test).toBe(2);
 
       // 새 인스턴스 생성하여 로드 확인
-      const newRegistry = new CommandRegistry();
-      newRegistry.registerCommand({
+      const registry2 = new CommandRegistry();
+      registry2.registerCommand({
         id: "test",
         label: "Test",
         keywords: [],
@@ -221,7 +228,7 @@ describe("CommandRegistry", () => {
         execute: mockExecute,
       });
 
-      const command = newRegistry.getCommandById("test");
+      const command = registry2.getCommandById("test");
       expect(command?.usageCount).toBe(2);
 
       // 정리
