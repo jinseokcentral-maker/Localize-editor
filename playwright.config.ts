@@ -10,7 +10,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
-    headless: false, // 브라우저를 보이게 실행
+    headless: process.env.CI ? true : false, // CI에서는 headless, 로컬에서는 브라우저 표시
   },
   projects: [
     {

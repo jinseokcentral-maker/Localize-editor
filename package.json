@@ -45,12 +45,14 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "check:outdated": "pnpm outdated"
+    "check:outdated": "pnpm outdated",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
     "@types/node": "^22.10.7",
     "@vitest/ui": "^4.0.15",
+    "husky": "^9.1.7",
     "jsdom": "^27.3.0",
     "typescript": "~5.9.3",
     "vite": "npm:rolldown-vite@7.2.5",
