@@ -317,10 +317,26 @@ test.describe("Command Palette", () => {
     await page.keyboard.press("Enter");
     
     // 스크롤이 안정화될 때까지 기다리기 (WebKit에서 smooth 스크롤이 더 느릴 수 있음)
+    // 스크롤이 실제로 변경되었는지 먼저 확인
+    await page.waitForFunction(
+      (selector) => {
+        const container = document.querySelector(selector) as HTMLElement;
+        if (!container) return false;
+        const scrollTop = container.scrollTop;
+        // 스크롤이 초기 위치(0)에서 변경되었는지 확인
+        return scrollTop > 0;
+      },
+      ".virtual-grid-scroll-container",
+      { timeout: 5000 }
+    );
+    
+    // WebKit에서 가상 스크롤링으로 인해 scrollHeight가 정확하지 않을 수 있으므로
+    // 스크롤이 충분히 내려갔는지 확인 (스크롤 위치가 충분히 큰 값인지 확인)
+    // 또는 스크롤이 안정화될 때까지 기다림
     let previousScrollTop = 0;
     let stableCount = 0;
-    for (let i = 0; i < 20; i++) {
-      await page.waitForTimeout(100);
+    for (let i = 0; i < 30; i++) {
+      await page.waitForTimeout(200);
       const currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
       if (Math.abs(currentScrollTop - previousScrollTop) < 1) {
         stableCount++;

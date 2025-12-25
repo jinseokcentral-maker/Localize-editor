@@ -4,6 +4,8 @@
  * 명령 팔레트에서 사용할 명령어를 등록하고 관리합니다.
  */
 
+import { logger } from "@/utils/logger";
+
 export type EditorMode = "excel" | "vim" | "hybrid" | "all";
 
 export interface Command {
@@ -116,7 +118,7 @@ export class CommandRegistry {
         this.usageCounts = new Map(Object.entries(counts));
       }
     } catch (error) {
-      console.warn("Failed to load command usage counts:", error);
+      logger.warn("Failed to load command usage counts:", error);
     }
   }
   
@@ -141,7 +143,7 @@ export class CommandRegistry {
       const counts = Object.fromEntries(this.usageCounts);
       localStorage.setItem(this.storageKey, JSON.stringify(counts));
     } catch (error) {
-      console.warn("Failed to save command usage counts:", error);
+      logger.warn("Failed to save command usage counts:", error);
     }
   }
 

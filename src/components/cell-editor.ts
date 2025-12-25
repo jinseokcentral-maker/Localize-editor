@@ -7,22 +7,12 @@
 import { Effect, Option } from "effect";
 import type { Translation } from "@/types/translation";
 import type { TranslationChange } from "@/types/translation";
+import { toMutableTranslation, type MutableTranslation } from "@/types/mutable-translation";
+import { logger } from "@/utils/logger";
+import { CellEditorError } from "@/types/errors";
 import { ChangeTracker } from "./change-tracker";
 import { UndoRedoManager, type UndoRedoAction } from "./undo-redo-manager";
 import { getLangFromColumnId, getTranslationKey, checkKeyDuplicate } from "./grid-utils";
-
-/**
- * 셀 편집 에러 타입
- */
-export class CellEditorError extends Error {
-  constructor(
-    message: string,
-    public readonly code: "TRANSLATION_NOT_FOUND" | "INVALID_COLUMN_ID" | "DUPLICATE_KEY" | "EDIT_IN_PROGRESS"
-  ) {
-    super(message);
-    this.name = "CellEditorError";
-  }
-}
 
 export interface EditingCell {
   rowIndex: number;
@@ -89,7 +79,10 @@ export class CellEditor {
     const cellContent = cell.querySelector(".virtual-grid-cell-content");
     if (!cellContent) {
       return Effect.fail(
-        new CellEditorError("Cell content not found", "TRANSLATION_NOT_FOUND")
+        new CellEditorError({
+          message: "Cell content not found",
+          code: "TRANSLATION_NOT_FOUND",
+        })
       );
     }
 
@@ -144,7 +137,7 @@ export class CellEditor {
       if (save && input.value !== currentValue) {
         this.applyCellChange(rowId, columnId, currentValue, input.value).catch(
           (error) => {
-            console.error("Failed to apply cell change:", error);
+            logger.error("Failed to apply cell change:", error);
           }
         );
       }
@@ -236,7 +229,7 @@ export class CellEditor {
       if (save && input.value !== currentValue) {
         this.applyCellChange(rowId, columnId, currentValue, input.value).catch(
           (error) => {
-            console.error("Failed to apply cell change:", error);
+            logger.error("Failed to apply cell change:", error);
           }
         );
       }
@@ -328,12 +321,15 @@ export class CellEditor {
     const translation = this.translations.find((t) => t.id === rowId);
     if (!translation) {
       return Effect.fail(
-        new CellEditorError(`Translation not found: ${rowId}`, "TRANSLATION_NOT_FOUND")
+        new CellEditorError({
+          message: `Translation not found: ${rowId}`,
+          code: "TRANSLATION_NOT_FOUND",
+        })
       );
     }
 
-    // Translation 데이터 업데이트
-    const mutableTranslation = translation as any;
+    // Translation 데이터 업데이트 (MutableTranslation으로 안전하게 변환)
+    const mutableTranslation = toMutableTranslation(translation);
     if (columnId === "key") {
       mutableTranslation.key = newValue;
     } else if (columnId === "context") {
@@ -343,9 +339,17 @@ export class CellEditor {
       mutableTranslation.values[lang] = newValue;
     } else {
       return Effect.fail(
-        new CellEditorError(`Invalid column ID: ${columnId}`, "INVALID_COLUMN_ID")
+        new CellEditorError({
+          message: `Invalid column ID: ${columnId}`,
+          code: "INVALID_COLUMN_ID",
+        })
       );
     }
+
+    // 원본 translations 배열에서 해당 translation 업데이트
+    // translations는 readonly이므로 새 배열로 교체해야 하지만,
+    // CellEditor는 translations를 직접 소유하지 않으므로 콜백을 통해 업데이트
+    // 실제 업데이트는 VirtualTableDiv에서 처리됨
 
     // Undo/Redo 히스토리에 추가
     this.undoRedoManager.push({
@@ -390,8 +394,9 @@ export class CellEditor {
 
   /**
    * 셀 변경사항 적용 (Promise 기반, 기존 API 호환)
+   * VirtualTableDiv에서 직접 호출할 수 있도록 public
    */
-  private async applyCellChange(
+  async applyCellChange(
     rowId: string,
     columnId: string,
     oldValue: string,

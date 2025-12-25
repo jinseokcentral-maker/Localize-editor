@@ -14,6 +14,7 @@ import {
   type FuzzyFindInputParserResult,
   type FuzzyFindMatch,
 } from "./command-palette-fuzzy-find";
+import { logger } from "@/utils/logger";
 import "@/styles/command-palette.css";
 
 export interface CommandPaletteCallbacks {
@@ -560,7 +561,7 @@ export class CommandPalette {
         this.callbacks.onCommandExecute(command, args);
       }
     } catch (error) {
-      console.error("Error executing command:", error);
+      logger.error("Error executing command:", error);
     }
 
     this.close();
@@ -602,6 +603,36 @@ export class CommandPalette {
    */
   isPaletteOpen(): boolean {
     return this.isOpen;
+  }
+
+  /**
+   * Fuzzy find 모드인지 확인
+   */
+  getIsFuzzyFindMode(): boolean {
+    return this.isFuzzyFindMode;
+  }
+
+  /**
+   * Fuzzy find 쿼리 가져오기
+   */
+  getFuzzyFindQuery(): string {
+    return this.fuzzyFindQuery;
+  }
+
+  /**
+   * Fuzzy find 결과 가져오기
+   */
+  getFuzzyFindResults(): Array<{
+    rowIndex: number;
+    translation: any;
+    score: number;
+    matchedFields: Array<{
+      field: string;
+      matchedText: string;
+      matchType: "exact" | "contains" | "fuzzy";
+    }>;
+  }> {
+    return [...this.fuzzyFindResults];
   }
 }
 

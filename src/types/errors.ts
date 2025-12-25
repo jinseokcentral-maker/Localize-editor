@@ -38,3 +38,40 @@ export class ValidationError extends Data.TaggedError("ValidationError")<{
   readonly issues: readonly { path: string[]; message: string }[];
 }> {}
 
+/**
+ * CellEditor 관련 에러 타입
+ */
+export class CellEditorError extends Data.TaggedError("CellEditorError")<{
+  readonly message: string;
+  readonly code: CellEditorErrorCode;
+}> {}
+
+export type CellEditorErrorCode =
+  | "TRANSLATION_NOT_FOUND"
+  | "INVALID_COLUMN_ID"
+  | "DUPLICATE_KEY"
+  | "EDIT_IN_PROGRESS";
+
+/**
+ * FilterManager 관련 에러 타입
+ */
+export class FilterError extends Data.TaggedError("FilterError")<{
+  readonly message: string;
+  readonly code: FilterErrorCode;
+}> {}
+
+export type FilterErrorCode =
+  | "INVALID_FILTER_TYPE"
+  | "INVALID_KEYWORD"
+  | "FILTER_FAILED";
+
+/**
+ * 통합 에러 타입
+ */
+export type AppError =
+  | ChangeTrackerError
+  | ValidationError
+  | CellEditorError
+  | LocaleEditorError
+  | FilterError;
+

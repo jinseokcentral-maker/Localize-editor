@@ -32,6 +32,9 @@ import {
 import { QuickSearchUI } from "./quick-search-ui";
 import { StatusBar } from "./status-bar";
 import { FindReplace, type FindMatch } from "./find-replace";
+import { toMutableTranslation } from "@/types/mutable-translation";
+import { logger } from "@/utils/logger";
+import { FilterManager, type FilterType } from "./filter-manager";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
 import "@/styles/status-bar.css";
@@ -83,9 +86,11 @@ export class VirtualTableDiv {
 
   // 필터 관련 상태
   private originalTranslations: readonly Translation[] = [];
-  private currentFilter: "none" | "empty" | "changed" | "duplicate" | "search" =
-    "none";
+  // 현재 표시 중인 translations (필터링된 결과)
+  private currentTranslations: Translation[] = [];
+  private currentFilter: FilterType = "none";
   private currentSearchKeyword: string = "";
+  private filterManager: FilterManager;
 
   // Goto 텍스트 검색 관련 상태
   private currentGotoMatches: {
@@ -128,12 +133,21 @@ export class VirtualTableDiv {
 
     // 원본 데이터 보관 (필터링용)
     this.originalTranslations = [...options.translations];
+    // 현재 translations 초기화
+    this.currentTranslations = [...options.translations];
 
     // 원본 데이터 초기화
     this.changeTracker.initializeOriginalData(
       options.translations,
       options.languages
     );
+
+    // FilterManager 초기화
+    this.filterManager = new FilterManager({
+      translations: options.translations,
+      languages: options.languages,
+      changeTracker: this.changeTracker,
+    });
 
     // CellEditor 초기화
     this.cellEditor = new CellEditor(
@@ -142,6 +156,52 @@ export class VirtualTableDiv {
       this.undoRedoManager,
       {
         onCellChange: (id, columnId, value) => {
+          // currentTranslations 업데이트
+          const translationIndex = this.currentTranslations.findIndex(
+            (t) => t.id === id
+          );
+          if (translationIndex !== -1) {
+            const translation = this.currentTranslations[translationIndex];
+            const mutableTranslation = toMutableTranslation(translation);
+
+            if (columnId === "key") {
+              mutableTranslation.key = value;
+            } else if (columnId === "context") {
+              mutableTranslation.context = value;
+            } else if (columnId.startsWith("values.")) {
+              const lang = columnId.replace("values.", "");
+              mutableTranslation.values[lang] = value;
+            }
+
+            this.currentTranslations[translationIndex] = mutableTranslation;
+
+            // 원본 데이터도 업데이트
+            const originalIndex = this.originalTranslations.findIndex(
+              (t) => t.id === id
+            );
+            if (originalIndex !== -1) {
+              const originalTranslation =
+                this.originalTranslations[originalIndex];
+              const mutableOriginal = toMutableTranslation(originalTranslation);
+
+              if (columnId === "key") {
+                mutableOriginal.key = value;
+              } else if (columnId === "context") {
+                mutableOriginal.context = value;
+              } else if (columnId.startsWith("values.")) {
+                const lang = columnId.replace("values.", "");
+                mutableOriginal.values[lang] = value;
+              }
+
+              const newOriginalTranslations = [...this.originalTranslations];
+              newOriginalTranslations[originalIndex] = mutableOriginal;
+              this.originalTranslations = newOriginalTranslations;
+            }
+          }
+
+          // 셀 스타일 업데이트 (cell-empty 클래스 추가를 위해)
+          this.updateCellStyle(id, columnId);
+
           // 상태바 업데이트 (변경사항 수 변경)
           this.updateStatusBar();
           // 원래 콜백 호출
@@ -220,14 +280,23 @@ export class VirtualTableDiv {
       onGotoMatch: (match) => {
         this.gotoToMatch(match);
         // 검색 결과 저장 (goto next/prev를 위해)
-        const palette = this.commandPalette as any;
-        const matches = palette?.fuzzyFindResults || [];
+        const fuzzyFindResults = this.commandPalette.getFuzzyFindResults();
+        const fuzzyFindQuery = this.commandPalette.getFuzzyFindQuery();
+
+        // SearchMatch 형식으로 변환
+        const matches: SearchMatch[] = fuzzyFindResults.map((result) => ({
+          rowIndex: result.rowIndex,
+          translation: result.translation as Translation,
+          score: result.score,
+          matchedFields: result.matchedFields,
+        }));
+
         const matchIndex = matches.findIndex(
-          (m: SearchMatch) => m.rowIndex === match.rowIndex
+          (m) => m.rowIndex === match.rowIndex
         );
 
         this.currentGotoMatches = {
-          keyword: palette?.fuzzyFindQuery || "",
+          keyword: fuzzyFindQuery,
           matches: matches,
           currentIndex: matchIndex !== -1 ? matchIndex : 0,
         };
@@ -434,7 +503,7 @@ export class VirtualTableDiv {
    */
   private initVirtualScrolling(): void {
     if (!this.scrollElement || !this.bodyElement) {
-      console.error("VirtualTableDiv: scrollElement or bodyElement is null");
+      logger.error("VirtualTableDiv: scrollElement or bodyElement is null");
       return;
     }
 
@@ -1013,7 +1082,7 @@ export class VirtualTableDiv {
 
     // Empty 상태 확인
     if (columnId.startsWith("values.")) {
-      const translation = this.options.translations.find((t) => t.id === rowId);
+      const translation = this.currentTranslations.find((t) => t.id === rowId);
       if (translation) {
         const lang = columnId.replace("values.", "");
         const value = translation.values[lang] || "";
@@ -1105,13 +1174,13 @@ export class VirtualTableDiv {
    */
   private handleUndo(): void {
     if (!this.undoRedoManager.canUndo()) {
-      console.log("VirtualTableDiv: Cannot undo - no history");
+      logger.debug("VirtualTableDiv: Cannot undo - no history");
       return;
     }
 
     const action = this.undoRedoManager.undo();
     if (!action) {
-      console.log("VirtualTableDiv: Undo returned null");
+      logger.debug("VirtualTableDiv: Undo returned null");
       return;
     }
 
@@ -1126,13 +1195,13 @@ export class VirtualTableDiv {
    */
   private handleRedo(): void {
     if (!this.undoRedoManager.canRedo()) {
-      console.log("VirtualTableDiv: Cannot redo - no future history");
+      logger.debug("VirtualTableDiv: Cannot redo - no future history");
       return;
     }
 
     const action = this.undoRedoManager.redo();
     if (!action) {
-      console.log("VirtualTableDiv: Redo returned null");
+      logger.debug("VirtualTableDiv: Redo returned null");
       return;
     }
 
@@ -1147,7 +1216,7 @@ export class VirtualTableDiv {
    */
   private applyUndoRedoAction(action: UndoRedoAction): void {
     if (action.type !== "cell-change") {
-      console.log("VirtualTableDiv: Invalid action type", action.type);
+      logger.warn("VirtualTableDiv: Invalid action type", action.type);
       return;
     }
 
@@ -1157,16 +1226,18 @@ export class VirtualTableDiv {
     }
 
     // 실제 Translation 데이터 업데이트
-    const translation = this.options.translations.find(
+    const translationIndex = this.currentTranslations.findIndex(
       (t) => t.id === action.rowId
     );
-    if (!translation) {
-      console.error("VirtualTableDiv: Translation not found", action.rowId);
+    if (translationIndex === -1) {
+      logger.error("VirtualTableDiv: Translation not found", action.rowId);
       return;
     }
 
-    // readonly 타입을 우회하기 위해 타입 단언 사용
-    const mutableTranslation = translation as any;
+    // MutableTranslation으로 변환하여 안전하게 업데이트
+    const translation = this.currentTranslations[translationIndex];
+    const mutableTranslation = toMutableTranslation(translation);
+
     if (action.columnId === "key") {
       mutableTranslation.key = action.newValue;
     } else if (action.columnId === "context") {
@@ -1175,9 +1246,36 @@ export class VirtualTableDiv {
       const lang = action.columnId.replace("values.", "");
       mutableTranslation.values[lang] = action.newValue;
     } else {
-      console.error("VirtualTableDiv: Invalid columnId", action.columnId);
+      logger.error("VirtualTableDiv: Invalid columnId", action.columnId);
       return;
     }
+
+    // 원본 데이터도 업데이트 (필터링되지 않은 원본)
+    // 원본 데이터는 readonly이므로 새 배열로 교체
+    const originalIndex = this.originalTranslations.findIndex(
+      (t) => t.id === action.rowId
+    );
+    if (originalIndex !== -1) {
+      const originalTranslation = this.originalTranslations[originalIndex];
+      const mutableOriginal = toMutableTranslation(originalTranslation);
+
+      if (action.columnId === "key") {
+        mutableOriginal.key = action.newValue;
+      } else if (action.columnId === "context") {
+        mutableOriginal.context = action.newValue;
+      } else if (action.columnId.startsWith("values.")) {
+        const lang = action.columnId.replace("values.", "");
+        mutableOriginal.values[lang] = action.newValue;
+      }
+
+      // 원본 배열을 새 배열로 교체 (readonly 유지)
+      const newOriginalTranslations = [...this.originalTranslations];
+      newOriginalTranslations[originalIndex] = mutableOriginal;
+      this.originalTranslations = newOriginalTranslations;
+    }
+
+    // 현재 translations 업데이트
+    this.currentTranslations[translationIndex] = mutableTranslation;
 
     // DOM 셀 찾기 (가상 스크롤링으로 인해 화면에 없을 수 있음)
     const cell = this.bodyElement?.querySelector(
@@ -1206,7 +1304,7 @@ export class VirtualTableDiv {
     );
     const lang = getLangFromColumnId(action.columnId);
     const translationKey = getTranslationKey(
-      this.options.translations,
+      this.currentTranslations,
       action.rowId,
       action.columnId,
       action.newValue
@@ -1656,33 +1754,39 @@ export class VirtualTableDiv {
     if (match.columnId === "key") {
       // Key는 직접 변경 불가 (readonly)
       return;
-    } else if (match.columnId === "context") {
-      this.cellEditor.applyChange(
-        translation.id,
-        "context",
-        newValue,
-        this.getFilteredTranslations()
-      );
-    } else if (match.columnId.startsWith("values.")) {
-      const lang = match.columnId.replace("values.", "");
-      this.cellEditor.applyChange(
-        translation.id,
-        `values.${lang}`,
-        newValue,
-        this.getFilteredTranslations()
-      );
+    } else {
+      // 현재 값을 가져와서 변경사항 적용
+      const columnId = match.columnId;
+      let oldValue = "";
+
+      if (columnId === "context") {
+        oldValue = translation.context || "";
+      } else if (columnId.startsWith("values.")) {
+        const lang = columnId.replace("values.", "");
+        oldValue = translation.values[lang] || "";
+      }
+
+      // CellEditor를 통해 변경사항 적용
+      this.cellEditor
+        .applyCellChange(translation.id, columnId, oldValue, newValue)
+        .catch((error) => {
+          logger.error("Failed to apply cell change:", error);
+        });
     }
 
     // 상태바 업데이트
     this.updateStatusBar();
     // 렌더링 업데이트
-    this.scheduleRender();
+    this.renderVirtualRows();
   }
 
   /**
    * 모든 찾기 매칭 바꾸기
    */
-  private replaceAllFindMatches(matches: FindMatch[], replacement: string): void {
+  private replaceAllFindMatches(
+    matches: FindMatch[],
+    replacement: string
+  ): void {
     // 역순으로 처리하여 인덱스 변경 문제 방지
     const sortedMatches = [...matches].sort((a, b) => {
       if (a.rowIndex !== b.rowIndex) {
@@ -1717,79 +1821,19 @@ export class VirtualTableDiv {
    * 필터링된 translations 반환
    */
   private getFilteredTranslations(): readonly Translation[] {
-    let filtered = [...this.originalTranslations];
-
-    // 검색 필터
-    if (this.currentFilter === "search" && this.currentSearchKeyword.trim()) {
-      const keyword = this.currentSearchKeyword.toLowerCase().trim();
-      filtered = filtered.filter((translation) => {
-        // Key 검색
-        if (translation.key.toLowerCase().includes(keyword)) {
-          return true;
-        }
-        // Context 검색
-        if (translation.context?.toLowerCase().includes(keyword)) {
-          return true;
-        }
-        // Language values 검색
-        return this.options.languages.some((lang) => {
-          const value = translation.values[lang] || "";
-          return value.toLowerCase().includes(keyword);
-        });
-      });
-    }
-
-    // 빈 번역 필터
-    if (this.currentFilter === "empty") {
-      filtered = filtered.filter((translation) => {
-        return this.options.languages.some((lang) => {
-          const value = translation.values[lang] || "";
-          return value.trim() === "";
-        });
-      });
-    }
-
-    // 변경된 셀 필터
-    if (this.currentFilter === "changed") {
-      filtered = filtered.filter((translation) => {
-        // Key 변경 체크
-        if (this.changeTracker.hasChange(translation.id, "key")) {
-          return true;
-        }
-        // Context 변경 체크
-        if (this.changeTracker.hasChange(translation.id, "context")) {
-          return true;
-        }
-        // Language values 변경 체크
-        return this.options.languages.some((lang) => {
-          return this.changeTracker.hasChange(translation.id, `values.${lang}`);
-        });
-      });
-    }
-
-    // 중복 Key 필터
-    if (this.currentFilter === "duplicate") {
-      const keyCounts = new Map<string, number>();
-      this.originalTranslations.forEach((t) => {
-        const count = keyCounts.get(t.key) || 0;
-        keyCounts.set(t.key, count + 1);
-      });
-
-      filtered = filtered.filter((translation) => {
-        return (keyCounts.get(translation.key) || 0) > 1;
-      });
-    }
-
-    return filtered;
+    return this.filterManager.filter(this.originalTranslations, {
+      type: this.currentFilter,
+      keyword: this.currentSearchKeyword,
+    });
   }
 
   /**
    * 필터링된 translations로 그리드 업데이트
    */
   private applyFilter(): void {
-    // 필터링된 translations로 options 업데이트
+    // 필터링된 translations로 currentTranslations 업데이트
     const filtered = this.getFilteredTranslations();
-    (this.options as any).translations = filtered;
+    this.currentTranslations = [...filtered];
 
     // 가상 스크롤러 재초기화
     if (this.rowVirtualizer) {
@@ -1851,7 +1895,7 @@ export class VirtualTableDiv {
   private clearFilter(): void {
     this.currentFilter = "none";
     this.currentSearchKeyword = "";
-    (this.options as any).translations = [...this.originalTranslations];
+    this.currentTranslations = [...this.originalTranslations];
     this.applyFilter();
   }
 
