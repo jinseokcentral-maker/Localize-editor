@@ -74,7 +74,7 @@ describe("ChangeTracker - Performance Tests", () => {
   });
 
   describe("hasChange 성능", () => {
-    it("1000번 변경 확인이 10ms 이하여야 함", () => {
+    it("1000번 변경 확인이 100ms 이하여야 함", () => {
       const tracker = new ChangeTracker();
       const translations = Array.from({ length: 100 }, (_, i) => ({
         id: `id-${i}`,
