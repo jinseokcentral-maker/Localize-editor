@@ -17,6 +17,7 @@ export interface StatusBarInfo {
   changesCount: number;
   emptyCount: number;
   duplicateCount: number;
+  command?: string | null; // Vim 명령어 표시 (예: "10j", "dd")
 }
 
 export interface StatusBarCallbacks {
@@ -97,7 +98,15 @@ export class StatusBar {
       parts.push(`${info.duplicateCount} duplicate${info.duplicateCount !== 1 ? "s" : ""}`);
     }
 
-    this.statusBarElement.textContent = parts.join(" | ");
+    // Vim 명령어 표시 (오른쪽에 별도로 표시)
+    const leftContent = parts.join(" | ");
+    const rightContent = info.command ? `Command: ${info.command}` : "";
+
+    // StatusBar를 두 부분으로 나눔 (왼쪽: 상태 정보, 오른쪽: 명령어)
+    this.statusBarElement.innerHTML = `
+      <span class="status-bar-left">${leftContent}</span>
+      ${rightContent ? `<span class="status-bar-command">${rightContent}</span>` : ""}
+    `;
 
     // 콜백 호출
     if (this.callbacks.onStatusUpdate) {

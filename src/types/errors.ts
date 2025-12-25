@@ -66,6 +66,31 @@ export type FilterErrorCode =
   | "FILTER_FAILED";
 
 /**
+ * VimCommandTracker 관련 에러 타입
+ */
+export class VimCommandTrackerError extends Data.TaggedError("VimCommandTrackerError")<{
+  readonly message: string;
+  readonly code: VimCommandTrackerErrorCode;
+}> {}
+
+export type VimCommandTrackerErrorCode =
+  | "INVALID_KEY_SEQUENCE"
+  | "MAX_SEQUENCE_LENGTH_EXCEEDED";
+
+/**
+ * CommandLine 관련 에러 타입
+ */
+export class CommandLineError extends Data.TaggedError("CommandLineError")<{
+  readonly message: string;
+  readonly code: CommandLineErrorCode;
+}> {}
+
+export type CommandLineErrorCode =
+  | "INVALID_COMMAND"
+  | "COMMAND_EXECUTION_FAILED"
+  | "HISTORY_OVERFLOW";
+
+/**
  * 통합 에러 타입
  */
 export type AppError =
@@ -73,5 +98,7 @@ export type AppError =
   | ValidationError
   | CellEditorError
   | LocaleEditorError
-  | FilterError;
+  | FilterError
+  | VimCommandTrackerError
+  | CommandLineError;
 

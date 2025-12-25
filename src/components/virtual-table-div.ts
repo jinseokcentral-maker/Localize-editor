@@ -35,9 +35,12 @@ import { FindReplace, type FindMatch } from "./find-replace";
 import { toMutableTranslation } from "@/types/mutable-translation";
 import { logger } from "@/utils/logger";
 import { FilterManager, type FilterType } from "./filter-manager";
+import { VimCommandTracker } from "./vim-command-tracker";
+import { CommandLine } from "./command-line";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
 import "@/styles/status-bar.css";
+import "@/styles/command-line.css";
 
 export interface VirtualTableDivOptions {
   container: HTMLElement;
@@ -110,6 +113,11 @@ export class VirtualTableDiv {
 
   // 찾기/바꾸기
   private findReplace: FindReplace | null = null;
+
+  // Vim UI 컴포넌트
+  private vimCommandTracker: VimCommandTracker | null = null;
+  private commandLine: CommandLine | null = null;
+  private vimKeyboardHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(options: VirtualTableDivOptions) {
     this.container = options.container;
@@ -414,6 +422,25 @@ export class VirtualTableDiv {
       },
       onClose: () => {
         // 찾기/바꾸기 닫힘 후 처리
+      },
+    });
+
+    // VimCommandTracker 초기화
+    this.vimCommandTracker = new VimCommandTracker({
+      onCommandUpdate: (command) => {
+        // 명령어 업데이트 시 StatusBar 업데이트
+        this.updateStatusBar();
+      },
+    });
+
+    // CommandLine 초기화
+    this.commandLine = new CommandLine({
+      container: this.container,
+      onExecute: async (command) => {
+        await this.executeCommandLineCommand(command);
+      },
+      onCancel: () => {
+        // CommandLine 취소 시 처리
       },
     });
   }
@@ -1104,6 +1131,104 @@ export class VirtualTableDiv {
 
     // KeyboardHandler 시작
     this.keyboardHandlerModule.attach();
+
+    // Vim 명령어 추적 및 CommandLine 키보드 이벤트 처리
+    this.vimKeyboardHandler = this.handleVimKeyboardEvent.bind(this);
+    document.addEventListener("keydown", this.vimKeyboardHandler);
+  }
+
+  /**
+   * Vim 키보드 이벤트 처리
+   */
+  private handleVimKeyboardEvent(e: KeyboardEvent): void {
+    // CommandLine이 열려있으면 Vim 명령어 추적하지 않음
+    if (this.commandLine?.getVisible()) {
+      return;
+    }
+
+    // 편집 중이면 Vim 명령어 추적하지 않음
+    if (this.cellEditor.getEditingCell() !== null) {
+      return;
+    }
+
+    // QuickSearch 모드이면 Vim 명령어 추적하지 않음
+    if (this.quickSearchUI?.isSearchMode()) {
+      return;
+    }
+
+    // CommandPalette가 열려있으면 Vim 명령어 추적하지 않음
+    if (this.commandPalette.isPaletteOpen()) {
+      return;
+    }
+
+    // FindReplace가 열려있으면 Vim 명령어 추적하지 않음
+    const findReplaceOverlay = document.querySelector(".find-replace-overlay");
+    if (findReplaceOverlay) {
+      return;
+    }
+
+    const target = e.target as HTMLElement;
+    const isInputField =
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable;
+
+    // Input 필드에서는 Vim 명령어 추적하지 않음
+    if (isInputField) {
+      return;
+    }
+
+    // Modifier 키가 눌려있으면 Vim 명령어가 아님
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    }
+
+    // `:` 키: CommandLine 열기
+    if (e.key === ":" || e.code === "Semicolon") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.commandLine) {
+        // CommandLine이 열릴 때 Vim 명령어 클리어
+        if (this.vimCommandTracker) {
+          this.vimCommandTracker.clear();
+          this.updateStatusBar();
+        }
+        this.commandLine.show();
+      }
+      return;
+    }
+
+    // Escape 키: CommandLine 닫기 또는 Vim 명령어 취소
+    if (e.key === "Escape") {
+      if (this.commandLine?.getVisible()) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.commandLine.hide();
+        return;
+      }
+      // Vim 명령어 취소
+      if (this.vimCommandTracker) {
+        this.vimCommandTracker.cancelCommand();
+        this.updateStatusBar();
+      }
+      return;
+    }
+
+    // Vim 명령어 추적 (일반 키 입력)
+    // 단일 문자 키만 추적 (특수 키는 제외)
+    if (
+      e.key.length === 1 &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
+      // 숫자, 영문자, 특수 문자 (hjkl, dd, yy 등)
+      if (this.vimCommandTracker) {
+        this.vimCommandTracker.addKey(e.key);
+        this.updateStatusBar();
+      }
+    }
   }
 
   /**
@@ -2388,6 +2513,20 @@ export class VirtualTableDiv {
       this.statusBar.destroy();
       this.statusBar = null;
     }
+
+    // Vim UI 컴포넌트 정리
+    if (this.vimKeyboardHandler) {
+      document.removeEventListener("keydown", this.vimKeyboardHandler);
+      this.vimKeyboardHandler = null;
+    }
+    if (this.commandLine) {
+      this.commandLine.destroy();
+      this.commandLine = null;
+    }
+    if (this.vimCommandTracker) {
+      this.vimCommandTracker.clear();
+      this.vimCommandTracker = null;
+    }
   }
 
   /**
@@ -2401,6 +2540,59 @@ export class VirtualTableDiv {
     });
     this.statusBar.create();
     this.updateStatusBar();
+  }
+
+  /**
+   * CommandLine 명령어 실행
+   */
+  private async executeCommandLineCommand(command: string): Promise<void> {
+    const trimmedCommand = command.trim();
+    if (!trimmedCommand) {
+      return;
+    }
+
+    // 명령어 파싱 (예: "goto 10", "goto top", "goto bottom")
+    const parts = trimmedCommand.split(/\s+/);
+    const commandName = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    // goto 명령어 처리
+    if (commandName === "goto" || commandName === "go") {
+      if (args.length > 0) {
+        const arg = args[0].toLowerCase();
+        if (arg === "top" || arg === "first" || arg === "1") {
+          this.gotoTop();
+          return;
+        }
+        if (arg === "bottom" || arg === "last") {
+          this.gotoBottom();
+          return;
+        }
+        const rowIndex = parseInt(args[0], 10);
+        if (!isNaN(rowIndex) && rowIndex > 0) {
+          this.gotoRow(rowIndex - 1); // 1-based to 0-based
+          return;
+        }
+      }
+    }
+
+    // CommandRegistry에서 명령어 찾기
+    const commands = this.commandRegistry.getCommands("all");
+    const matchedCommand = commands.find((cmd) => {
+      const cmdId = cmd.id.toLowerCase();
+      const cmdLabel = cmd.label.toLowerCase();
+      return (
+        cmdId === commandName ||
+        cmdLabel.includes(commandName) ||
+        cmd.keywords?.some((kw) => kw.toLowerCase() === commandName)
+      );
+    });
+
+    if (matchedCommand) {
+      matchedCommand.execute(args);
+    } else {
+      logger.warn(`CommandLine: Unknown command: ${commandName}`);
+    }
   }
 
   /**
@@ -2445,6 +2637,10 @@ export class VirtualTableDiv {
     // 중복 Key 수 계산
     const duplicateCount = this.countDuplicateKeys();
 
+    // Vim 명령어 가져오기
+    const currentCommand = this.vimCommandTracker?.getCurrentCommand();
+    const commandSequence = currentCommand ? currentCommand.sequence : null;
+
     // 상태바 업데이트
     this.statusBar.update({
       mode,
@@ -2454,6 +2650,7 @@ export class VirtualTableDiv {
       changesCount,
       emptyCount,
       duplicateCount,
+      command: commandSequence,
     });
   }
 

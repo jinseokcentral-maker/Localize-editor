@@ -16,12 +16,24 @@
   padding: 0 12px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   z-index: 1000;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   user-select: none;
   pointer-events: none;
+}
+
+.status-bar-left {
+  flex: 1;
+}
+
+.status-bar-command {
+  color: #60a5fa;
+  font-weight: 500;
+  margin-left: 16px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
 }
 
 /* 다크 모드 지원 */

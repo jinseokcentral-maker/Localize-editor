@@ -1,0 +1,62 @@
+/**
+ * Command Line 스타일
+ * Vim의 `:` 명령어 모드를 위한 입력줄
+ */
+
+.command-line-overlay {
+  position: fixed;
+  bottom: 24px; /* StatusBar 위에 표시 */
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+}
+
+.command-line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.command-line-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+  padding: 4px 8px;
+  caret-color: #60a5fa;
+}
+
+.command-line-input::placeholder {
+  color: rgba(224, 224, 224, 0.5);
+}
+
+.command-line-input:focus {
+  outline: none;
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: light) {
+  .command-line-overlay {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .command-line-input {
+    color: #333;
+  }
+
+  .command-line-input::placeholder {
+    color: rgba(51, 51, 51, 0.5);
+  }
+}
+

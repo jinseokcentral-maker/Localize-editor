@@ -115,6 +115,48 @@ describe("StatusBar", () => {
     expect(statusBarElement?.textContent).not.toContain("duplicate");
   });
 
+  it("should display Vim command when provided", () => {
+    statusBar.create();
+
+    const info: StatusBarInfo = {
+      mode: "Vim Normal",
+      rowIndex: 0,
+      totalRows: 10,
+      columnId: "key",
+      changesCount: 0,
+      emptyCount: 0,
+      duplicateCount: 0,
+      command: "10j",
+    };
+
+    statusBar.update(info);
+
+    const statusBarElement = container.querySelector(".status-bar");
+    const commandElement = statusBarElement?.querySelector(".status-bar-command");
+    expect(commandElement?.textContent).toContain("Command: 10j");
+  });
+
+  it("should not display command section when command is null", () => {
+    statusBar.create();
+
+    const info: StatusBarInfo = {
+      mode: "Normal",
+      rowIndex: 0,
+      totalRows: 10,
+      columnId: "key",
+      changesCount: 0,
+      emptyCount: 0,
+      duplicateCount: 0,
+      command: null,
+    };
+
+    statusBar.update(info);
+
+    const statusBarElement = container.querySelector(".status-bar");
+    const commandElement = statusBarElement?.querySelector(".status-bar-command");
+    expect(commandElement).toBeNull();
+  });
+
   it("should handle plural forms correctly", () => {
     statusBar.create();
 
