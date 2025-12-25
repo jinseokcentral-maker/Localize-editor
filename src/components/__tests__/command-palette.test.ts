@@ -85,31 +85,31 @@ describe("CommandPalette", () => {
       expect(list).toBeTruthy();
     });
 
-    it("should focus input when opened", (done) => {
+    it("should focus input when opened", async () => {
       palette.open();
       // DOM이 준비될 때까지 여러 프레임 대기
-      requestAnimationFrame(() => {
+      await new Promise((resolve) => {
         requestAnimationFrame(() => {
-          const input = document.querySelector(
-            ".command-palette-input"
-          ) as HTMLInputElement;
-          // jsdom에서는 activeElement가 제대로 설정되지 않을 수 있음
-          // input이 존재하는지만 확인
-          if (input) {
-            expect(input).toBeTruthy();
-            done();
-          } else {
-            // DOM이 아직 준비되지 않았으면 조금 더 대기
-            setTimeout(() => {
-              const input2 = document.querySelector(
-                ".command-palette-input"
-              ) as HTMLInputElement;
-              expect(input2).toBeTruthy();
-              done();
-            }, 10);
-          }
+          requestAnimationFrame(() => {
+            resolve(undefined);
+          });
         });
       });
+      
+      const input = document.querySelector(
+        ".command-palette-input"
+      ) as HTMLInputElement;
+      // jsdom에서는 activeElement가 제대로 설정되지 않을 수 있음
+      // input이 존재하는지만 확인
+      if (!input) {
+        // DOM이 아직 준비되지 않았으면 조금 더 대기
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      
+      const input2 = document.querySelector(
+        ".command-palette-input"
+      ) as HTMLInputElement;
+      expect(input2).toBeTruthy();
     });
   });
 
@@ -138,7 +138,7 @@ describe("CommandPalette", () => {
       expect(list?.children.length).toBeGreaterThan(0);
     });
 
-    it("should filter commands based on query", () => {
+    it("should filter commands based on query", async () => {
       palette.open();
       const input = document.querySelector(
         ".command-palette-input"
@@ -151,10 +151,9 @@ describe("CommandPalette", () => {
       
       // 검색 결과가 업데이트되었는지 확인
       // (실제 DOM 업데이트는 비동기이므로 약간의 지연 필요)
-      setTimeout(() => {
-        const items = document.querySelectorAll(".command-palette-item");
-        expect(items.length).toBeGreaterThan(0);
-      }, 100);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const items = document.querySelectorAll(".command-palette-item");
+      expect(items.length).toBeGreaterThan(0);
     });
   });
 
@@ -264,7 +263,7 @@ describe("CommandPalette", () => {
   });
 
   describe("command execution", () => {
-    it("should execute selected command", () => {
+    it("should execute selected command", async () => {
       palette.open();
       
       // 명령 실행 시뮬레이션
@@ -274,15 +273,14 @@ describe("CommandPalette", () => {
       input.value = "test-command";
       input.dispatchEvent(new Event("input", { bubbles: true }));
 
-      setTimeout(() => {
-        input.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
-        );
-        expect(mockExecute).toHaveBeenCalled();
-      }, 100);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+      expect(mockExecute).toHaveBeenCalled();
     });
 
-    it("should increment usage count when command is executed", () => {
+    it("should increment usage count when command is executed", async () => {
       palette.open();
       
       const beforeCount = registry.getCommandById("test-command")?.usageCount ?? 0;
@@ -294,14 +292,13 @@ describe("CommandPalette", () => {
       input.value = "test-command";
       input.dispatchEvent(new Event("input", { bubbles: true }));
 
-      setTimeout(() => {
-        input.dispatchEvent(
-          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
-        );
-        
-        const afterCount = registry.getCommandById("test-command")?.usageCount ?? 0;
-        expect(afterCount).toBe(beforeCount + 1);
-      }, 100);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+      
+      const afterCount = registry.getCommandById("test-command")?.usageCount ?? 0;
+      expect(afterCount).toBe(beforeCount + 1);
     });
   });
 
