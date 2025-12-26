@@ -1,0 +1,199 @@
+# Cursor Agent Rules for LocaleEditor
+
+## Project Overview
+This is an Excel-like i18n (internationalization) translation editor built with TypeScript, Vite, and modern web technologies. The project provides a virtualized grid interface for editing translation files with features like Vim mode, command palette, find & replace, and more.
+
+## Tech Stack
+- **Language**: TypeScript (strict mode)
+- **Build Tool**: Vite (using rolldown-vite)
+- **Testing**: Vitest (unit tests), Playwright (E2E tests)
+- **Functional Programming**: Effect library (for type-safe error handling and async operations)
+- **Validation**: Zod (schema validation)
+- **UI Framework**: Custom components (no React/Vue/Angular)
+- **Styling**: Tailwind CSS v4
+
+## Architecture Principles
+
+### 1. Effect Library Usage
+- Use `Effect` for all error handling, async operations, and side effects
+- Never use `try-catch` blocks directly - use `Effect.catchAll` or `Effect.catchTag`
+- Use `Effect.gen` for sequential async operations
+- All errors should be typed using `Data.TaggedError` or custom error types
+- Example error pattern:
+  ```typescript
+  class MyError extends Data.TaggedError("MyError")<{
+    message: string;
+    code: string;
+  }> {}
+  ```
+
+### 2. Type Safety
+- Avoid `as any` type assertions - use proper types or `unknown` with type guards
+- Use `readonly` for immutable data structures
+- Use `MutableTranslation` type when you need to modify `readonly Translation` objects
+- All functions should have explicit return types
+
+### 3. Logging
+- Use the custom `Logger` utility from `@/utils/logger` instead of `console.log/error/warn`
+- Use appropriate log levels: `debug`, `info`, `warn`, `error`
+- Example:
+  ```typescript
+  import { logger } from "@/utils/logger";
+  logger.debug("Debug message", { data });
+  logger.error("Error message", error);
+  ```
+
+### 4. Testing
+- Unit tests: Use Vitest, located in `src/components/__tests__/` or `src/tests/unit/`
+- E2E tests: Use Playwright, located in `src/tests/e2e/`
+- All unit tests must pass before moving to E2E tests
+- Performance tests should account for Effect library overhead
+
+## Project Structure
+
+### Core Components (`src/components/`)
+- `virtual-table-div.ts`: Main grid component, manages rendering, scrolling, cell editing
+- `cell-editor.ts`: Handles cell editing with undo/redo support
+- `change-tracker.ts`: Tracks changes to translations using Effect
+- `filter-manager.ts`: Manages filtering logic
+- `vim-command-tracker.ts`: Tracks Vim key sequences
+- `command-line.ts`: Vim-style `:` command input
+- `command-palette.ts`: Command palette UI
+- `find-replace.ts`: Find & replace functionality
+- `status-bar.ts`: Status bar displaying mode, position, stats
+- `undo-redo-manager.ts`: Manages undo/redo history
+
+### Utilities (`src/utils/`)
+- `logger.ts`: Centralized logging utility
+- `validation.ts`: Data validation utilities
+
+### Types (`src/types/`)
+- `translation.ts`: Core translation data types
+- `errors.ts`: Error type definitions
+- `mutable-translation.ts`: Mutable translation type helpers
+
+### Virtual Core (`src/virtual-core/`)
+- Custom virtual scrolling implementation
+- Used by `virtual-table-div.ts` for efficient rendering
+
+## Key Features
+
+### Vim Mode
+- Normal/Insert mode support (planned)
+- Vim command tracking (`VimCommandTracker`)
+- Command line (`:` commands)
+- Status bar shows current mode and command
+
+### Editor Features
+- Virtualized grid for large datasets
+- Cell editing with undo/redo
+- Find & replace with regex support
+- Command palette with fuzzy search
+- Quick search
+- Filtering (empty, changed, duplicate keys)
+- Status bar with statistics
+
+## Coding Guidelines
+
+### When Adding New Features
+1. Create unit tests first (TDD approach)
+2. Ensure all unit tests pass
+3. Add E2E tests if UI interaction is involved
+4. Use Effect for error handling
+5. Use Logger for all logging
+6. Follow existing patterns in similar components
+
+### When Refactoring
+1. Maintain type safety (no `as any`)
+2. Convert to Effect patterns where applicable
+3. Update logging to use Logger utility
+4. Ensure all tests pass after each refactoring phase
+
+### File Naming
+- Components: `kebab-case.ts` (e.g., `command-line.ts`)
+- Tests: `component-name.test.ts` (e.g., `command-line.test.ts`)
+- E2E tests: `feature-name.spec.ts` (e.g., `vim-ui.spec.ts`)
+
+### Import Paths
+- Use `@/` alias for `src/` directory
+- Example: `import { logger } from "@/utils/logger";`
+
+## Common Patterns
+
+### Effect Pattern for Async Operations
+```typescript
+const myEffect = Effect.gen(function* (_) {
+  const result = yield* _(someAsyncOperation());
+  return result;
+}).pipe(
+  Effect.catchAll((error) => {
+    logger.error("Operation failed", error);
+    return Effect.fail(error);
+  })
+);
+```
+
+### Error Handling Pattern
+```typescript
+try {
+  await Effect.runPromise(myEffect);
+} catch (error) {
+  // Error is already logged in Effect.catchAll
+  // Handle UI feedback here
+}
+```
+
+### Component Initialization Pattern
+```typescript
+class MyComponent {
+  constructor(options: MyComponentOptions) {
+    // Initialize
+  }
+  
+  // Public methods
+  public method(): void {
+    // Implementation
+  }
+  
+  // Private methods
+  private helper(): void {
+    // Implementation
+  }
+  
+  // Cleanup
+  destroy(): void {
+    // Cleanup resources
+  }
+}
+```
+
+## Testing Guidelines
+
+### Unit Tests
+- Test one thing at a time
+- Use descriptive test names in Korean (following existing pattern)
+- Mock dependencies when needed
+- Use `vi.fn()` for function mocks
+- For async operations, use `async/await` instead of `setTimeout` with callbacks
+
+### E2E Tests
+- Use Playwright's `page.waitForFunction` for reliable waiting
+- Avoid `page.waitForTimeout` when possible
+- Use specific selectors (e.g., `.command-line-input` instead of generic selectors)
+- Add console log capturing for debugging: `page.on('console', ...)`
+
+## Performance Considerations
+- Virtual scrolling is used for large datasets
+- Effect library adds some overhead - performance test thresholds account for this
+- Use `requestAnimationFrame` for DOM updates in E2E tests
+
+## Browser Compatibility
+- Tests run on Chromium, Firefox, and WebKit
+- Firefox may have different timing behavior - account for this in tests
+- Use `requestAnimationFrame` carefully for cross-browser compatibility
+
+## Git Workflow
+- All tests must pass before pushing
+- Pre-push hook runs tests automatically
+- Performance test thresholds are set to account for CI environment variations
+

@@ -1,6 +1,6 @@
 /**
  * Mutable Translation 타입 정의
- * 
+ *
  * 내부적으로 Translation을 수정할 때 사용하는 타입
  */
 
@@ -40,9 +40,7 @@ export function toMutableTranslation(
 /**
  * MutableTranslation을 Translation으로 변환
  */
-export function toTranslation(
-  mutable: MutableTranslation
-): Translation {
+export function toTranslation(mutable: MutableTranslation): Translation {
   return {
     id: mutable.id,
     key: mutable.key,
@@ -53,4 +51,3 @@ export function toTranslation(
     updatedBy: mutable.updatedBy,
   };
 }
-
