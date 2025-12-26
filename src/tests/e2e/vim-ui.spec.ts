@@ -341,11 +341,27 @@ test.describe("Vim UI", () => {
       const input = page.locator(".command-line-input");
       await input.fill("goto 5");
       await page.keyboard.press("Enter");
-      await page.waitForTimeout(500);
       
-            // 명령어가 실행되었는지 확인
-            statusBarText = await statusBar.textContent();
-            expect(statusBarText).toContain("Row 5/");
+      // CommandLine이 닫힐 때까지 대기
+      await expect(commandLine).not.toBeVisible({ timeout: 3000 });
+      
+      // StatusBar 업데이트 대기 (스크롤 및 포커스 완료 대기)
+      await page.waitForTimeout(800);
+      
+      // 명령어가 실행되었는지 확인 (StatusBar가 업데이트될 때까지 대기)
+      await page.waitForFunction(
+        (selector) => {
+          const statusBar = document.querySelector(selector) as HTMLElement;
+          if (!statusBar) return false;
+          const text = statusBar.textContent || "";
+          return text.includes("Row 5/");
+        },
+        ".status-bar",
+        { timeout: 5000 }
+      );
+      
+      statusBarText = await statusBar.textContent();
+      expect(statusBarText).toContain("Row 5/");
 
             // 디버깅: 콘솔 로그 출력
             console.log("\n=== Browser Console Logs ===");

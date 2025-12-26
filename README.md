@@ -17,21 +17,21 @@ yarn add localeeditor
 ### Basic Example
 
 ```typescript
-import { LocaleEditor } from 'localeeditor';
-import 'localeeditor/dist/index.css'; // Import styles
+import { LocaleEditor } from "localeeditor";
+import "localeeditor/dist/index.css"; // Import styles
 
 const editor = new LocaleEditor({
-  container: document.getElementById('editor')!,
+  container: document.getElementById("editor")!,
   translations: [
     {
-      id: '1',
-      key: 'common.buttons.submit',
-      values: { en: 'Submit', ko: '제출' },
-      context: 'Submit button text',
+      id: "1",
+      key: "common.buttons.submit",
+      values: { en: "Submit", ko: "제출" },
+      context: "Submit button text",
     },
   ],
-  languages: ['en', 'ko'],
-  defaultLanguage: 'en',
+  languages: ["en", "ko"],
+  defaultLanguage: "en",
 });
 
 editor.render();
@@ -146,7 +146,30 @@ pnpm test
 
 MIT
 
+# 1. command-palette.spec.ts
 
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/command-palette.spec.ts
 
+# 2. filter.spec.ts
 
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/filter.spec.ts
 
+# 3. find-replace.spec.ts
+
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/find-replace.spec.ts
+
+# 4. quick-search.spec.ts
+
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/quick-search.spec.ts
+
+# 5. status-bar.spec.ts
+
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/status-bar.spec.ts
+
+# 6. vim-ui.spec.ts
+
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/vim-ui.spec.ts
+
+# 7. virtual-table-div.spec.ts
+
+pnpm exec playwright test --project=chromium --headed src/tests/e2e/virtual-table-div.spec.ts

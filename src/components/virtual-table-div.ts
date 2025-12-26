@@ -1746,7 +1746,31 @@ export class VirtualTableDiv {
   private gotoBottom(): void {
     const filteredTranslations = this.getFilteredTranslations();
     if (filteredTranslations.length > 0) {
-      this.gotoRow(filteredTranslations.length - 1);
+      const lastRowIndex = filteredTranslations.length - 1;
+
+      // 가상 스크롤러로 스크롤 (마지막 행이므로 end 정렬 사용)
+      if (this.rowVirtualizer) {
+        this.rowVirtualizer.scrollToIndex(lastRowIndex, {
+          align: "end",
+          behavior: "smooth",
+        });
+      }
+
+      // 첫 번째 편집 가능한 컬럼에 포커스
+      const columns = [
+        "key",
+        "context",
+        ...this.options.languages.map((lang) => `values.${lang}`),
+      ];
+      const firstEditableColumn = columns.find((col) =>
+        this.editableColumns.has(col)
+      );
+      if (firstEditableColumn) {
+        // 스크롤이 완료될 때까지 충분한 시간 대기
+        setTimeout(() => {
+          this.focusCell(lastRowIndex, firstEditableColumn);
+        }, 300);
+      }
     }
   }
 

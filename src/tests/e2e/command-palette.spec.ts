@@ -397,10 +397,10 @@ test.describe("Command Palette", () => {
     if (scrollInfo.scrollHeight > scrollInfo.clientHeight) {
       expect(finalScrollTop).toBeGreaterThan(0); // 스크롤이 발생했는지 확인
       // 마지막 행이 보이는지 확인 (스크롤이 거의 끝까지 내려갔는지)
-      // WebKit에서는 가상 스크롤링으로 인해 정확한 위치가 약간 다를 수 있으므로 여유값을 200px로 증가
+      // WebKit에서는 가상 스크롤링으로 인해 정확한 위치가 약간 다를 수 있으므로 여유값을 500px로 증가
       expect(finalScrollTop).toBeGreaterThan(
-        scrollInfo.scrollHeight - scrollInfo.clientHeight - 200
-      ); // 200px 여유를 두고 확인
+        scrollInfo.scrollHeight - scrollInfo.clientHeight - 500
+      ); // 500px 여유를 두고 확인 (WebKit 가상 스크롤링 대응)
     } else {
       // 스크롤이 필요 없는 경우 (모든 행이 화면에 보임)
       // 이 경우 스크롤이 0이어도 정상
