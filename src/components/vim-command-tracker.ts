@@ -98,20 +98,21 @@ export class VimCommandTracker {
    * 키 추가 (동기 버전, 기존 API 호환)
    */
   addKey(key: string): VimCommand | null {
-    return Effect.runSync(
-      Effect.match(this.addKeyEffect(key), {
-        onFailure: (error) => {
-          // VimCommandTrackerError는 그대로 throw
-          if (error instanceof VimCommandTrackerError) {
-            throw error;
-          }
-          // 예상치 못한 에러만 로그
-          logger.error("VimCommandTracker: Unexpected error in addKey", error);
-          return null;
-        },
-        onSuccess: (command) => command,
-      })
-    );
+    const result = Effect.runSync(Effect.either(this.addKeyEffect(key)));
+    
+    if (result._tag === "Left") {
+      // 에러 발생 시 null 반환 (기존 API 호환)
+      const error = result.left;
+      // VimCommandTrackerError인지 확인 (FiberFailure로 래핑된 경우도 처리)
+      if (error instanceof VimCommandTrackerError) {
+        return null;
+      }
+      // 예상치 못한 에러만 로그
+      logger.error("VimCommandTracker: Unexpected error in addKey", error);
+      return null;
+    }
+    
+    return result.right;
   }
 
   /**
