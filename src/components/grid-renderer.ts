@@ -27,7 +27,11 @@ export interface GridRendererOptions {
 }
 
 export class GridRenderer {
-  constructor(private options: GridRendererOptions) {}
+  private options: GridRendererOptions;
+
+  constructor(options: GridRendererOptions) {
+    this.options = options;
+  }
 
   /**
    * 헤더 셀 생성

@@ -51,7 +51,7 @@ export class FindReplace {
   private languages: readonly string[] = [];
   private callbacks: FindReplaceOptions;
 
-  constructor(private options: FindReplaceOptions) {
+  constructor(options: FindReplaceOptions) {
     this.translations = options.translations;
     this.languages = options.languages;
     this.callbacks = options;

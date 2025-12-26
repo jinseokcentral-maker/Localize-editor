@@ -37,13 +37,16 @@ export class KeyboardHandler {
   private modifierKeyTracker: ModifierKeyTracker;
   private focusManager: FocusManager;
 
+  private callbacks: KeyboardHandlerCallbacks;
+
   constructor(
     modifierKeyTracker: ModifierKeyTracker,
     focusManager: FocusManager,
-    private callbacks: KeyboardHandlerCallbacks = {}
+    callbacks: KeyboardHandlerCallbacks = {}
   ) {
     this.modifierKeyTracker = modifierKeyTracker;
     this.focusManager = focusManager;
+    this.callbacks = callbacks;
   }
 
   /**

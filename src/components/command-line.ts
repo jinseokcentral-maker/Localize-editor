@@ -7,10 +7,7 @@
 
 import { Effect } from "effect";
 import { logger } from "@/utils/logger";
-import {
-  CommandLineError,
-  type CommandLineErrorCode,
-} from "@/types/errors";
+import { CommandLineError } from "@/types/errors";
 
 /**
  * Command Line 옵션
@@ -69,20 +66,20 @@ export class CommandLine {
       if (this.input) {
         // input 초기화
         this.input.value = initialValue || "";
-        // DOM이 렌더링된 후 포커스 설정 (E2E 테스트에서도 제대로 작동하도록)
+        // DOM이 렌더링된 후 포커스 설정
         // Firefox에서도 제대로 작동하도록 단일 requestAnimationFrame 사용
         requestAnimationFrame(() => {
           if (this.input) {
             // Firefox에서 input 값이 리셋되지 않도록 확인
             const expectedValue = initialValue || "";
             if (this.input.value !== expectedValue) {
-              logger.warn(`CommandLine: Input value was reset during show! Expected: "${expectedValue}", Got: "${this.input.value}"`);
+              logger.warn(
+                `CommandLine: Input value was reset during show! Expected: "${expectedValue}", Got: "${this.input.value}"`
+              );
               this.input.value = expectedValue;
             }
             this.input.focus();
             this.input.select();
-            // 디버깅: 포커스 설정 확인
-            logger.debug(`CommandLine: Input focused, value: "${this.input.value}", activeElement: ${document.activeElement?.tagName || "none"}`);
           }
         });
       }
@@ -99,7 +96,15 @@ export class CommandLine {
    * Command Line 표시 (동기 버전)
    */
   show(initialValue?: string): void {
-    Effect.runSync(this.showEffect(initialValue));
+    Effect.runSync(
+      Effect.match(this.showEffect(initialValue), {
+        onFailure: (error) => {
+          logger.error("CommandLine: Failed to show", error);
+          // 에러가 발생해도 UI는 표시하지 않음
+        },
+        onSuccess: () => {},
+      })
+    );
   }
 
   /**
@@ -177,14 +182,9 @@ export class CommandLine {
     }
 
     // 디버깅: 이벤트 리스너 등록 확인
-    logger.debug("CommandLine: Attaching input listeners");
 
     // Enter: 명령어 실행
     this.input.addEventListener("keydown", (e) => {
-      // 디버깅: ArrowUp/ArrowDown 키 입력 로그
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        logger.debug(`CommandLine: Keydown event received - key: "${e.key}", target: ${(e.target as HTMLElement)?.tagName || "unknown"}`);
-      }
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
@@ -192,7 +192,10 @@ export class CommandLine {
         // 에러는 executeCommand 내부에서 처리됨
         // 타임아웃과 에러 처리를 위해 명시적으로 catch 추가
         this.executeCommand().catch((error) => {
-          logger.error("CommandLine: executeCommand error (outer catch)", error);
+          logger.error(
+            "CommandLine: executeCommand error (outer catch)",
+            error
+          );
           // 에러가 발생해도 CommandLine은 닫기 (무한 대기 방지)
           this.hide();
         });
@@ -203,31 +206,24 @@ export class CommandLine {
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         e.stopPropagation();
-        logger.debug("CommandLine: ArrowUp key pressed");
         this.navigateHistory(-1);
         // Firefox에서도 제대로 작동하도록 포커스 설정
-        // navigateHistory 내부에서 이미 requestAnimationFrame으로 포커스를 설정하지만,
-        // Firefox에서는 추가로 포커스를 설정해야 할 수 있음
         if (this.input) {
-          // Firefox에서 input 값이 제대로 설정되었는지 확인
           requestAnimationFrame(() => {
             if (this.input) {
               this.input.focus();
-              logger.debug(`CommandLine: After ArrowUp - input value: "${this.input.value}"`);
             }
           });
         }
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
-        logger.debug("CommandLine: ArrowDown key pressed");
         this.navigateHistory(1);
         // Firefox에서도 제대로 작동하도록 포커스 설정
         if (this.input) {
           requestAnimationFrame(() => {
             if (this.input) {
               this.input.focus();
-              logger.debug(`CommandLine: After ArrowDown - input value: "${this.input.value}"`);
             }
           });
         }
@@ -287,32 +283,41 @@ export class CommandLine {
 
           try {
             // Promise.race로 타임아웃과 실제 Promise를 경쟁시킴
-            yield* _(Effect.promise(() => {
-              return Promise.race([
-                result.finally(() => {
-                  // Promise가 완료되면 타임아웃 클리어
-                  if (timeoutId !== null) {
-                    window.clearTimeout(timeoutId);
-                    timeoutId = null;
-                  }
-                }),
-                timeoutPromise,
-              ]);
-            }));
+            yield* _(
+              Effect.promise(() => {
+                return Promise.race([
+                  result.finally(() => {
+                    // Promise가 완료되면 타임아웃 클리어
+                    if (timeoutId !== null) {
+                      window.clearTimeout(timeoutId);
+                      timeoutId = null;
+                    }
+                  }),
+                  timeoutPromise,
+                ]);
+              })
+            );
           } catch (promiseError) {
             // 타임아웃 클리어
             if (timeoutId !== null) {
               window.clearTimeout(timeoutId);
               timeoutId = null;
             }
-            
-            logger.error("CommandLine: Command execution timeout or error", promiseError);
+
+            logger.error(
+              "CommandLine: Command execution timeout or error",
+              promiseError
+            );
             // 에러가 발생해도 히스토리는 이미 추가되었으므로 CommandLine만 닫기
             self.hide();
             return yield* _(
               Effect.fail(
                 new CommandLineError({
-                  message: `Command execution failed: ${promiseError instanceof Error ? promiseError.message : String(promiseError)}`,
+                  message: `Command execution failed: ${
+                    promiseError instanceof Error
+                      ? promiseError.message
+                      : String(promiseError)
+                  }`,
                   code: "COMMAND_EXECUTION_FAILED",
                 })
               )
@@ -326,7 +331,9 @@ export class CommandLine {
         return yield* _(
           Effect.fail(
             new CommandLineError({
-              message: `Command execution failed: ${error instanceof Error ? error.message : String(error)}`,
+              message: `Command execution failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
               code: "COMMAND_EXECUTION_FAILED",
             })
           )
@@ -351,7 +358,7 @@ export class CommandLine {
    */
   private async executeCommand(): Promise<void> {
     let timeoutId: number | null = null;
-    
+
     try {
       // 타임아웃을 추가하여 무한 대기 방지 (5초로 단축)
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -377,7 +384,7 @@ export class CommandLine {
         window.clearTimeout(timeoutId);
         timeoutId = null;
       }
-      
+
       // 에러는 이미 Effect.catchAll에서 처리됨
       logger.error("CommandLine: executeCommand failed", error);
       // 에러가 발생해도 CommandLine은 닫기 (무한 대기 방지)
@@ -405,17 +412,7 @@ export class CommandLine {
     // localStorage에서 최신 히스토리를 가져옴
     this.loadHistory();
 
-    // 디버깅: 히스토리 상태 로그
-    logger.debug("CommandLine: navigateHistory", {
-      direction,
-      historyLength: this.history.length,
-      historyIndex: this.historyIndex,
-      history: JSON.stringify(this.history), // JSON 문자열로 변환하여 직렬화 문제 방지
-    });
-
     if (this.history.length === 0) {
-      // 히스토리가 비어있으면 아무것도 하지 않음
-      logger.debug("CommandLine: History is empty");
       return;
     }
 
@@ -460,14 +457,10 @@ export class CommandLine {
     if (this.historyIndex >= 0 && this.historyIndex < this.history.length) {
       const historyValue = this.history[this.historyIndex];
       if (historyValue && typeof historyValue === "string") {
-        // input 값 설정 (동기적으로 즉시 설정)
-        // E2E 테스트에서도 제대로 작동하도록 동기적으로 설정
+        // input 값 설정
         if (this.input) {
           this.input.value = historyValue;
-          
-          // 디버깅: 히스토리 값 설정 로그
-          logger.debug(`CommandLine: Set history value - index: ${this.historyIndex}, value: "${historyValue}", input: "${this.input.value}"`);
-          
+
           // input 값 설정 후 포커스 및 선택
           // Firefox에서도 제대로 작동하도록 단일 requestAnimationFrame 사용
           // Firefox는 이중 requestAnimationFrame에서 값이 리셋될 수 있음
@@ -476,7 +469,9 @@ export class CommandLine {
               // Firefox에서 값이 리셋되는 경우를 방지하기 위해 확인 및 재설정
               // Firefox는 다른 브라우저와 다르게 requestAnimationFrame을 처리할 수 있음
               if (this.input.value !== historyValue) {
-                logger.warn(`CommandLine: Input value was reset in Firefox! Expected: "${historyValue}", Got: "${this.input.value}"`);
+                logger.warn(
+                  `CommandLine: Input value was reset in Firefox! Expected: "${historyValue}", Got: "${this.input.value}"`
+                );
                 // 다시 설정
                 this.input.value = historyValue;
               }
@@ -485,23 +480,16 @@ export class CommandLine {
             }
           });
         } else {
-          logger.warn("CommandLine: Input element is null when setting history value");
+          logger.warn(
+            "CommandLine: Input element is null when setting history value"
+          );
         }
       } else {
-        logger.debug("CommandLine: History value is empty or invalid", {
-          historyIndex: this.historyIndex,
-          historyValue,
-          historyValueType: typeof historyValue,
-        });
         if (this.input) {
           this.input.value = "";
         }
       }
     } else {
-      logger.debug("CommandLine: History index out of range", {
-        historyIndex: this.historyIndex,
-        historyLength: this.history.length,
-      });
       if (this.input) {
         this.input.value = "";
       }
@@ -525,7 +513,7 @@ export class CommandLine {
     if (this.history.length > this.options.maxHistorySize) {
       this.history = this.history.slice(0, this.options.maxHistorySize);
     }
-    
+
     // localStorage에 저장
     this.saveHistory();
   }
@@ -553,10 +541,6 @@ export class CommandLine {
     try {
       const historyJson = JSON.stringify(this.history);
       localStorage.setItem("commandLineHistory", historyJson);
-      logger.debug("CommandLine: Saved history to localStorage", {
-        historyLength: this.history.length,
-        history: JSON.stringify(this.history), // JSON 문자열로 변환하여 직렬화 문제 방지
-      });
     } catch (e) {
       logger.error("Failed to save command line history", e);
     }
@@ -573,16 +557,14 @@ export class CommandLine {
         // 배열인지 확인
         if (Array.isArray(parsed)) {
           this.history = parsed;
-          logger.debug("CommandLine: Loaded history from localStorage", {
-            historyLength: this.history.length,
-            history: JSON.stringify(this.history), // JSON 문자열로 변환하여 직렬화 문제 방지
-          });
         } else {
-          logger.warn("CommandLine: Invalid history format in localStorage", parsed);
+          logger.warn(
+            "CommandLine: Invalid history format in localStorage",
+            parsed
+          );
           this.history = [];
         }
       } else {
-        logger.debug("CommandLine: No history in localStorage");
         this.history = [];
       }
     } catch (e) {
@@ -598,4 +580,3 @@ export class CommandLine {
     this.hide();
   }
 }
-

@@ -82,7 +82,6 @@ export class VirtualTableDiv {
   private gridRenderer: GridRenderer;
   private commandRegistry: CommandRegistry;
   private commandPalette: CommandPalette;
-  private currentMode: EditorMode = "excel";
 
   // 컬럼 리사이즈 관련 상태
   private columnMinWidths: Map<string, number> = new Map();
@@ -427,7 +426,7 @@ export class VirtualTableDiv {
 
     // VimCommandTracker 초기화
     this.vimCommandTracker = new VimCommandTracker({
-      onCommandUpdate: (command) => {
+      onCommandUpdate: (_command) => {
         // 명령어 업데이트 시 StatusBar 업데이트
         this.updateStatusBar();
       },
@@ -1299,13 +1298,11 @@ export class VirtualTableDiv {
    */
   private handleUndo(): void {
     if (!this.undoRedoManager.canUndo()) {
-      logger.debug("VirtualTableDiv: Cannot undo - no history");
       return;
     }
 
     const action = this.undoRedoManager.undo();
     if (!action) {
-      logger.debug("VirtualTableDiv: Undo returned null");
       return;
     }
 
@@ -1320,13 +1317,11 @@ export class VirtualTableDiv {
    */
   private handleRedo(): void {
     if (!this.undoRedoManager.canRedo()) {
-      logger.debug("VirtualTableDiv: Cannot redo - no future history");
       return;
     }
 
     const action = this.undoRedoManager.redo();
     if (!action) {
-      logger.debug("VirtualTableDiv: Redo returned null");
       return;
     }
 
@@ -2374,7 +2369,7 @@ export class VirtualTableDiv {
           `[data-index="${match.rowIndex}"]`
         ) as HTMLElement;
         if (row) {
-          // smooth 스크롤 대신 즉시 스크롤 (테스트 안정성)
+          // smooth 스크롤 대신 즉시 스크롤
           row.scrollIntoView({ behavior: "auto", block: "center" });
         }
       } else {

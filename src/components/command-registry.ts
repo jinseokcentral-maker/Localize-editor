@@ -28,8 +28,10 @@ export class CommandRegistry {
   private commands: Map<string, Command> = new Map();
   private usageCounts: Map<string, number> = new Map();
   private storageKey = "command-palette-usage";
+  private callbacks: CommandRegistryCallbacks;
 
-  constructor(private callbacks: CommandRegistryCallbacks = {}) {
+  constructor(callbacks: CommandRegistryCallbacks = {}) {
+    this.callbacks = callbacks;
     this.loadUsageCounts();
   }
 

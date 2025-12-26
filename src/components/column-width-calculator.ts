@@ -24,8 +24,10 @@ export class ColumnWidthCalculator {
   private defaultKeyWidth: number;
   private defaultContextWidth: number;
   private defaultLangWidth: number;
+  private options: ColumnWidthCalculatorOptions;
 
-  constructor(private options: ColumnWidthCalculatorOptions) {
+  constructor(options: ColumnWidthCalculatorOptions) {
+    this.options = options;
     this.defaultKeyWidth = options.defaultKeyWidth ?? 200;
     this.defaultContextWidth = options.defaultContextWidth ?? 200;
     this.defaultLangWidth = options.defaultLangWidth ?? 150;

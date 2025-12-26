@@ -17,11 +17,13 @@ export class QuickSearchUI {
   private statusText: HTMLElement | null = null;
   private isOpen: boolean = false;
   private callbacks: QuickSearchUICallbacks;
+  private container: HTMLElement;
 
   constructor(
-    private container: HTMLElement,
+    container: HTMLElement,
     callbacks: QuickSearchUICallbacks = {}
   ) {
+    this.container = container;
     this.callbacks = callbacks;
   }
 

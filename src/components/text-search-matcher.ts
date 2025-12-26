@@ -26,7 +26,11 @@ export interface TextSearchMatcherOptions {
  * 텍스트 검색 매처 클래스
  */
 export class TextSearchMatcher {
-  constructor(private options: TextSearchMatcherOptions) {}
+  private options: TextSearchMatcherOptions;
+
+  constructor(options: TextSearchMatcherOptions) {
+    this.options = options;
+  }
 
   /**
    * 텍스트로 매치 찾기 (fuzzy find)

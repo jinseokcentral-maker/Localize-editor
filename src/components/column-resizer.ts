@@ -29,7 +29,11 @@ export class ColumnResizer {
   private resizeHandler: ((e: MouseEvent) => void) | null = null;
   private resizeEndHandler: ((e: MouseEvent) => void) | null = null;
 
-  constructor(private options: ColumnResizerOptions) {}
+  private options: ColumnResizerOptions;
+
+  constructor(options: ColumnResizerOptions) {
+    this.options = options;
+  }
 
   /**
    * 리사이즈 핸들 추가

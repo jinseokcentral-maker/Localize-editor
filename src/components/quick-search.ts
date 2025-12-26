@@ -91,7 +91,11 @@ export function findMatchIndices(text: string, keyword: string): number[] {
  * 빠른 검색 클래스
  */
 export class QuickSearch {
-  constructor(private options: QuickSearchOptions) {}
+  private options: QuickSearchOptions;
+
+  constructor(options: QuickSearchOptions) {
+    this.options = options;
+  }
 
   /**
    * 검색 실행

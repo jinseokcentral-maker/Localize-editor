@@ -28,7 +28,11 @@ export interface FilterManagerOptions {
  * 필터 관리자 클래스
  */
 export class FilterManager {
-  constructor(private options: FilterManagerOptions) {}
+  private options: FilterManagerOptions;
+
+  constructor(options: FilterManagerOptions) {
+    this.options = options;
+  }
 
   /**
    * 필터 적용 (Effect 기반)
@@ -37,28 +41,29 @@ export class FilterManager {
     translations: readonly Translation[],
     filterOptions: FilterOptions
   ): Effect.Effect<Translation[], FilterError> {
+    const self = this;
     return Effect.gen(function* (_) {
       switch (filterOptions.type) {
         case "search":
           return yield* _(
-            this.applySearchFilterEffect(translations, filterOptions.keyword || "")
+            self.applySearchFilterEffect(translations, filterOptions.keyword || "")
           );
         case "empty":
           return yield* _(
-            this.applyEmptyFilterEffect(translations)
+            self.applyEmptyFilterEffect(translations)
           );
         case "changed":
           return yield* _(
-            this.applyChangedFilterEffect(translations)
+            self.applyChangedFilterEffect(translations)
           );
         case "duplicate":
           return yield* _(
-            this.applyDuplicateFilterEffect(translations)
+            self.applyDuplicateFilterEffect(translations)
           );
         default:
           return yield* _(Effect.succeed([...translations]));
       }
-    }.bind(this));
+    });
   }
 
   /**
@@ -85,6 +90,7 @@ export class FilterManager {
     translations: readonly Translation[],
     keyword: string
   ): Effect.Effect<Translation[], FilterError> {
+    const self = this;
     return Effect.gen(function* (_) {
       const lowerKeyword = keyword.toLowerCase().trim();
       if (!lowerKeyword) {
@@ -103,14 +109,14 @@ export class FilterManager {
         }
 
         // Language values 검색
-        return this.options.languages.some((lang) => {
+        return self.options.languages.some((lang: string) => {
           const value = translation.values[lang] || "";
           return value.toLowerCase().includes(lowerKeyword);
         });
       });
 
       return yield* _(Effect.succeed(filtered));
-    }.bind(this));
+    });
   }
 
   /**
@@ -132,15 +138,16 @@ export class FilterManager {
   private applyEmptyFilterEffect(
     translations: readonly Translation[]
   ): Effect.Effect<Translation[], FilterError> {
+    const self = this;
     return Effect.gen(function* (_) {
       const filtered = translations.filter((translation) => {
-        return this.options.languages.some((lang) => {
+        return self.options.languages.some((lang: string) => {
           const value = translation.values[lang] || "";
           return value.trim() === "";
         });
       });
       return yield* _(Effect.succeed(filtered));
-    }.bind(this));
+    });
   }
 
   /**
@@ -162,19 +169,20 @@ export class FilterManager {
   private applyChangedFilterEffect(
     translations: readonly Translation[]
   ): Effect.Effect<Translation[], FilterError> {
+    const self = this;
     return Effect.gen(function* (_) {
       const filtered: Translation[] = [];
 
       for (const translation of translations) {
         // Key 변경 체크
-        const hasKeyChange = this.options.changeTracker.hasChange(translation.id, "key");
+        const hasKeyChange = self.options.changeTracker.hasChange(translation.id, "key");
         if (hasKeyChange) {
           filtered.push(translation);
           continue;
         }
 
         // Context 변경 체크
-        const hasContextChange = this.options.changeTracker.hasChange(
+        const hasContextChange = self.options.changeTracker.hasChange(
           translation.id,
           "context"
         );
@@ -185,8 +193,8 @@ export class FilterManager {
 
         // Language values 변경 체크
         let hasValueChange = false;
-        for (const lang of this.options.languages) {
-          if (this.options.changeTracker.hasChange(translation.id, `values.${lang}`)) {
+        for (const lang of self.options.languages) {
+          if (self.options.changeTracker.hasChange(translation.id, `values.${lang}`)) {
             hasValueChange = true;
             break;
           }
@@ -197,7 +205,7 @@ export class FilterManager {
       }
 
       return yield* _(Effect.succeed(filtered));
-    }.bind(this));
+    });
   }
 
   /**
@@ -231,7 +239,7 @@ export class FilterManager {
       });
 
       return yield* _(Effect.succeed(filtered));
-    }.bind(this));
+    });
   }
 
   /**

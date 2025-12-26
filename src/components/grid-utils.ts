@@ -22,8 +22,8 @@ export function getLangFromColumnId(columnId: string): string {
 export function getTranslationKeyEffect(
   translations: readonly { id: string; key: string }[],
   rowId: string,
-  columnId: string,
-  currentValue: string
+  _columnId: string,
+  _currentValue: string
 ): Effect.Effect<string, Error> {
   return Effect.try({
     try: () => {

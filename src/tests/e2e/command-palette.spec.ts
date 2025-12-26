@@ -316,6 +316,9 @@ test.describe("Command Palette", () => {
     // Enter로 실행
     await page.keyboard.press("Enter");
     
+    // 스크롤 컨테이너가 준비될 때까지 명시적으로 대기
+    await scrollContainer.waitFor({ state: "attached", timeout: 5000 });
+    
     // 스크롤이 안정화될 때까지 기다리기 (WebKit에서 smooth 스크롤이 더 느릴 수 있음)
     // 스크롤이 실제로 변경되었는지 먼저 확인
     await page.waitForFunction(
@@ -333,11 +336,30 @@ test.describe("Command Palette", () => {
     // WebKit에서 가상 스크롤링으로 인해 scrollHeight가 정확하지 않을 수 있으므로
     // 스크롤이 충분히 내려갔는지 확인 (스크롤 위치가 충분히 큰 값인지 확인)
     // 또는 스크롤이 안정화될 때까지 기다림
+    // evaluate를 try-catch로 감싸서 안전하게 처리
     let previousScrollTop = 0;
     let stableCount = 0;
-    for (let i = 0; i < 30; i++) {
+    const maxIterations = 30;
+    
+    for (let i = 0; i < maxIterations; i++) {
       await page.waitForTimeout(200);
-      const currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+      
+      // evaluate를 사용하되, 요소가 없으면 null 반환
+      let currentScrollTop: number | null = null;
+      try {
+        currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop).catch(() => null);
+      } catch {
+        // 요소를 찾을 수 없으면 대기 후 재시도
+        await page.waitForTimeout(200);
+        continue;
+      }
+      
+      if (currentScrollTop === null || currentScrollTop === undefined) {
+        // 요소를 찾을 수 없으면 대기 후 재시도
+        await page.waitForTimeout(200);
+        continue;
+      }
+      
       if (Math.abs(currentScrollTop - previousScrollTop) < 1) {
         stableCount++;
         if (stableCount >= 3) {
@@ -350,16 +372,27 @@ test.describe("Command Palette", () => {
       previousScrollTop = currentScrollTop;
     }
 
-    // 스크롤이 발생했는지 확인
-    const finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    // 스크롤이 발생했는지 확인 (evaluate 사용, 요소가 준비된 상태이므로 안전)
+    let finalScrollTop: number | null = null;
+    let scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number } | null = null;
     
-    // 스크롤 높이와 컨테이너 높이를 비교하여 스크롤이 필요한지 확인
-    const scrollInfo = await scrollContainer.evaluate((el) => ({
-      scrollTop: el.scrollTop,
-      scrollHeight: el.scrollHeight,
-      clientHeight: el.clientHeight,
-    }));
+    try {
+      finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+      scrollInfo = await scrollContainer.evaluate((el) => ({
+        scrollTop: el.scrollTop,
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight,
+      }));
+    } catch (error) {
+      // 요소를 찾을 수 없으면 에러
+      throw new Error(`Failed to get scroll information: ${error}`);
+    }
 
+    // null 체크
+    if (finalScrollTop === null || finalScrollTop === undefined || scrollInfo === null || scrollInfo === undefined) {
+      throw new Error("Failed to get scroll information from container");
+    }
+    
     // 스크롤이 필요한 경우 (scrollHeight > clientHeight) 스크롤이 발생했어야 함
     if (scrollInfo.scrollHeight > scrollInfo.clientHeight) {
       expect(finalScrollTop).toBeGreaterThan(0); // 스크롤이 발생했는지 확인

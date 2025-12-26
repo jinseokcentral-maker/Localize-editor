@@ -91,27 +91,27 @@ export class VimCommandTracker {
       self.resetAutoClearTimer();
 
       return command;
-    }).pipe(
-      Effect.catchAll((error) => {
-        logger.error("VimCommandTracker: Failed to add key", error);
-        return Effect.fail(error);
-      })
-    );
+    });
   }
 
   /**
    * 키 추가 (동기 버전, 기존 API 호환)
    */
   addKey(key: string): VimCommand | null {
-    try {
-      return Effect.runSync(this.addKeyEffect(key));
-    } catch (error) {
-      if (error instanceof VimCommandTrackerError) {
-        throw error;
-      }
-      logger.error("VimCommandTracker: Unexpected error in addKey", error);
-      return null;
-    }
+    return Effect.runSync(
+      Effect.match(this.addKeyEffect(key), {
+        onFailure: (error) => {
+          // VimCommandTrackerError는 그대로 throw
+          if (error instanceof VimCommandTrackerError) {
+            throw error;
+          }
+          // 예상치 못한 에러만 로그
+          logger.error("VimCommandTracker: Unexpected error in addKey", error);
+          return null;
+        },
+        onSuccess: (command) => command,
+      })
+    );
   }
 
   /**
@@ -141,30 +141,30 @@ export class VimCommandTracker {
       self.clear();
 
       return command;
-    }).pipe(
-      Effect.catchAll((error) => {
-        logger.error("VimCommandTracker: Failed to complete command", error);
-        return Effect.fail(error);
-      })
-    );
+    });
   }
 
   /**
    * 명령어 완료 (동기 버전)
    */
   completeCommand(): VimCommand {
-    try {
-      return Effect.runSync(this.completeCommandEffect());
-    } catch (error) {
-      if (error instanceof VimCommandTrackerError) {
-        throw error;
-      }
-      logger.error("VimCommandTracker: Unexpected error in completeCommand", error);
-      throw new VimCommandTrackerError({
-        message: "Failed to complete command",
-        code: "INVALID_KEY_SEQUENCE",
-      });
-    }
+    return Effect.runSync(
+      Effect.match(this.completeCommandEffect(), {
+        onFailure: (error) => {
+          // VimCommandTrackerError는 그대로 throw
+          if (error instanceof VimCommandTrackerError) {
+            throw error;
+          }
+          // 예상치 못한 에러만 로그
+          logger.error("VimCommandTracker: Unexpected error in completeCommand", error);
+          throw new VimCommandTrackerError({
+            message: "Failed to complete command",
+            code: "INVALID_KEY_SEQUENCE",
+          });
+        },
+        onSuccess: (command) => command,
+      })
+    );
   }
 
   /**

@@ -216,7 +216,7 @@ test.describe("VirtualTableDiv - 컬럼 리사이즈", () => {
 
   test("컬럼 리사이즈가 작동해야 함", async ({ page }) => {
     const keyHeader = page.locator('.virtual-grid-header-cell[data-column-id="key"]').first();
-    const initialWidth = await keyHeader.evaluate((el) => el.offsetWidth);
+    const initialWidth = await keyHeader.evaluate((el) => (el as HTMLElement).offsetWidth);
 
     const resizeHandle = page
       .locator('.virtual-grid-header-cell[data-column-id="key"]')
@@ -232,7 +232,7 @@ test.describe("VirtualTableDiv - 컬럼 리사이즈", () => {
       await page.waitForTimeout(100);
 
       // 너비가 변경되었는지 확인
-      const newWidth = await keyHeader.evaluate((el) => el.offsetWidth);
+      const newWidth = await keyHeader.evaluate((el) => (el as HTMLElement).offsetWidth);
       expect(newWidth).not.toBe(initialWidth);
     }
   });
@@ -551,7 +551,8 @@ test.describe("VirtualTableDiv - 포커스 관리", () => {
     if (browserName === "webkit") {
       // WebKit에서는 포커스 상태 확인이 다를 수 있음
       const isFocused = await firstKeyCell.evaluate((el) => document.activeElement === el);
-      expect(isFocused || firstKeyCell.locator(":focus").count() > 0).toBeTruthy();
+      const focusCount = await firstKeyCell.locator(":focus").count();
+      expect(isFocused || focusCount > 0).toBeTruthy();
     } else {
       await expect(firstKeyCell).toHaveClass(/focused/);
     }

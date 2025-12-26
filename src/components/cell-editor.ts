@@ -1,18 +1,21 @@
 /**
  * 셀 편집 모듈 (Effect 기반)
- * 
+ *
  * 셀 편집 관련 로직을 Effect를 사용하여 type-safe하고 robust하게 구현
  */
 
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import type { Translation } from "@/types/translation";
-import type { TranslationChange } from "@/types/translation";
-import { toMutableTranslation, type MutableTranslation } from "@/types/mutable-translation";
+import { toMutableTranslation } from "@/types/mutable-translation";
 import { logger } from "@/utils/logger";
 import { CellEditorError } from "@/types/errors";
 import { ChangeTracker } from "./change-tracker";
-import { UndoRedoManager, type UndoRedoAction } from "./undo-redo-manager";
-import { getLangFromColumnId, getTranslationKey, checkKeyDuplicate } from "./grid-utils";
+import { UndoRedoManager } from "./undo-redo-manager";
+import {
+  getLangFromColumnId,
+  getTranslationKey,
+  checkKeyDuplicate,
+} from "./grid-utils";
 
 export interface EditingCell {
   rowIndex: number;
@@ -36,13 +39,22 @@ export class CellEditor {
   private editingCell: EditingCell | null = null;
   private isEscapeKeyPressed = false;
   private isFinishingEdit = false;
+  private translations: readonly Translation[];
+  private changeTracker: ChangeTracker;
+  private undoRedoManager: UndoRedoManager;
+  private callbacks: CellEditorCallbacks;
 
   constructor(
-    private translations: readonly Translation[],
-    private changeTracker: ChangeTracker,
-    private undoRedoManager: UndoRedoManager,
-    private callbacks: CellEditorCallbacks = {}
-  ) {}
+    translations: readonly Translation[],
+    changeTracker: ChangeTracker,
+    undoRedoManager: UndoRedoManager,
+    callbacks: CellEditorCallbacks = {}
+  ) {
+    this.translations = translations;
+    this.changeTracker = changeTracker;
+    this.undoRedoManager = undoRedoManager;
+    this.callbacks = callbacks;
+  }
 
   /**
    * 현재 편집 중인 셀 가져오기
@@ -60,7 +72,7 @@ export class CellEditor {
 
   /**
    * 셀 편집 시작 (Effect 기반)
-   * 
+   *
    * 주의: DOM 조작이 포함되어 있어 동기 함수로 구현하고,
    * 실제 데이터 변경 부분만 Effect로 처리합니다.
    */
@@ -112,7 +124,10 @@ export class CellEditor {
         isDuplicateKey = false;
         cell.classList.remove("cell-duplicate-key");
 
-        if (inputValue && checkKeyDuplicate(this.translations, rowId, inputValue)) {
+        if (
+          inputValue &&
+          checkKeyDuplicate(this.translations, rowId, inputValue)
+        ) {
           isDuplicateKey = true;
           cell.classList.add("cell-duplicate-key");
         }
@@ -156,7 +171,14 @@ export class CellEditor {
     };
 
     // 이벤트 리스너 등록
-    this.attachInputListeners(input, cell, finishEdit, columnId, currentValue, rowId);
+    this.attachInputListeners(
+      input,
+      cell,
+      finishEdit,
+      columnId,
+      currentValue,
+      rowId
+    );
 
     return Effect.void;
   }
@@ -204,7 +226,10 @@ export class CellEditor {
         isDuplicateKey = false;
         cell.classList.remove("cell-duplicate-key");
 
-        if (inputValue && checkKeyDuplicate(this.translations, rowId, inputValue)) {
+        if (
+          inputValue &&
+          checkKeyDuplicate(this.translations, rowId, inputValue)
+        ) {
           isDuplicateKey = true;
           cell.classList.add("cell-duplicate-key");
         }
@@ -248,7 +273,14 @@ export class CellEditor {
     };
 
     // 이벤트 리스너 등록
-    this.attachInputListeners(input, cell, finishEdit, columnId, currentValue, rowId);
+    this.attachInputListeners(
+      input,
+      cell,
+      finishEdit,
+      columnId,
+      currentValue,
+      rowId
+    );
   }
 
   /**
@@ -256,11 +288,11 @@ export class CellEditor {
    */
   private attachInputListeners(
     input: HTMLInputElement,
-    cell: HTMLElement,
+    _cell: HTMLElement,
     finishEdit: (save: boolean) => void,
-    columnId: string,
-    currentValue: string,
-    rowId: string
+    _columnId: string,
+    _currentValue: string,
+    _rowId: string
   ): void {
     input.addEventListener("blur", () => {
       if (this.isFinishingEdit) {
@@ -402,14 +434,21 @@ export class CellEditor {
     oldValue: string,
     newValue: string
   ): Promise<void> {
-    const effect = this.applyCellChangeEffect(rowId, columnId, oldValue, newValue);
+    const effect = this.applyCellChangeEffect(
+      rowId,
+      columnId,
+      oldValue,
+      newValue
+    );
     return Effect.runPromise(effect);
   }
 
   /**
    * 편집 중지 (Effect 기반)
    */
-  stopEditingEffect(bodyElement?: HTMLElement): Effect.Effect<void, CellEditorError> {
+  stopEditingEffect(
+    bodyElement?: HTMLElement
+  ): Effect.Effect<void, CellEditorError> {
     if (!this.editingCell) {
       return Effect.void;
     }
@@ -486,4 +525,3 @@ export class CellEditor {
     this.isEscapeKeyPressed = value;
   }
 }
-

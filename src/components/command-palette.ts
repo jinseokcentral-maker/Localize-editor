@@ -1,6 +1,6 @@
 /**
  * 명령 팔레트 컴포넌트
- * 
+ *
  * VS Code 스타일의 명령 팔레트 UI
  */
 
@@ -41,6 +41,7 @@ export class CommandPalette {
   // Fuzzy find 모드 관련 상태
   private isFuzzyFindMode: boolean = false;
   private fuzzyFindQuery: string = "";
+  private fuzzyFindQuoteChar: string | null = null;
   private fuzzyFindResults: Array<{
     rowIndex: number;
     translation: any;
@@ -52,6 +53,7 @@ export class CommandPalette {
     }>;
   }> = [];
   private fuzzyFindDebounceTimer: number | null = null;
+  private inputOverlay: HTMLElement | null = null;
 
   constructor(
     commandRegistry: CommandRegistry,
@@ -103,7 +105,7 @@ export class CommandPalette {
     this.fuzzyFindQuery = "";
     this.fuzzyFindQuoteChar = null;
     this.fuzzyFindResults = [];
-    
+
     // Debounce 타이머 정리
     if (this.fuzzyFindDebounceTimer !== null) {
       clearTimeout(this.fuzzyFindDebounceTimer);
@@ -285,7 +287,11 @@ export class CommandPalette {
 
     this.fuzzyFindDebounceTimer = window.setTimeout(() => {
       // 따옴표 이후 텍스트가 있으면 검색 실행 (따옴표 닫힘 여부 무관)
-      if (this.callbacks.onFindMatches && this.fuzzyFindQuery && this.fuzzyFindQuery.trim()) {
+      if (
+        this.callbacks.onFindMatches &&
+        this.fuzzyFindQuery &&
+        this.fuzzyFindQuery.trim()
+      ) {
         this.fuzzyFindResults = this.callbacks.onFindMatches(
           this.fuzzyFindQuery.trim()
         );
@@ -305,7 +311,10 @@ export class CommandPalette {
     if (!this.list) return;
 
     // selectedIndex가 범위를 벗어나면 조정
-    if (this.fuzzyFindResults.length > 0 && this.selectedIndex >= this.fuzzyFindResults.length) {
+    if (
+      this.fuzzyFindResults.length > 0 &&
+      this.selectedIndex >= this.fuzzyFindResults.length
+    ) {
       this.selectedIndex = 0;
     }
 
@@ -355,7 +364,7 @@ export class CommandPalette {
    */
   private updateCommands(): void {
     const commands = this.commandRegistry.getCommands(this.currentMode);
-    
+
     if (this.query.trim()) {
       // 검색 쿼리가 있으면 fuzzy search
       this.filteredCommands = searchCommands(this.query, commands);
@@ -441,7 +450,10 @@ export class CommandPalette {
       const item = document.createElement("div");
       item.className = "command-palette-item";
       item.setAttribute("role", "option");
-      item.setAttribute("aria-selected", (index === this.selectedIndex).toString());
+      item.setAttribute(
+        "aria-selected",
+        (index === this.selectedIndex).toString()
+      );
 
       if (index === this.selectedIndex) {
         item.classList.add("command-palette-item-selected");
@@ -476,7 +488,9 @@ export class CommandPalette {
         this.executeSelectedCommand();
       });
 
-      this.list.appendChild(item);
+      if (this.list) {
+        this.list.appendChild(item);
+      }
     });
   }
 
@@ -488,9 +502,9 @@ export class CommandPalette {
 
     const items = this.list.querySelectorAll(".command-palette-item");
     const selectedItem = items[this.selectedIndex] as HTMLElement;
-    
+
     if (!selectedItem) return;
-    
+
     // scrollIntoView가 있으면 사용
     if (typeof selectedItem.scrollIntoView === "function") {
       try {
@@ -502,7 +516,7 @@ export class CommandPalette {
         // jsdom 등에서 실패할 수 있으므로 무시
       }
     }
-    
+
     // jsdom 환경 대비: 수동 스크롤 (offsetTop이 있는 경우만)
     if (this.list && typeof selectedItem.offsetTop !== "undefined") {
       try {
@@ -547,7 +561,7 @@ export class CommandPalette {
     if (!result) return;
 
     const command = result.command;
-    
+
     // 사용 횟수 증가
     this.commandRegistry.incrementUsage(command.id);
 
@@ -556,7 +570,7 @@ export class CommandPalette {
       // 쿼리에서 명령 ID와 인자를 분리
       const args = this.parseCommandArgs(this.query, command.id);
       command.execute(args);
-      
+
       if (this.callbacks.onCommandExecute) {
         this.callbacks.onCommandExecute(command, args);
       }
@@ -575,14 +589,14 @@ export class CommandPalette {
     // "search keyword" -> ["keyword"]
     // "go to 100" -> ["100"] (공백 포함)
     const parts = query.trim().split(/\s+/);
-    
+
     // commandId가 "goto"인 경우 "go"로 시작하는지도 확인
     if (commandId === "goto") {
       if (parts[0] === "goto" || (parts[0] === "go" && parts[1] === "to")) {
         return parts[0] === "goto" ? parts.slice(1) : parts.slice(2);
       }
     }
-    
+
     // commandId가 "search"인 경우
     if (commandId === "search") {
       if (parts[0] === "search") {
@@ -591,7 +605,7 @@ export class CommandPalette {
         return parts.slice(1);
       }
     }
-    
+
     if (parts[0] === commandId || parts[0].startsWith(commandId)) {
       return parts.slice(1);
     }
@@ -635,4 +649,3 @@ export class CommandPalette {
     return [...this.fuzzyFindResults];
   }
 }
-

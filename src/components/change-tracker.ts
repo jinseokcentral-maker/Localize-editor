@@ -9,6 +9,7 @@ import {
 } from "@/utils/validation";
 import type { ChangeTrackerConfig } from "./change-tracker-config";
 import { defaultConfig } from "./change-tracker-config";
+import { logger } from "@/utils/logger";
 
 /**
  * 변경사항 추적 클래스
@@ -44,22 +45,43 @@ export class ChangeTracker {
       // languages 검증
       for (const lang of languages) {
         const langEffect = validateWithEffect(LangSchema, lang, `Invalid language code: ${lang}`);
-        Effect.runSync(langEffect);
+        Effect.runSync(
+          Effect.match(langEffect, {
+            onFailure: (error) => {
+              logger.error("ChangeTracker: Invalid language code", error);
+              throw error;
+            },
+            onSuccess: () => {},
+          })
+        );
       }
 
       // translations 검증
       for (const t of translations) {
         const idEffect = validateWithEffect(RowIdSchema, t.id, `Invalid row ID: ${t.id}`);
-        Effect.runSync(idEffect);
+        Effect.runSync(
+          Effect.match(idEffect, {
+            onFailure: (error) => {
+              logger.error("ChangeTracker: Invalid row ID", error);
+              throw error;
+            },
+            onSuccess: () => {},
+          })
+        );
         
         if (typeof t.key !== "string" || t.key.length === 0) {
+          const keyError = new ChangeTrackerError({
+            message: `Invalid key for translation ${t.id}`,
+            code: "INVALID_CHANGE_DATA",
+          });
           Effect.runSync(
-            Effect.fail(
-              new ChangeTrackerError({
-                message: `Invalid key for translation ${t.id}`,
-                code: "INVALID_CHANGE_DATA",
-              })
-            )
+            Effect.match(Effect.fail(keyError), {
+              onFailure: (error) => {
+                logger.error("ChangeTracker: Invalid translation key", error);
+                throw error;
+              },
+              onSuccess: () => {},
+            })
           );
         }
       }
@@ -228,13 +250,21 @@ export class ChangeTracker {
 
     // 검증 활성화 시 Effect 사용
     const effect = this.trackChangeEffect(rowId, field, lang, oldValue, newValue, key);
-    const result = Effect.runSync(Effect.either(effect));
-
-    // 성공 시에만 스타일 업데이트 콜백 호출
-    if (result._tag === "Right" && updateStyleCallback) {
-      const isDirty = oldValue !== newValue;
-      updateStyleCallback(rowId, field, isDirty);
-    }
+    Effect.runSync(
+      Effect.match(effect, {
+        onFailure: (error) => {
+          logger.warn("ChangeTracker: Failed to track change", error);
+          // 에러가 발생해도 스타일 업데이트는 수행하지 않음
+        },
+        onSuccess: () => {
+          // 성공 시에만 스타일 업데이트 콜백 호출
+          if (updateStyleCallback) {
+            const isDirty = oldValue !== newValue;
+            updateStyleCallback(rowId, field, isDirty);
+          }
+        },
+      })
+    );
   }
 
   /**
