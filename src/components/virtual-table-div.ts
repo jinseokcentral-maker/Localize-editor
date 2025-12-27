@@ -219,6 +219,39 @@ export class VirtualTableDiv {
         onEditStateChange: () => {
           this.updateStatusBar();
         },
+        onEditFinished: (rowIndex, columnId, direction) => {
+          // 편집 완료 후 네비게이션 및 편집 시작
+          const maxRowIndex = this.currentTranslations.length - 1;
+          let nextRowIndex = rowIndex;
+
+          if (direction === "down") {
+            // 아래 행으로 이동
+            if (rowIndex < maxRowIndex) {
+              nextRowIndex = rowIndex + 1;
+            } else {
+              // 마지막 행에서는 이동하지 않음 (포커스만 유지)
+              this.focusCell(rowIndex, columnId);
+              return;
+            }
+          } else {
+            // 위 행으로 이동
+            if (rowIndex > 0) {
+              nextRowIndex = rowIndex - 1;
+            } else {
+              // 첫 번째 행에서는 이동하지 않음 (포커스만 유지)
+              this.focusCell(rowIndex, columnId);
+              return;
+            }
+          }
+
+          // 포커스 이동 및 편집 시작
+          this.focusCell(nextRowIndex, columnId);
+
+          // 편집 시작 (셀이 렌더링될 때까지 대기)
+          requestAnimationFrame(() => {
+            this.startEditingFromKeyboard(nextRowIndex, columnId);
+          });
+        },
         updateCellStyle: (rowId, columnId) => {
           this.updateCellStyle(rowId, columnId);
         },

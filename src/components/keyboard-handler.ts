@@ -189,10 +189,10 @@ export class KeyboardHandler {
       // Enter: 편집 시작 또는 네비게이션
       // - 언어 컬럼이 아닌 경우: 편집 시작
       // - 언어 컬럼인 경우: 아래 행으로 이동 (기존 동작)
+      // - Shift+Enter: 언어 컬럼에서만 위 행으로 이동
       // 검색 모드일 때는 검색 UI가 Enter 키를 처리하도록 함
       if (
         e.key === "Enter" &&
-        !e.shiftKey &&
         this.focusManager.hasFocus() &&
         !isInputField &&
         (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())
@@ -201,24 +201,33 @@ export class KeyboardHandler {
         if (focusedCell) {
           const isLanguageColumn = focusedCell.columnId.startsWith("values.");
           
-          // 언어 컬럼이 아닌 경우 편집 시작
-          if (!isLanguageColumn) {
-            // 편집 가능한 컬럼인지 확인
-            if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+          // Shift+Enter는 언어 컬럼에서만 동작
+          if (e.shiftKey) {
+            if (!isLanguageColumn) {
+              // 언어 컬럼이 아닌 경우 Shift+Enter는 동작하지 않음
               return;
             }
-            // 읽기 전용 모드 확인
-            if (this.callbacks.isReadOnly && this.callbacks.isReadOnly()) {
-              return;
+            // 언어 컬럼인 경우는 네비게이션 로직으로 처리
+          } else {
+            // Enter (Shift 없음): 언어 컬럼이 아닌 경우 편집 시작
+            if (!isLanguageColumn) {
+              // 편집 가능한 컬럼인지 확인
+              if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+                return;
+              }
+              // 읽기 전용 모드 확인
+              if (this.callbacks.isReadOnly && this.callbacks.isReadOnly()) {
+                return;
+              }
+              if (this.callbacks.onStartEditing) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
+                return;
+              }
             }
-            if (this.callbacks.onStartEditing) {
-              e.preventDefault();
-              e.stopPropagation();
-              this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
-              return;
-            }
+            // 언어 컬럼인 경우는 기존 네비게이션 로직으로 처리
           }
-          // 언어 컬럼인 경우는 기존 네비게이션 로직으로 처리
         }
       }
 
@@ -305,13 +314,20 @@ export class KeyboardHandler {
 
       if (e.shiftKey) {
         // Shift+Enter: 위 행
+        // 첫 번째 행에서는 이동하지 않음
         if (rowIndex > 0) {
           nextRowIndex = rowIndex - 1;
+        } else {
+          // 첫 번째 행에서는 이동하지 않음
+          return;
         }
       } else {
         // Enter: 아래 행
         if (rowIndex < maxRowIndex) {
           nextRowIndex = rowIndex + 1;
+        } else {
+          // 마지막 행에서는 이동하지 않음
+          return;
         }
       }
     }

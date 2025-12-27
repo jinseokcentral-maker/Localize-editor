@@ -73,6 +73,26 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
   });
 
   test("셀 편집 후 Enter로 저장되어야 함", async ({ page }) => {
+    // 언어 컬럼이 아닌 Key 컬럼에서 테스트 (Enter 키가 자동 편집 시작하지 않음)
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
+
+    await firstKeyCell.dblclick();
+    await page.waitForTimeout(100);
+
+    const input = page.locator(".virtual-grid-cell-input");
+    await expect(input).toBeVisible({ timeout: 5000 });
+    await input.fill("New Key");
+    await input.press("Enter");
+    await page.waitForTimeout(100);
+
+    // 편집 모드가 종료되고 값이 저장되어야 함
+    await expect(input).not.toBeVisible();
+    await expect(firstKeyCell).toContainText("New Key");
+  });
+
+  test("언어 컬럼에서 Enter로 아래 행으로 이동하고 자동 편집 시작해야 함", async ({ page }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
@@ -84,10 +104,19 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill("New Value");
     await input.press("Enter");
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(200);
 
-    // 편집 모드가 종료되고 값이 저장되어야 함
-    await expect(input).not.toBeVisible();
+    // 아래 행의 같은 컬럼으로 이동하고 편집 모드가 시작되어야 함
+    const secondLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .nth(1);
+    
+    // 편집 input이 나타나야 함
+    const newInput = page.locator(".virtual-grid-cell-input");
+    await expect(newInput).toBeVisible({ timeout: 5000 });
+    await expect(newInput).toBeFocused();
+    
+    // 첫 번째 셀의 값이 저장되었는지 확인
     await expect(firstLangCell).toContainText("New Value");
   });
 
@@ -200,6 +229,129 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .nth(1);
     await expect(secondLangCell).toBeFocused();
+  });
+
+  test("Shift+Enter 키로 위 행으로 이동해야 함 (언어 컬럼)", async ({ page }) => {
+    // 두 번째 행의 언어 셀에 포커스
+    const secondLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .nth(1);
+    await secondLangCell.focus();
+    await page.waitForTimeout(50);
+
+    await page.keyboard.press("Shift+Enter");
+    await page.waitForTimeout(50);
+
+    // 위 행의 같은 컬럼으로 이동
+    const firstLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    await expect(firstLangCell).toBeFocused();
+  });
+
+  test("첫 번째 행에서 Shift+Enter를 누르면 이동하지 않아야 함", async ({ page }) => {
+    const firstLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    await firstLangCell.focus();
+    await page.waitForTimeout(50);
+
+    await page.keyboard.press("Shift+Enter");
+    await page.waitForTimeout(50);
+
+    // 첫 번째 행에 그대로 있어야 함
+    await expect(firstLangCell).toBeFocused();
+  });
+
+  test("언어 컬럼이 아닌 컬럼에서 Shift+Enter는 동작하지 않아야 함", async ({ page }) => {
+    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    await firstKeyCell.focus();
+    await page.waitForTimeout(50);
+
+    await page.keyboard.press("Shift+Enter");
+    await page.waitForTimeout(50);
+
+    // Key 셀에 그대로 있어야 함 (이동하지 않음)
+    await expect(firstKeyCell).toBeFocused();
+  });
+
+  test("편집 모드에서 Enter로 아래 행으로 이동하고 자동으로 편집 시작해야 함", async ({ page }) => {
+    const firstLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    
+    // 편집 시작
+    await firstLangCell.dblclick();
+    await page.waitForTimeout(100);
+    
+    const input = page.locator(".virtual-grid-cell-input");
+    await expect(input).toBeVisible({ timeout: 5000 });
+    await input.fill("Test Value");
+    
+    // Enter로 편집 완료 및 아래 행으로 이동
+    await input.press("Enter");
+    await page.waitForTimeout(200);
+
+    // 아래 행의 같은 컬럼으로 이동하고 편집 모드가 시작되어야 함
+    const secondLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .nth(1);
+    
+    // 편집 input이 나타나야 함
+    const newInput = page.locator(".virtual-grid-cell-input");
+    await expect(newInput).toBeVisible({ timeout: 5000 });
+    await expect(newInput).toBeFocused();
+  });
+
+  test("편집 모드에서 Shift+Enter로 위 행으로 이동하고 자동으로 편집 시작해야 함", async ({ page }) => {
+    // 두 번째 행의 언어 셀 편집 시작
+    const secondLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .nth(1);
+    
+    await secondLangCell.dblclick();
+    await page.waitForTimeout(100);
+    
+    const input = page.locator(".virtual-grid-cell-input");
+    await expect(input).toBeVisible({ timeout: 5000 });
+    await input.fill("Test Value");
+    
+    // Shift+Enter로 편집 완료 및 위 행으로 이동
+    await input.press("Shift+Enter");
+    await page.waitForTimeout(200);
+
+    // 위 행의 같은 컬럼으로 이동하고 편집 모드가 시작되어야 함
+    const firstLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    
+    // 편집 input이 나타나야 함
+    const newInput = page.locator(".virtual-grid-cell-input");
+    await expect(newInput).toBeVisible({ timeout: 5000 });
+    await expect(newInput).toBeFocused();
+  });
+
+  test("편집 모드에서 첫 번째 행에서 Shift+Enter를 누르면 편집만 종료되어야 함", async ({ page }) => {
+    const firstLangCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    
+    // 편집 시작
+    await firstLangCell.dblclick();
+    await page.waitForTimeout(100);
+    
+    const input = page.locator(".virtual-grid-cell-input");
+    await expect(input).toBeVisible({ timeout: 5000 });
+    await input.fill("Test Value");
+    
+    // Shift+Enter로 편집 완료 (위로 이동할 수 없으므로 편집만 종료)
+    await input.press("Shift+Enter");
+    await page.waitForTimeout(200);
+
+    // 편집 모드가 종료되어야 함
+    await expect(input).not.toBeVisible();
+    // 첫 번째 행에 그대로 있어야 함
+    await expect(firstLangCell).toBeFocused();
   });
 });
 

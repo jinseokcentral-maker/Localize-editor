@@ -111,8 +111,21 @@ test.describe("Vim UI", () => {
       await page.waitForTimeout(200);
       
       // 명령어가 실행되었는지 확인 (예: 10번째 행으로 이동)
-      await page.waitForTimeout(500);
+      // 상태바가 나타날 때까지 기다림 (WebKit에서 더 오래 걸릴 수 있음)
       const statusBar = page.locator(".status-bar");
+      
+      // 상태바가 존재하는지 먼저 확인 (페이지 로드 시 이미 존재해야 함)
+      await page.waitForSelector(".status-bar", { timeout: 5000 });
+      
+      // 상태바 텍스트가 업데이트될 때까지 대기 (최대 3초)
+      await page.waitForFunction(
+        () => {
+          const statusBar = document.querySelector(".status-bar");
+          return statusBar?.textContent?.includes("Row 10/") ?? false;
+        },
+        { timeout: 3000 }
+      );
+      
       const statusBarText = await statusBar.textContent();
       expect(statusBarText).toContain("Row 10/");
 
@@ -177,15 +190,24 @@ test.describe("Vim UI", () => {
       await page.waitForTimeout(200);
 
       // 세 번째 CommandLine 열기
-      await page.keyboard.press(":");
+      // WebKit에서 키보드 입력이 제대로 처리되도록 셀에 포커스 확인
+      // 셀이 존재하는지 먼저 확인
+      const currentCell = page.locator(".virtual-grid-cell").first();
+      await expect(currentCell).toBeVisible({ timeout: 2000 });
+      
+      // 클릭으로 포커스 설정 (focus()보다 안정적)
+      await currentCell.click();
       await page.waitForTimeout(200);
+      
+      await page.keyboard.press(":");
+      await page.waitForTimeout(300); // WebKit에서 더 긴 대기 시간
       input = page.locator(".command-line-input");
       
       // input이 표시되고 포커스가 설정될 때까지 대기
-      await expect(input).toBeVisible({ timeout: 1000 });
+      await expect(input).toBeVisible({ timeout: 2000 });
       // input에 명시적으로 포커스 설정
       await input.focus();
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(200); // WebKit에서 더 긴 대기 시간
       
       // input이 비어있는지 확인
       let inputValue = await input.inputValue();

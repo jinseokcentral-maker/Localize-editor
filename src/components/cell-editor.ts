@@ -33,6 +33,11 @@ export interface CellEditorCallbacks {
     value: string
   ) => void;
   onEditStateChange?: (isEditing: boolean) => void;
+  onEditFinished?: (
+    rowIndex: number,
+    columnId: string,
+    direction: "down" | "up"
+  ) => void;
 }
 
 export class CellEditor {
@@ -175,6 +180,7 @@ export class CellEditor {
       input,
       cell,
       finishEdit,
+      rowIndex,
       columnId,
       currentValue,
       rowId
@@ -277,6 +283,7 @@ export class CellEditor {
       input,
       cell,
       finishEdit,
+      rowIndex,
       columnId,
       currentValue,
       rowId
@@ -290,7 +297,8 @@ export class CellEditor {
     input: HTMLInputElement,
     _cell: HTMLElement,
     finishEdit: (save: boolean) => void,
-    _columnId: string,
+    rowIndex: number,
+    columnId: string,
     _currentValue: string,
     _rowId: string
   ): void {
@@ -324,8 +332,19 @@ export class CellEditor {
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
+        const direction = e.shiftKey ? "up" : "down";
         finishEdit(true);
         input.blur();
+        
+        // 편집 완료 후 네비게이션 및 편집 시작 (언어 컬럼인 경우만)
+        if (columnId.startsWith("values.") && this.callbacks.onEditFinished) {
+          // 편집 상태가 변경된 후 콜백 호출을 위해 약간의 지연
+          requestAnimationFrame(() => {
+            if (this.callbacks.onEditFinished) {
+              this.callbacks.onEditFinished(rowIndex, columnId, direction);
+            }
+          });
+        }
       } else if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();

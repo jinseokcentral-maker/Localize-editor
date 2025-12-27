@@ -342,21 +342,36 @@ test.describe("Command Palette", () => {
     const maxIterations = 30;
     
     for (let i = 0; i < maxIterations; i++) {
+      // 페이지가 닫혔는지 확인
+      if (page.isClosed()) {
+        break;
+      }
+      
       await page.waitForTimeout(200);
       
       // evaluate를 사용하되, 요소가 없으면 null 반환
       let currentScrollTop: number | null = null;
       try {
+        // 요소가 존재하는지 먼저 확인
+        const elementExists = await scrollContainer.count() > 0;
+        if (!elementExists) {
+          // 요소가 없으면 더 이상 시도하지 않음
+          break;
+        }
         currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop).catch(() => null);
-      } catch {
-        // 요소를 찾을 수 없으면 대기 후 재시도
-        await page.waitForTimeout(200);
+      } catch (error) {
+        // 페이지가 닫혔거나 요소를 찾을 수 없으면 중단
+        if (page.isClosed() || i >= maxIterations - 1) {
+          break;
+        }
         continue;
       }
       
       if (currentScrollTop === null || currentScrollTop === undefined) {
-        // 요소를 찾을 수 없으면 대기 후 재시도
-        await page.waitForTimeout(200);
+        // 요소를 찾을 수 없으면 최대 3번만 재시도
+        if (i >= 3) {
+          break;
+        }
         continue;
       }
       
