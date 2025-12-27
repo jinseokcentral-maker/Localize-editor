@@ -41,14 +41,12 @@ export default defineConfig(({ command, mode }) => {
       },
       rollupOptions: {
         // Externalize dependencies that should not be bundled
-        external: ["effect", "zod", "jspreadsheet-ce", "jsuites"],
+        external: ["effect", "zod"],
         output: {
           // Provide global variables for externalized deps
           globals: {
             effect: "Effect",
             zod: "Zod",
-            "jspreadsheet-ce": "jspreadsheet",
-            "jsuites": "jsuites",
           },
         },
       },

@@ -12,7 +12,7 @@ node_modules
 .pnpm-store
 
 # Build outputs
-dist
+# dist  # 주석 처리: GitHub에서 패키지로 사용하기 위해 dist 폴더를 포함
 dist-ssr
 *.local
 

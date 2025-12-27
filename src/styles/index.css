@@ -9,10 +9,11 @@
  * import 'localeeditor/dist/index.css';
  */
 
-/* AG Grid base styles */
-@import 'ag-grid-community/styles/ag-grid.css';
-@import 'ag-grid-community/styles/ag-theme-alpine.css';
-
-/* Custom styles for LocaleEditor */
-@import './ag-grid-custom.css';
+/* LocaleEditor component styles */
+@import './virtual-table-div.css';
+@import './quick-search.css';
+@import './status-bar.css';
+@import './command-line.css';
+@import './command-palette.css';
+@import './help-modal.css';
 
