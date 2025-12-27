@@ -5,18 +5,18 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CommandPalette } from "../command-palette";
 import { CommandRegistry } from "../command-registry";
-import { parseFuzzyFindInput } from "../command-palette-fuzzy-find";
+import { parseFuzzyFindInput, type FuzzyFindMatch } from "../command-palette-fuzzy-find";
 
 describe("CommandPalette - Fuzzy Find", () => {
   let registry: CommandRegistry;
   let palette: CommandPalette;
-  let mockFindMatches: ReturnType<typeof vi.fn>;
-  let mockGotoMatch: ReturnType<typeof vi.fn>;
+  let mockFindMatches: ReturnType<typeof vi.fn<(keyword: string) => FuzzyFindMatch[]>>;
+  let mockGotoMatch: ReturnType<typeof vi.fn<(match: FuzzyFindMatch) => void>>;
 
   beforeEach(() => {
     registry = new CommandRegistry();
-    mockFindMatches = vi.fn(() => []);
-    mockGotoMatch = vi.fn();
+    mockFindMatches = vi.fn<(keyword: string) => FuzzyFindMatch[]>(() => []);
+    mockGotoMatch = vi.fn<(match: FuzzyFindMatch) => void>();
 
     palette = new CommandPalette(registry, {
       onFindMatches: mockFindMatches,

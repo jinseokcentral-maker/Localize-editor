@@ -1,1 +1,5 @@
+# 테스트 실행
 pnpm run test
+
+# 패키지 빌드 (dist 폴더 생성)
+pnpm run package

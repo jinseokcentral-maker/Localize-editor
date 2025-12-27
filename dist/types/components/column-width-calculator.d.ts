@@ -4,6 +4,7 @@
  * 컬럼 너비 계산 및 관리 로직을 담당합니다.
  */
 export interface ColumnWidthCalculation {
+    rowNumber: number;
     key: number;
     context: number;
     languages: number[];
@@ -17,10 +18,10 @@ export interface ColumnWidthCalculatorOptions {
     defaultLangWidth?: number;
 }
 export declare class ColumnWidthCalculator {
-    private options;
     private defaultKeyWidth;
     private defaultContextWidth;
     private defaultLangWidth;
+    private options;
     constructor(options: ColumnWidthCalculatorOptions);
     /**
      * 컬럼 너비 가져오기

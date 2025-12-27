@@ -9,15 +9,15 @@ import { CommandRegistry, type Command } from "../command-registry";
 describe("CommandPalette", () => {
   let registry: CommandRegistry;
   let palette: CommandPalette;
-  let mockExecute: ReturnType<typeof vi.fn>;
-  let mockOnCommandExecute: ReturnType<typeof vi.fn>;
-  let mockOnClose: ReturnType<typeof vi.fn>;
+  let mockExecute: ReturnType<typeof vi.fn<(args?: string[]) => void | Promise<void>>>;
+  let mockOnCommandExecute: ReturnType<typeof vi.fn<(command: Command, args?: string[]) => void>>;
+  let mockOnClose: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
     registry = new CommandRegistry();
-    mockExecute = vi.fn();
-    mockOnCommandExecute = vi.fn();
-    mockOnClose = vi.fn();
+    mockExecute = vi.fn<(args?: string[]) => void | Promise<void>>();
+    mockOnCommandExecute = vi.fn<(command: Command, args?: string[]) => void>();
+    mockOnClose = vi.fn<() => void>();
 
     palette = new CommandPalette(registry, {
       onCommandExecute: mockOnCommandExecute,

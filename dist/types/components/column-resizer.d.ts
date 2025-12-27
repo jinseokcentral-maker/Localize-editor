@@ -19,13 +19,13 @@ export interface ColumnResizerOptions {
     callbacks: ColumnResizerCallbacks;
 }
 export declare class ColumnResizer {
-    private options;
     private isResizing;
     private resizeStartX;
     private resizeStartWidth;
     private resizeColumnId;
     private resizeHandler;
     private resizeEndHandler;
+    private options;
     constructor(options: ColumnResizerOptions);
     /**
      * 리사이즈 핸들 추가

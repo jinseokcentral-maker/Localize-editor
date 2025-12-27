@@ -5,6 +5,7 @@
  */
 import type { Translation } from "@/types/translation";
 export interface ColumnWidths {
+    rowNumber: number;
     key: number;
     context: number;
     languages: number[];

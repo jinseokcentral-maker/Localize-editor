@@ -3,15 +3,15 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { VimCommandTracker } from "../vim-command-tracker";
+import { VimCommandTracker, type VimCommand } from "../vim-command-tracker";
 import { VimCommandTrackerError } from "@/types/errors";
 
 describe("VimCommandTracker", () => {
   let tracker: VimCommandTracker;
-  let onCommandUpdate: ReturnType<typeof vi.fn>;
+  let onCommandUpdate: ReturnType<typeof vi.fn<(command: VimCommand | null) => void>>;
 
   beforeEach(() => {
-    onCommandUpdate = vi.fn();
+    onCommandUpdate = vi.fn<(command: VimCommand | null) => void>();
     tracker = new VimCommandTracker({
       onCommandUpdate,
       maxSequenceLength: 20,

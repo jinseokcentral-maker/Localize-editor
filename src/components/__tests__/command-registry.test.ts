@@ -7,11 +7,11 @@ import { CommandRegistry, type Command } from "../command-registry";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
-  let mockExecute: ReturnType<typeof vi.fn>;
+  let mockExecute: ReturnType<typeof vi.fn<(args?: string[]) => void | Promise<void>>>;
 
   beforeEach(() => {
     registry = new CommandRegistry();
-    mockExecute = vi.fn();
+    mockExecute = vi.fn<(args?: string[]) => void | Promise<void>>();
   });
 
   describe("registerCommand", () => {

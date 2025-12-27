@@ -5,15 +5,9 @@
  */
 import { Effect } from "effect";
 import type { Translation } from "@/types/translation";
+import { CellEditorError } from "@/types/errors";
 import { ChangeTracker } from "./change-tracker";
 import { UndoRedoManager } from "./undo-redo-manager";
-/**
- * 셀 편집 에러 타입
- */
-export declare class CellEditorError extends Error {
-    readonly code: "TRANSLATION_NOT_FOUND" | "INVALID_COLUMN_ID" | "DUPLICATE_KEY" | "EDIT_IN_PROGRESS";
-    constructor(message: string, code: "TRANSLATION_NOT_FOUND" | "INVALID_COLUMN_ID" | "DUPLICATE_KEY" | "EDIT_IN_PROGRESS");
-}
 export interface EditingCell {
     rowIndex: number;
     columnId: string;
@@ -23,15 +17,17 @@ export interface CellEditorCallbacks {
     onCellChange?: (id: string, columnId: string, value: string) => void;
     updateCellStyle?: (rowId: string, columnId: string) => void;
     updateCellContent?: (cell: HTMLElement, rowId: string, columnId: string, value: string) => void;
+    onEditStateChange?: (isEditing: boolean) => void;
+    onEditFinished?: (rowIndex: number, columnId: string, direction: "down" | "up") => void;
 }
 export declare class CellEditor {
+    private editingCell;
+    private isEscapeKeyPressed;
+    private isFinishingEdit;
     private translations;
     private changeTracker;
     private undoRedoManager;
     private callbacks;
-    private editingCell;
-    private isEscapeKeyPressed;
-    private isFinishingEdit;
     constructor(translations: readonly Translation[], changeTracker: ChangeTracker, undoRedoManager: UndoRedoManager, callbacks?: CellEditorCallbacks);
     /**
      * 현재 편집 중인 셀 가져오기
@@ -62,8 +58,9 @@ export declare class CellEditor {
     private applyCellChangeEffect;
     /**
      * 셀 변경사항 적용 (Promise 기반, 기존 API 호환)
+     * VirtualTableDiv에서 직접 호출할 수 있도록 public
      */
-    private applyCellChange;
+    applyCellChange(rowId: string, columnId: string, oldValue: string, newValue: string): Promise<void>;
     /**
      * 편집 중지 (Effect 기반)
      */

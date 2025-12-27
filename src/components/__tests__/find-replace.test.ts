@@ -9,10 +9,10 @@ import type { Translation } from "@/types/translation";
 describe("FindReplace", () => {
   let mockTranslations: Translation[];
   let mockLanguages: string[];
-  let mockOnFind: ReturnType<typeof vi.fn>;
-  let mockOnReplace: ReturnType<typeof vi.fn>;
-  let mockOnReplaceAll: ReturnType<typeof vi.fn>;
-  let mockOnClose: ReturnType<typeof vi.fn>;
+  let mockOnFind: ReturnType<typeof vi.fn<(matches: FindMatch[]) => void>>;
+  let mockOnReplace: ReturnType<typeof vi.fn<(match: FindMatch, replacement: string) => void>>;
+  let mockOnReplaceAll: ReturnType<typeof vi.fn<(matches: FindMatch[], replacement: string) => void>>;
+  let mockOnClose: ReturnType<typeof vi.fn<() => void>>;
   let findReplace: FindReplace;
 
   beforeEach(() => {
@@ -58,10 +58,10 @@ describe("FindReplace", () => {
     mockLanguages = ["en", "ko"];
 
     // Mock 콜백
-    mockOnFind = vi.fn();
-    mockOnReplace = vi.fn();
-    mockOnReplaceAll = vi.fn();
-    mockOnClose = vi.fn();
+    mockOnFind = vi.fn<(matches: FindMatch[]) => void>();
+    mockOnReplace = vi.fn<(match: FindMatch, replacement: string) => void>();
+    mockOnReplaceAll = vi.fn<(matches: FindMatch[], replacement: string) => void>();
+    mockOnClose = vi.fn<() => void>();
 
     findReplace = new FindReplace({
       translations: mockTranslations,

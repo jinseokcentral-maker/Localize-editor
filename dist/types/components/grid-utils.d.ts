@@ -12,7 +12,7 @@ export declare function getLangFromColumnId(columnId: string): string;
 export declare function getTranslationKeyEffect(translations: readonly {
     id: string;
     key: string;
-}[], rowId: string, columnId: string, currentValue: string): Effect.Effect<string, Error>;
+}[], rowId: string, _columnId: string, _currentValue: string): Effect.Effect<string, Error>;
 /**
  * Translation에서 키 가져오기 (동기 버전, 기존 API 호환)
  */

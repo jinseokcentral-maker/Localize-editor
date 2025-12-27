@@ -11,15 +11,25 @@ export interface KeyboardHandlerCallbacks {
     onUndo?: () => void;
     onRedo?: () => void;
     onNavigate?: (rowIndex: number, columnId: string) => void;
+    onStartEditing?: (rowIndex: number, columnId: string) => void;
     getAllColumns?: () => string[];
     getMaxRowIndex?: () => number;
     focusCell?: (rowIndex: number, columnId: string) => void;
+    onOpenCommandPalette?: (mode: string) => void;
+    onOpenQuickSearch?: () => void;
+    onQuickSearchNext?: () => void;
+    onQuickSearchPrev?: () => void;
+    isQuickSearchMode?: () => boolean;
+    isEditableColumn?: (columnId: string) => boolean;
+    isReadOnly?: () => boolean;
+    onOpenFind?: () => void;
+    onOpenReplace?: () => void;
 }
 export declare class KeyboardHandler {
-    private callbacks;
     private keyboardHandler;
     private modifierKeyTracker;
     private focusManager;
+    private callbacks;
     constructor(modifierKeyTracker: ModifierKeyTracker, focusManager: FocusManager, callbacks?: KeyboardHandlerCallbacks);
     /**
      * 키보드 이벤트 리스너 등록

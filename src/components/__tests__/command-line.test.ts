@@ -8,14 +8,14 @@ import { CommandLine } from "../command-line";
 describe("CommandLine", () => {
   let container: HTMLElement;
   let commandLine: CommandLine;
-  let onExecute: ReturnType<typeof vi.fn>;
-  let onCancel: ReturnType<typeof vi.fn>;
+  let onExecute: ReturnType<typeof vi.fn<(command: string) => void>>;
+  let onCancel: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    onExecute = vi.fn();
-    onCancel = vi.fn();
+    onExecute = vi.fn<(command: string) => void>();
+    onCancel = vi.fn<() => void>();
     commandLine = new CommandLine({
       container,
       onExecute,
