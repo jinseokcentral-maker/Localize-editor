@@ -675,8 +675,8 @@ var ChangeTracker = class {
 	}
 	clearChanges(r) {
 		r && this.changes.forEach((j, M) => {
-			let [N, P] = M.split("-", 2);
-			r(N, P, !1);
+			let N = j.id;
+			r(N, M.slice(N.length + 1), !1);
 		}), this.changes.clear();
 	}
 	getChangesMap() {

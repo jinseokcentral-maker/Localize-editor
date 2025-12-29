@@ -13,11 +13,22 @@
     "allowImportingTsExtensions": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
     },
-    "types": ["vite/client"]
+    "types": ["vite/client"],
   },
-  "include": ["src/index.ts", "src/components/**/*.ts", "src/types/**/*.ts", "src/utils/**/*.ts"],
-  "exclude": ["src/tests", "src/main.ts", "src/counter.ts"]
+  "include": [
+    "src/index.ts",
+    "src/components/**/*.ts",
+    "src/types/**/*.ts",
+    "src/utils/**/*.ts",
+  ],
+  "exclude": [
+    "src/tests",
+    "src/**/__tests__",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/main.ts",
+    "src/counter.ts",
+  ],
 }
-

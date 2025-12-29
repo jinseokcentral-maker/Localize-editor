@@ -12,7 +12,11 @@ describe("ChangeTracker", () => {
     it("translations와 languages를 초기화해야 함", () => {
       const translations = [
         { id: "row-1", key: "greeting", values: { en: "Hello", ko: "안녕" } },
-        { id: "row-2", key: "farewell", values: { en: "Goodbye", ko: "안녕히" } },
+        {
+          id: "row-2",
+          key: "farewell",
+          values: { en: "Goodbye", ko: "안녕히" },
+        },
       ];
 
       tracker.initializeOriginalData(translations, ["en", "ko"]);
@@ -25,7 +29,12 @@ describe("ChangeTracker", () => {
 
     it("context가 있는 경우 저장해야 함", () => {
       const translations = [
-        { id: "row-1", key: "greeting", context: "Home page", values: { en: "Hello" } },
+        {
+          id: "row-1",
+          key: "greeting",
+          context: "Home page",
+          values: { en: "Hello" },
+        },
       ];
 
       tracker.initializeOriginalData(translations, ["en"]);
@@ -50,9 +59,7 @@ describe("ChangeTracker", () => {
     });
 
     it("빈 languages 배열도 처리해야 함", () => {
-      const translations = [
-        { id: "row-1", key: "greeting", values: {} },
-      ];
+      const translations = [{ id: "row-1", key: "greeting", values: {} }];
 
       tracker.initializeOriginalData(translations, []);
 
@@ -79,7 +86,14 @@ describe("ChangeTracker", () => {
         { id: "row-1", key: "greeting", values: { en: "Hello" } },
       ];
       tracker.initializeOriginalData(translations, ["en"]);
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
 
       expect(tracker.hasChange("row-1", "values.en")).toBe(true);
 
@@ -105,7 +119,12 @@ describe("ChangeTracker", () => {
   describe("getOriginalValue", () => {
     beforeEach(() => {
       const translations = [
-        { id: "row-1", key: "greeting", context: "Home", values: { en: "Hello", ko: "안녕" } },
+        {
+          id: "row-1",
+          key: "greeting",
+          context: "Home",
+          values: { en: "Hello", ko: "안녕" },
+        },
       ];
       tracker.initializeOriginalData(translations, ["en", "ko"]);
     });
@@ -129,13 +148,24 @@ describe("ChangeTracker", () => {
     beforeEach(() => {
       const translations = [
         { id: "row-1", key: "greeting", values: { en: "Hello", ko: "안녕" } },
-        { id: "row-2", key: "farewell", values: { en: "Goodbye", ko: "안녕히" } },
+        {
+          id: "row-2",
+          key: "farewell",
+          values: { en: "Goodbye", ko: "안녕히" },
+        },
       ];
       tracker.initializeOriginalData(translations, ["en", "ko"]);
     });
 
     it("변경사항을 추적해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
 
       const changes = tracker.getChanges();
       expect(changes).toHaveLength(1);
@@ -149,17 +179,52 @@ describe("ChangeTracker", () => {
     });
 
     it("같은 값으로 변경 시 변경사항에서 제거해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
       expect(tracker.hasChange("row-1", "values.en")).toBe(true);
 
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hello", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hello",
+        "greeting",
+      );
       expect(tracker.hasChange("row-1", "values.en")).toBe(false);
     });
 
     it("여러 필드의 변경사항을 독립적으로 추적해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
-      tracker.trackChange("row-1", "values.ko", "ko", "안녕", "안녕하세요", "greeting");
-      tracker.trackChange("row-2", "values.en", "en", "Goodbye", "Bye", "farewell");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-1",
+        "values.ko",
+        "ko",
+        "안녕",
+        "안녕하세요",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-2",
+        "values.en",
+        "en",
+        "Goodbye",
+        "Bye",
+        "farewell",
+      );
 
       expect(tracker.getChanges()).toHaveLength(3);
       expect(tracker.hasChange("row-1", "values.en")).toBe(true);
@@ -168,8 +233,22 @@ describe("ChangeTracker", () => {
     });
 
     it("동일 필드 재변경 시 마지막 값으로 업데이트해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hey", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hey",
+        "greeting",
+      );
 
       const changes = tracker.getChanges();
       expect(changes).toHaveLength(1);
@@ -179,7 +258,15 @@ describe("ChangeTracker", () => {
     it("updateStyleCallback이 호출되어야 함", () => {
       const callback = vi.fn();
 
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting", callback);
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+        callback,
+      );
 
       expect(callback).toHaveBeenCalledWith("row-1", "values.en", true);
     });
@@ -187,7 +274,15 @@ describe("ChangeTracker", () => {
     it("값이 같으면 updateStyleCallback에 false 전달", () => {
       const callback = vi.fn();
 
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hello", "greeting", callback);
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hello",
+        "greeting",
+        callback,
+      );
 
       expect(callback).toHaveBeenCalledWith("row-1", "values.en", false);
     });
@@ -221,7 +316,14 @@ describe("ChangeTracker", () => {
     });
 
     it("변경사항이 있으면 true 반환", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
       expect(tracker.hasChange("row-1", "values.en")).toBe(true);
     });
 
@@ -244,12 +346,27 @@ describe("ChangeTracker", () => {
         { id: "row-1", key: "greeting", values: { en: "Hello", ko: "안녕" } },
         { id: "row-2", key: "farewell", values: { en: "Goodbye" } },
       ];
+      // @ts-ignore
       tracker.initializeOriginalData(translations, ["en", "ko"]);
     });
 
     it("모든 변경사항을 배열로 반환해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
-      tracker.trackChange("row-2", "values.en", "en", "Goodbye", "Bye", "farewell");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-2",
+        "values.en",
+        "en",
+        "Goodbye",
+        "Bye",
+        "farewell",
+      );
 
       const changes = tracker.getChanges();
       expect(changes).toHaveLength(2);
@@ -270,8 +387,22 @@ describe("ChangeTracker", () => {
     });
 
     it("모든 변경사항을 삭제해야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
-      tracker.trackChange("row-2", "values.en", "en", "Goodbye", "Bye", "farewell");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-2",
+        "values.en",
+        "en",
+        "Goodbye",
+        "Bye",
+        "farewell",
+      );
 
       tracker.clearChanges();
 
@@ -281,8 +412,22 @@ describe("ChangeTracker", () => {
     });
 
     it("updateStyleCallback이 모든 변경된 셀에 대해 호출되어야 함", () => {
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
-      tracker.trackChange("row-2", "values.en", "en", "Goodbye", "Bye", "farewell");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
+      tracker.trackChange(
+        "row-2",
+        "values.en",
+        "en",
+        "Goodbye",
+        "Bye",
+        "farewell",
+      );
 
       const callback = vi.fn();
       tracker.clearChanges(callback);
@@ -303,7 +448,14 @@ describe("ChangeTracker", () => {
         { id: "row-1", key: "greeting", values: { en: "Hello" } },
       ];
       tracker.initializeOriginalData(translations, ["en"]);
-      tracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      tracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
 
       const changesMap = tracker.getChangesMap();
 
@@ -330,10 +482,19 @@ describe("ChangeTracker", () => {
     });
 
     it("검증 없이 빠르게 동작해야 함", () => {
-      noValidationTracker.trackChange("row-1", "values.en", "en", "Hello", "Hi", "greeting");
+      noValidationTracker.trackChange(
+        "row-1",
+        "values.en",
+        "en",
+        "Hello",
+        "Hi",
+        "greeting",
+      );
 
       expect(noValidationTracker.hasChange("row-1", "values.en")).toBe(true);
-      expect(noValidationTracker.getOriginalValue("row-1", "key")).toBe("greeting");
+      expect(noValidationTracker.getOriginalValue("row-1", "key")).toBe(
+        "greeting",
+      );
     });
 
     it("잘못된 데이터도 저장해야 함 (검증 비활성화)", () => {
@@ -346,16 +507,26 @@ describe("ChangeTracker", () => {
   describe("edge cases", () => {
     it("특수문자가 포함된 key 처리", () => {
       const translations = [
-        { id: "row-1", key: "greeting.welcome.message", values: { en: "Hello" } },
+        {
+          id: "row-1",
+          key: "greeting.welcome.message",
+          values: { en: "Hello" },
+        },
       ];
       tracker.initializeOriginalData(translations, ["en"]);
 
-      expect(tracker.getOriginalValue("row-1", "key")).toBe("greeting.welcome.message");
+      expect(tracker.getOriginalValue("row-1", "key")).toBe(
+        "greeting.welcome.message",
+      );
     });
 
     it("유니코드 문자 처리", () => {
       const translations = [
-        { id: "row-1", key: "emoji", values: { en: "Hello 👋", ko: "안녕 🙏" } },
+        {
+          id: "row-1",
+          key: "emoji",
+          values: { en: "Hello 👋", ko: "안녕 🙏" },
+        },
       ];
       tracker.initializeOriginalData(translations, ["en", "ko"]);
 
@@ -380,7 +551,9 @@ describe("ChangeTracker", () => {
       ];
       tracker.initializeOriginalData(translations, ["en"]);
 
-      expect(tracker.getOriginalValue("row-1", "values.en")).toBe(multilineValue);
+      expect(tracker.getOriginalValue("row-1", "values.en")).toBe(
+        multilineValue,
+      );
     });
 
     it("많은 수의 translations 처리", () => {
@@ -394,7 +567,9 @@ describe("ChangeTracker", () => {
 
       expect(tracker.getOriginalValue("row-0", "key")).toBe("key.0");
       expect(tracker.getOriginalValue("row-999", "key")).toBe("key.999");
-      expect(tracker.getOriginalValue("row-500", "values.en")).toBe("Value 500");
+      expect(tracker.getOriginalValue("row-500", "values.en")).toBe(
+        "Value 500",
+      );
     });
   });
 });
