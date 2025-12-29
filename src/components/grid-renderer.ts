@@ -31,6 +31,7 @@ export interface GridRendererCallbacks {
     columnId: string,
     cell?: HTMLElement,
   ) => void;
+  isNewRow?: (rowId: string) => boolean;
 }
 
 export interface GridRendererOptions {
@@ -93,6 +94,11 @@ export class GridRenderer {
     row.setAttribute("role", "row");
     row.setAttribute("data-row-index", rowIndex.toString());
     row.setAttribute("data-row-id", translation.id);
+
+    // 새 행인 경우 스타일 추가
+    if (this.options.callbacks.isNewRow?.(translation.id)) {
+      row.classList.add("new-row");
+    }
 
     // 행 번호 셀 (Excel처럼 맨 왼쪽)
     const rowNumberCell = this.createCell(

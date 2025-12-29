@@ -25,6 +25,7 @@ export interface KeyboardHandlerCallbacks {
     onOpenFind?: () => void;
     onOpenReplace?: () => void;
     onExtendSelection?: (rowIndex: number, columnId: string) => void;
+    onAddRow?: () => void;
 }
 export declare class KeyboardHandler {
     private keyboardHandler;

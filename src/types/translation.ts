@@ -41,7 +41,11 @@ export interface LocaleEditorOptions {
   /** 검색 시 호출되는 콜백 (선택적, 서버 검색용) */
   readonly onSearch?: (query: string) => Promise<Translation[]>;
   /** 편집 불가능한 필드에 표시할 tooltip 메시지 생성 함수 (선택적) */
-  readonly getEditDisabledTooltip?: (field: string, rowId: string, rowData: any) => string;
+  readonly getEditDisabledTooltip?: (
+    field: string,
+    rowId: string,
+    rowData: any,
+  ) => string;
 }
 
 /**
@@ -58,6 +62,32 @@ export interface TranslationChange {
   readonly oldValue: string;
   /** 새로운 값 */
   readonly newValue: string;
+}
+
+/**
+ * 새로 추가된 행 정보
+ */
+export interface NewTranslation {
+  /** 임시 ID (클라이언트에서 생성) */
+  readonly tempId: string;
+  /** 번역 키 */
+  readonly key: string;
+  /** 언어별 번역 값 */
+  readonly values: Record<string, string>;
+  /** 번역가를 위한 컨텍스트 설명 (선택적) */
+  readonly context?: string;
+  /** 새로 추가된 행임을 표시 */
+  readonly isNew: true;
+}
+
+/**
+ * 삭제된 행 정보
+ */
+export interface DeletedTranslation {
+  /** 삭제된 번역 ID */
+  readonly id: string;
+  /** 삭제됨을 표시 */
+  readonly deleted: true;
 }
 
 /**
@@ -108,7 +138,7 @@ export function isTranslation(value: unknown): value is Translation {
  * 주어진 객체가 올바른 LocaleEditorOptions 구조인지 검증합니다.
  */
 export function isValidLocaleEditorOptions(
-  value: unknown
+  value: unknown,
 ): value is LocaleEditorOptions {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -155,9 +185,3 @@ export function isValidLocaleEditorOptions(
 
   return true;
 }
-
-
-
-
-
-

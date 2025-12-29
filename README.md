@@ -1,6 +1,6 @@
 # LocaleEditor
 
-Excel-like i18n translation editor built with AG Grid Community (Vanilla TypeScript).
+Excel-like i18n translation editor with virtual scrolling (Vanilla TypeScript).
 
 ## Installation
 
@@ -48,8 +48,8 @@ const editor = new LocaleEditor({
   translations: [...],
   languages: ['en', 'ko'],
   defaultLanguage: 'en',
-  onCellChange: (id, lang, value) => {
-    console.log(`Changed: ${id} - ${lang} = ${value}`);
+  onCellChange: (id, columnId, value) => {
+    console.log(`Changed: ${id} - ${columnId} = ${value}`);
   },
 });
 
@@ -62,6 +62,52 @@ console.log('Changes:', changes);
 // Clear changes
 editor.clearChanges();
 ```
+
+## Features
+
+### Core Features
+- Virtual scrolling (handles 10,000+ rows smoothly)
+- Cell editing with Undo/Redo support
+- Multi-language column support
+- Change tracking with dirty cell highlighting
+- Empty translation highlighting
+- Column resizing
+
+### Keyboard Navigation
+- Arrow keys for cell navigation
+- Tab/Shift+Tab for horizontal navigation
+- Enter for editing (language columns: move down after edit)
+- Escape to cancel editing
+- F2 to start editing
+
+### Multi-cell Selection
+- Click to select single cell
+- Ctrl/Cmd+Click to toggle selection
+- Shift+Click for range selection
+- Shift+Arrow keys to extend selection
+
+### Vim Mode
+- `:` to open command line
+- `:goto top` / `:goto bottom` - Jump to first/last row
+- `:goto <n>` - Jump to row number
+- `:goto "keyword"` - Search and jump to matching row
+- `:goto next` / `:goto prev` - Navigate between matches
+- Command history with Arrow Up/Down
+
+### Command Palette
+- `Cmd/Ctrl+K` to open
+- Fuzzy search for commands
+- Quick access to all editor functions
+
+### Quick Search
+- `/` to start quick search
+- `n` / `N` for next/previous match
+- Real-time highlighting
+
+### Find & Replace
+- `Cmd/Ctrl+F` for Find
+- `Cmd/Ctrl+H` for Find & Replace
+- Replace single or replace all
 
 ## API
 
@@ -78,10 +124,12 @@ new LocaleEditor(options: LocaleEditorOptions)
 #### Methods
 
 - `render()`: Render the grid
-- `getGridApi()`: Get the AG Grid API instance
-- `getColumnDefs()`: Get column definitions
 - `getChanges()`: Get all tracked changes
 - `clearChanges()`: Clear all tracked changes
+- `undo()`: Undo last change
+- `redo()`: Redo last undone change
+- `focusCell(rowIndex, columnId)`: Focus a specific cell
+- `getSelectedValues()`: Get values of selected cells
 - `destroy()`: Clean up the editor
 
 ### Types
@@ -103,9 +151,7 @@ interface LocaleEditorOptions {
   defaultLanguage: string;
   container: HTMLElement;
   readOnly?: boolean;
-  onCellChange?: (id: string, lang: string, value: string) => void;
-  onSave?: (changes: TranslationChange[]) => Promise<void>;
-  onSearch?: (query: string) => Promise<Translation[]>;
+  onCellChange?: (id: string, columnId: string, value: string) => void;
 }
 
 interface TranslationChange {
@@ -116,15 +162,6 @@ interface TranslationChange {
   newValue: string;
 }
 ```
-
-## Features
-
-- ✅ Excel-like spreadsheet interface
-- ✅ Virtual scrolling (handles large datasets)
-- ✅ Cell editing with change tracking
-- ✅ Multi-language support
-- ✅ Context column for translator notes
-- ✅ Performance optimized (validations disabled in production)
 
 ## Development
 
@@ -140,36 +177,11 @@ pnpm build
 
 # Run tests
 pnpm test
+
+# Run E2E tests
+pnpm test:e2e
 ```
 
 ## License
 
 MIT
-
-# 1. command-palette.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/command-palette.spec.ts
-
-# 2. filter.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/filter.spec.ts
-
-# 3. find-replace.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/find-replace.spec.ts
-
-# 4. quick-search.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/quick-search.spec.ts
-
-# 5. status-bar.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/status-bar.spec.ts
-
-# 6. vim-ui.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/vim-ui.spec.ts
-
-# 7. virtual-table-div.spec.ts
-
-pnpm exec playwright test --project=chromium --headed src/tests/e2e/virtual-table-div.spec.ts

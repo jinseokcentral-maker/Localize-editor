@@ -28,6 +28,7 @@ export interface KeyboardHandlerCallbacks {
   onOpenFind?: () => void;
   onOpenReplace?: () => void;
   onExtendSelection?: (rowIndex: number, columnId: string) => void;
+  onAddRow?: () => void;
 }
 
 export class KeyboardHandler {
@@ -121,6 +122,16 @@ export class KeyboardHandler {
         e.stopPropagation();
         if (this.callbacks.onOpenReplace) {
           this.callbacks.onOpenReplace();
+        }
+        return;
+      }
+
+      // Ctrl+N: 새 행 추가 (input 필드가 아닐 때만)
+      if (ctrlOrCmd && (e.key === "n" || e.code === "KeyN") && !isInputField) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.callbacks.onAddRow) {
+          this.callbacks.onAddRow();
         }
         return;
       }

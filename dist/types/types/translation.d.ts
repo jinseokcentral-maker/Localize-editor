@@ -58,6 +58,30 @@ export interface TranslationChange {
     readonly newValue: string;
 }
 /**
+ * 새로 추가된 행 정보
+ */
+export interface NewTranslation {
+    /** 임시 ID (클라이언트에서 생성) */
+    readonly tempId: string;
+    /** 번역 키 */
+    readonly key: string;
+    /** 언어별 번역 값 */
+    readonly values: Record<string, string>;
+    /** 번역가를 위한 컨텍스트 설명 (선택적) */
+    readonly context?: string;
+    /** 새로 추가된 행임을 표시 */
+    readonly isNew: true;
+}
+/**
+ * 삭제된 행 정보
+ */
+export interface DeletedTranslation {
+    /** 삭제된 번역 ID */
+    readonly id: string;
+    /** 삭제됨을 표시 */
+    readonly deleted: true;
+}
+/**
  * Translation 타입 가드
  *
  * 주어진 객체가 올바른 Translation 구조인지 검증합니다.

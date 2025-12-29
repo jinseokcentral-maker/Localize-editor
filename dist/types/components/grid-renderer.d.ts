@@ -15,6 +15,7 @@ export interface GridRendererCallbacks {
     onCellDblClick?: (rowIndex: number, columnId: string, cell: HTMLElement) => void;
     onCellFocus?: (rowIndex: number, columnId: string) => void;
     updateCellStyle?: (rowId: string, columnId: string, cell?: HTMLElement) => void;
+    isNewRow?: (rowId: string) => boolean;
 }
 export interface GridRendererOptions {
     languages: readonly string[];

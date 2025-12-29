@@ -22,6 +22,7 @@ describe("KeyboardHandler", () => {
     onOpenCommandPalette?: (mode: string) => void;
     isEditableColumn?: (columnId: string) => boolean;
     isReadOnly?: () => boolean;
+    onAddRow?: () => void;
   };
 
   beforeEach(() => {
@@ -38,6 +39,7 @@ describe("KeyboardHandler", () => {
       onOpenCommandPalette: vi.fn(),
       isEditableColumn: vi.fn((columnId: string) => columnId !== "row-number"),
       isReadOnly: vi.fn(() => false),
+      onAddRow: vi.fn(),
     };
 
     keyboardHandler = new KeyboardHandler(
@@ -147,6 +149,34 @@ describe("KeyboardHandler", () => {
       document.dispatchEvent(cmdKEvent);
 
       expect(mockCallbacks.onOpenCommandPalette).toHaveBeenCalledWith("excel");
+    });
+  });
+
+  describe("Add Row", () => {
+    it("Cmd+N (Mac) / Ctrl+N (Windows)로 새 행 추가가 호출되어야 함", () => {
+      const addRowEvent = new KeyboardEvent("keydown", {
+        key: "n",
+        code: "KeyN",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(addRowEvent);
+
+      expect(mockCallbacks.onAddRow).toHaveBeenCalled();
+    });
+
+    it("Ctrl+N으로 새 행 추가가 호출되어야 함", () => {
+      const addRowEvent = new KeyboardEvent("keydown", {
+        key: "n",
+        code: "KeyN",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(addRowEvent);
+
+      expect(mockCallbacks.onAddRow).toHaveBeenCalled();
     });
   });
 

@@ -267,3 +267,90 @@
     background-color: #fecaca !important; /* 빨간색 + 선택 */
     outline: 1px solid #3b82f6;
 }
+
+/* 새 행 추가 placeholder 스타일 */
+.add-row-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    background-color: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 6px;
+    margin: 8px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.add-row-placeholder:hover {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.add-row-placeholder:active {
+    background-color: #e2e8f0;
+    border-color: #64748b;
+}
+
+.add-row-placeholder-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.add-row-placeholder:hover .add-row-placeholder-content {
+    color: #475569;
+}
+
+.add-row-icon {
+    font-size: 18px;
+    font-weight: bold;
+    color: #94a3b8;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.add-row-placeholder:hover .add-row-icon {
+    background-color: #cbd5e1;
+    color: #475569;
+}
+
+.add-row-text {
+    font-weight: 500;
+}
+
+.add-row-shortcut {
+    font-size: 12px;
+    color: #94a3b8;
+    padding: 2px 6px;
+    background-color: #e2e8f0;
+    border-radius: 3px;
+}
+
+.add-row-placeholder:hover .add-row-shortcut {
+    background-color: #cbd5e1;
+    color: #64748b;
+}
+
+/* 새 행 (New row) 스타일 */
+.virtual-grid-cell.cell-new-row {
+    background-color: #ecfdf5 !important; /* 연한 초록색 배경 */
+    border-left: 3px solid #10b981 !important;
+}
+
+.virtual-grid-row.new-row {
+    background-color: #ecfdf5 !important;
+}
+
+.virtual-grid-row.new-row:hover {
+    background-color: #d1fae5 !important;
+}

@@ -973,6 +973,10 @@ var CellEditor = class {
 				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenReplace && this.callbacks.onOpenReplace();
 				return;
 			}
+			if (R && (u.key === "n" || u.code === "KeyN") && !V) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onAddRow && this.callbacks.onAddRow();
+				return;
+			}
 			if ((u.key === "/" || u.code === "Slash") && !V && (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())) {
 				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenQuickSearch && this.callbacks.onOpenQuickSearch();
 				return;
@@ -1133,7 +1137,7 @@ var CellEditor = class {
 	}
 	createRow(u, R, B) {
 		let V = document.createElement("div");
-		V.className = "virtual-grid-row", V.setAttribute("role", "row"), V.setAttribute("data-row-index", R.toString()), V.setAttribute("data-row-id", u.id);
+		V.className = "virtual-grid-row", V.setAttribute("role", "row"), V.setAttribute("data-row-index", R.toString()), V.setAttribute("data-row-id", u.id), this.options.callbacks.isNewRow?.(u.id) && V.classList.add("new-row");
 		let H = this.createCell(u.id, "row-number", (R + 1).toString(), R, !1, B.rowNumber, 0, 15);
 		H.classList.add("row-number-cell"), V.appendChild(H);
 		let U = this.createCell(u.id, "key", u.key, R, !this.options.readOnly, B.key, B.rowNumber, 10);
@@ -2586,6 +2590,9 @@ var QuickSearchUI = class {
 	currentFilter = "none";
 	currentSearchKeyword = "";
 	filterManager;
+	newRows = /* @__PURE__ */ new Map();
+	deletedRows = /* @__PURE__ */ new Map();
+	addRowPlaceholder = null;
 	currentGotoMatches = null;
 	quickSearch = null;
 	quickSearchUI = null;
@@ -2744,6 +2751,9 @@ var QuickSearchUI = class {
 			},
 			onExtendSelection: (u, R) => {
 				this.selectionManager.extendSelection(u, R);
+			},
+			onAddRow: () => {
+				this.addRow();
 			}
 		}), this.columnWidthCalculator = new ColumnWidthCalculator({
 			columnWidths: this.columnWidths,
@@ -2777,7 +2787,8 @@ var QuickSearchUI = class {
 				},
 				updateCellStyle: (u, R, B) => {
 					this.updateCellStyle(u, R, B);
-				}
+				},
+				isNewRow: (u) => this.isNewRow(u)
 			}
 		}), this.findReplace = new FindReplace({
 			translations: u.translations,
@@ -2808,7 +2819,7 @@ var QuickSearchUI = class {
 	render() {
 		this.scrollElement && this.container.contains(this.scrollElement) && this.container.removeChild(this.scrollElement), this.scrollElement = document.createElement("div"), this.scrollElement.className = "virtual-grid-scroll-container", this.scrollElement.style.width = "100%", this.scrollElement.style.height = "100%", this.scrollElement.style.overflow = "auto", this.scrollElement.style.position = "relative", this.gridElement = document.createElement("div"), this.gridElement.className = "virtual-grid", this.gridElement.setAttribute("role", "grid"), this.options.readOnly && this.gridElement.classList.add("readonly"), this.headerElement = document.createElement("div"), this.headerElement.className = "virtual-grid-header", this.renderHeader(), this.gridElement.appendChild(this.headerElement), this.bodyElement = document.createElement("div"), this.bodyElement.className = "virtual-grid-body", this.bodyElement.style.position = "relative", this.gridElement.appendChild(this.bodyElement), this.scrollElement.appendChild(this.gridElement), this.container.appendChild(this.scrollElement), this.observeContainerResize(), requestAnimationFrame(() => {
 			this.initVirtualScrolling();
-		}), this.attachKeyboardListeners(), this.initStatusBar();
+		}), this.attachKeyboardListeners(), this.initStatusBar(), this.renderAddRowPlaceholder();
 	}
 	observeContainerResize() {
 		this.resizeObserver && this.resizeObserver.disconnect(), typeof ResizeObserver < "u" && (this.resizeObserver = new ResizeObserver(() => {
@@ -3156,7 +3167,8 @@ var QuickSearchUI = class {
 				},
 				updateCellStyle: (u, R, B) => {
 					this.updateCellStyle(u, R, B);
-				}
+				},
+				isNewRow: (u) => this.isNewRow(u)
 			}
 		}), this.gridElement && (u ? this.gridElement.classList.add("readonly") : this.gridElement.classList.remove("readonly")), this.bodyElement && this.bodyElement.querySelectorAll(".virtual-grid-cell").forEach((R) => {
 			let B = R.getAttribute("data-column-id"), V = B && this.editableColumns.has(B);
@@ -3346,6 +3358,64 @@ var QuickSearchUI = class {
 			description: "Show keyboard shortcuts and help",
 			execute: () => {
 				this.showHelp();
+			}
+		}), this.commandRegistry.registerCommand({
+			id: "add",
+			label: "Add New Row",
+			keywords: [
+				"add",
+				"new",
+				"row",
+				"create",
+				"insert"
+			],
+			shortcut: "Ctrl+N",
+			category: "edit",
+			description: "Add a new translation row at the bottom",
+			execute: () => {
+				this.addRow();
+			}
+		}), this.commandRegistry.registerCommand({
+			id: "add-above",
+			label: "Add Row Above",
+			keywords: [
+				"add",
+				"above",
+				"insert",
+				"before"
+			],
+			category: "edit",
+			description: "Add a new row above the current row",
+			execute: () => {
+				this.addRowAbove();
+			}
+		}), this.commandRegistry.registerCommand({
+			id: "add-below",
+			label: "Add Row Below",
+			keywords: [
+				"add",
+				"below",
+				"insert",
+				"after"
+			],
+			category: "edit",
+			description: "Add a new row below the current row",
+			execute: () => {
+				this.addRowBelow();
+			}
+		}), this.commandRegistry.registerCommand({
+			id: "delete",
+			label: "Delete Current Row",
+			keywords: [
+				"delete",
+				"remove",
+				"row",
+				"del"
+			],
+			category: "edit",
+			description: "Delete the currently selected row",
+			execute: () => {
+				this.deleteCurrentRow();
 			}
 		});
 	}
@@ -3711,6 +3781,25 @@ var QuickSearchUI = class {
 				return;
 			}
 		}
+		if (V === "add" || V === "new") {
+			if (H.length > 0) {
+				let u = H[0].toLowerCase();
+				if (u === "above" || u === "before") {
+					this.addRowAbove();
+					return;
+				}
+				if (u === "below" || u === "after") {
+					this.addRowBelow();
+					return;
+				}
+			}
+			this.addRow();
+			return;
+		}
+		if (V === "delete" || V === "del" || V === "remove") {
+			this.deleteCurrentRow();
+			return;
+		}
 		let U = this.commandRegistry.getCommands("all").find((u) => {
 			let R = u.id.toLowerCase(), B = u.label.toLowerCase();
 			return R === V || B.includes(V) || u.keywords?.some((u) => u.toLowerCase() === V);
@@ -3752,6 +3841,128 @@ var QuickSearchUI = class {
 		return R.forEach((u) => {
 			u > 1 && (B += u - 1);
 		}), B;
+	}
+	generateTempId() {
+		return `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+	}
+	addRow() {
+		if (this.options.readOnly) {
+			logger.warn("Cannot add row in read-only mode");
+			return;
+		}
+		let u = this.generateTempId(), R = {};
+		this.options.languages.forEach((u) => {
+			R[u] = "";
+		});
+		let B = {
+			tempId: u,
+			key: "",
+			values: R,
+			isNew: !0
+		};
+		this.newRows.set(u, B);
+		let V = {
+			id: u,
+			key: `__new_${u}__`,
+			values: R
+		};
+		this.originalTranslations = [...this.originalTranslations, V], this.currentTranslations = [...this.currentTranslations, V], this.changeTracker.initializeOriginalData(this.originalTranslations, Array.from(this.options.languages)), this.updateVirtualizer();
+		let H = this.currentTranslations.length - 1;
+		this.scrollToRowAndFocus(H, "key"), this.updateStatusBar(), logger.debug(`Added new row with tempId: ${u}`);
+	}
+	addRowAbove() {
+		if (this.options.readOnly) {
+			logger.warn("Cannot add row in read-only mode");
+			return;
+		}
+		let u = this.focusManager.getFocusedCell()?.rowIndex ?? 0;
+		this.insertRowAt(u);
+	}
+	addRowBelow() {
+		if (this.options.readOnly) {
+			logger.warn("Cannot add row in read-only mode");
+			return;
+		}
+		let u = (this.focusManager.getFocusedCell()?.rowIndex ?? -1) + 1;
+		this.insertRowAt(u);
+	}
+	insertRowAt(u) {
+		let R = this.generateTempId(), B = {};
+		this.options.languages.forEach((u) => {
+			B[u] = "";
+		});
+		let V = {
+			tempId: R,
+			key: "",
+			values: B,
+			isNew: !0
+		};
+		this.newRows.set(R, V);
+		let H = {
+			id: R,
+			key: `__new_${R}__`,
+			values: B
+		}, U = [...this.originalTranslations], W = [...this.currentTranslations], G = Math.max(0, Math.min(u, W.length));
+		U.splice(G, 0, H), W.splice(G, 0, H), this.originalTranslations = U, this.currentTranslations = W, this.changeTracker.initializeOriginalData(this.originalTranslations, Array.from(this.options.languages)), this.updateVirtualizer(), this.scrollToRowAndFocus(G, "key"), this.updateStatusBar(), logger.debug(`Inserted new row at index ${G} with tempId: ${R}`);
+	}
+	deleteRow(u) {
+		if (this.options.readOnly) {
+			logger.warn("Cannot delete row in read-only mode");
+			return;
+		}
+		this.newRows.has(u) ? this.newRows.delete(u) : this.deletedRows.set(u, {
+			id: u,
+			deleted: !0
+		}), this.originalTranslations = this.originalTranslations.filter((R) => R.id !== u), this.currentTranslations = this.currentTranslations.filter((R) => R.id !== u), this.changeTracker.initializeOriginalData(this.originalTranslations, Array.from(this.options.languages)), this.updateVirtualizer(), this.updateStatusBar(), logger.debug(`Deleted row with id: ${u}`);
+	}
+	deleteCurrentRow() {
+		let u = this.focusManager.getFocusedCell();
+		if (u === null) {
+			logger.warn("No row selected to delete");
+			return;
+		}
+		let R = this.currentTranslations[u.rowIndex];
+		R && this.deleteRow(R.id);
+	}
+	updateVirtualizer() {
+		this.rowVirtualizer && this.renderVirtualRows();
+	}
+	scrollToRowAndFocus(u, R) {
+		this.rowVirtualizer && (this.rowVirtualizer.scrollToIndex(u, {
+			align: "center",
+			behavior: "smooth"
+		}), setTimeout(() => {
+			this.focusManager.focusCell(u, R);
+			let B = this.bodyElement?.querySelector(`[data-row-index="${u}"][data-column-id="${R}"]`);
+			B && this.startEditing(u, R, B);
+		}, 100));
+	}
+	getNewRows() {
+		return Array.from(this.newRows.values());
+	}
+	getDeletedRows() {
+		return Array.from(this.deletedRows.values());
+	}
+	isNewRow(u) {
+		return this.newRows.has(u);
+	}
+	renderAddRowPlaceholder() {
+		if (this.options.readOnly) {
+			this.removeAddRowPlaceholder();
+			return;
+		}
+		this.scrollElement && (this.removeAddRowPlaceholder(), this.addRowPlaceholder = document.createElement("div"), this.addRowPlaceholder.className = "add-row-placeholder", this.addRowPlaceholder.innerHTML = "\n      <div class=\"add-row-placeholder-content\">\n        <span class=\"add-row-icon\">+</span>\n        <span class=\"add-row-text\">Click to add new translation key</span>\n        <span class=\"add-row-shortcut\">or press Ctrl+N</span>\n      </div>\n    ", this.addRowPlaceholder.addEventListener("click", () => {
+			this.addRow();
+		}), this.scrollElement.appendChild(this.addRowPlaceholder));
+	}
+	removeAddRowPlaceholder() {
+		this.addRowPlaceholder && this.addRowPlaceholder.parentNode && (this.addRowPlaceholder.parentNode.removeChild(this.addRowPlaceholder), this.addRowPlaceholder = null);
+	}
+	clearRowTracking() {
+		this.newRows.clear(), this.deletedRows.clear();
+	}
+	clearAllChanges() {
+		this.clearChanges(), this.clearRowTracking();
 	}
 };
 export { ChangeTracker, VirtualTableDiv };

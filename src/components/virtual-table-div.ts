@@ -10,7 +10,12 @@ import {
   observeElementOffset,
   elementScroll,
 } from "@/virtual-core/index";
-import type { Translation, TranslationChange } from "@/types/translation";
+import type {
+  Translation,
+  TranslationChange,
+  NewTranslation,
+  DeletedTranslation,
+} from "@/types/translation";
 import { ChangeTracker } from "./change-tracker";
 import { UndoRedoManager, type UndoRedoAction } from "./undo-redo-manager";
 import { ModifierKeyTracker } from "./modifier-key-tracker";
@@ -95,6 +100,13 @@ export class VirtualTableDiv {
   private currentFilter: FilterType = "none";
   private currentSearchKeyword: string = "";
   private filterManager: FilterManager;
+
+  // 새로 추가된 행 추적 (서버에 아직 저장되지 않은 행)
+  private newRows: Map<string, NewTranslation> = new Map();
+  // 삭제된 행 추적 (서버에서 삭제해야 할 행)
+  private deletedRows: Map<string, DeletedTranslation> = new Map();
+  // 새 행 추가 placeholder 요소
+  private addRowPlaceholder: HTMLElement | null = null;
 
   // Goto 텍스트 검색 관련 상태
   private currentGotoMatches: {
@@ -408,6 +420,9 @@ export class VirtualTableDiv {
         onExtendSelection: (rowIndex, columnId) => {
           this.selectionManager.extendSelection(rowIndex, columnId);
         },
+        onAddRow: () => {
+          this.addRow();
+        },
       },
     );
 
@@ -454,6 +469,9 @@ export class VirtualTableDiv {
         },
         updateCellStyle: (rowId, columnId, cell) => {
           this.updateCellStyle(rowId, columnId, cell);
+        },
+        isNewRow: (rowId) => {
+          return this.isNewRow(rowId);
         },
       },
     });
@@ -553,6 +571,9 @@ export class VirtualTableDiv {
 
     // 상태바 초기화
     this.initStatusBar();
+
+    // 새 행 추가 placeholder 렌더링
+    this.renderAddRowPlaceholder();
   }
 
   /**
@@ -1618,6 +1639,9 @@ export class VirtualTableDiv {
         updateCellStyle: (rowId, columnId, cell) => {
           this.updateCellStyle(rowId, columnId, cell);
         },
+        isNewRow: (rowId) => {
+          return this.isNewRow(rowId);
+        },
       },
     });
 
@@ -1829,6 +1853,55 @@ export class VirtualTableDiv {
       description: "Show keyboard shortcuts and help",
       execute: () => {
         this.showHelp();
+      },
+    });
+
+    // Add Row (새 행 추가)
+    this.commandRegistry.registerCommand({
+      id: "add",
+      label: "Add New Row",
+      keywords: ["add", "new", "row", "create", "insert"],
+      shortcut: "Ctrl+N",
+      category: "edit",
+      description: "Add a new translation row at the bottom",
+      execute: () => {
+        this.addRow();
+      },
+    });
+
+    // Add Row Above (현재 행 위에 추가)
+    this.commandRegistry.registerCommand({
+      id: "add-above",
+      label: "Add Row Above",
+      keywords: ["add", "above", "insert", "before"],
+      category: "edit",
+      description: "Add a new row above the current row",
+      execute: () => {
+        this.addRowAbove();
+      },
+    });
+
+    // Add Row Below (현재 행 아래에 추가)
+    this.commandRegistry.registerCommand({
+      id: "add-below",
+      label: "Add Row Below",
+      keywords: ["add", "below", "insert", "after"],
+      category: "edit",
+      description: "Add a new row below the current row",
+      execute: () => {
+        this.addRowBelow();
+      },
+    });
+
+    // Delete Row (행 삭제)
+    this.commandRegistry.registerCommand({
+      id: "delete",
+      label: "Delete Current Row",
+      keywords: ["delete", "remove", "row", "del"],
+      category: "edit",
+      description: "Delete the currently selected row",
+      execute: () => {
+        this.deleteCurrentRow();
       },
     });
   }
@@ -2746,6 +2819,34 @@ export class VirtualTableDiv {
       }
     }
 
+    // add 명령어 처리
+    if (commandName === "add" || commandName === "new") {
+      if (args.length > 0) {
+        const arg = args[0].toLowerCase();
+        if (arg === "above" || arg === "before") {
+          this.addRowAbove();
+          return;
+        }
+        if (arg === "below" || arg === "after") {
+          this.addRowBelow();
+          return;
+        }
+      }
+      // 인자 없으면 맨 아래에 추가
+      this.addRow();
+      return;
+    }
+
+    // delete 명령어 처리
+    if (
+      commandName === "delete" ||
+      commandName === "del" ||
+      commandName === "remove"
+    ) {
+      this.deleteCurrentRow();
+      return;
+    }
+
     // CommandRegistry에서 명령어 찾기
     const commands = this.commandRegistry.getCommands("all");
     const matchedCommand = commands.find((cmd) => {
@@ -2867,5 +2968,338 @@ export class VirtualTableDiv {
     });
 
     return duplicateCount;
+  }
+
+  // ============================================
+  // 새 행 추가 관련 메서드
+  // ============================================
+
+  /**
+   * 고유한 임시 ID 생성
+   */
+  private generateTempId(): string {
+    return `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * 새 행 추가 (맨 아래에)
+   */
+  addRow(): void {
+    if (this.options.readOnly) {
+      logger.warn("Cannot add row in read-only mode");
+      return;
+    }
+
+    const tempId = this.generateTempId();
+    const emptyValues: Record<string, string> = {};
+    this.options.languages.forEach((lang) => {
+      emptyValues[lang] = "";
+    });
+
+    const newTranslation: NewTranslation = {
+      tempId,
+      key: "",
+      values: emptyValues,
+      isNew: true,
+    };
+
+    // 새 행 추적에 추가
+    this.newRows.set(tempId, newTranslation);
+
+    // Translation 형태로 변환하여 데이터에 추가
+    // 새 행은 placeholder key를 사용하여 ChangeTracker 검증을 통과
+    const translationRow: Translation = {
+      id: tempId,
+      key: `__new_${tempId}__`, // placeholder key (빈 key는 ChangeTracker에서 거부됨)
+      values: emptyValues,
+    };
+
+    // originalTranslations에 추가 (mutable copy 생성)
+    this.originalTranslations = [...this.originalTranslations, translationRow];
+    this.currentTranslations = [...this.currentTranslations, translationRow];
+
+    // ChangeTracker에 원본 데이터 업데이트
+    this.changeTracker.initializeOriginalData(
+      this.originalTranslations,
+      Array.from(this.options.languages),
+    );
+
+    // Virtualizer 업데이트
+    this.updateVirtualizer();
+
+    // 새 행으로 스크롤하고 포커스
+    const newRowIndex = this.currentTranslations.length - 1;
+    this.scrollToRowAndFocus(newRowIndex, "key");
+
+    // 상태바 업데이트
+    this.updateStatusBar();
+
+    logger.debug(`Added new row with tempId: ${tempId}`);
+  }
+
+  /**
+   * 현재 선택된 행 위에 새 행 추가
+   */
+  addRowAbove(): void {
+    if (this.options.readOnly) {
+      logger.warn("Cannot add row in read-only mode");
+      return;
+    }
+
+    const focusedCell = this.focusManager.getFocusedCell();
+    const insertIndex = focusedCell?.rowIndex ?? 0;
+
+    this.insertRowAt(insertIndex);
+  }
+
+  /**
+   * 현재 선택된 행 아래에 새 행 추가
+   */
+  addRowBelow(): void {
+    if (this.options.readOnly) {
+      logger.warn("Cannot add row in read-only mode");
+      return;
+    }
+
+    const focusedCell = this.focusManager.getFocusedCell();
+    const insertIndex = (focusedCell?.rowIndex ?? -1) + 1;
+
+    this.insertRowAt(insertIndex);
+  }
+
+  /**
+   * 특정 위치에 새 행 삽입
+   */
+  private insertRowAt(index: number): void {
+    const tempId = this.generateTempId();
+    const emptyValues: Record<string, string> = {};
+    this.options.languages.forEach((lang) => {
+      emptyValues[lang] = "";
+    });
+
+    const newTranslation: NewTranslation = {
+      tempId,
+      key: "",
+      values: emptyValues,
+      isNew: true,
+    };
+
+    // 새 행 추적에 추가
+    this.newRows.set(tempId, newTranslation);
+
+    // Translation 형태로 변환
+    // 새 행은 placeholder key를 사용하여 ChangeTracker 검증을 통과
+    const translationRow: Translation = {
+      id: tempId,
+      key: `__new_${tempId}__`, // placeholder key
+      values: emptyValues,
+    };
+
+    // 배열에 삽입
+    const originalArray = [...this.originalTranslations];
+    const currentArray = [...this.currentTranslations];
+
+    const clampedIndex = Math.max(0, Math.min(index, currentArray.length));
+    originalArray.splice(clampedIndex, 0, translationRow);
+    currentArray.splice(clampedIndex, 0, translationRow);
+
+    this.originalTranslations = originalArray;
+    this.currentTranslations = currentArray;
+
+    // ChangeTracker에 원본 데이터 업데이트
+    this.changeTracker.initializeOriginalData(
+      this.originalTranslations,
+      Array.from(this.options.languages),
+    );
+
+    // Virtualizer 업데이트
+    this.updateVirtualizer();
+
+    // 새 행으로 스크롤하고 포커스
+    this.scrollToRowAndFocus(clampedIndex, "key");
+
+    // 상태바 업데이트
+    this.updateStatusBar();
+
+    logger.debug(
+      `Inserted new row at index ${clampedIndex} with tempId: ${tempId}`,
+    );
+  }
+
+  /**
+   * 행 삭제
+   */
+  deleteRow(rowId: string): void {
+    if (this.options.readOnly) {
+      logger.warn("Cannot delete row in read-only mode");
+      return;
+    }
+
+    // 새로 추가된 행인 경우 newRows에서만 제거
+    if (this.newRows.has(rowId)) {
+      this.newRows.delete(rowId);
+    } else {
+      // 기존 행인 경우 deletedRows에 추가
+      this.deletedRows.set(rowId, { id: rowId, deleted: true });
+    }
+
+    // 데이터에서 제거
+    this.originalTranslations = this.originalTranslations.filter(
+      (t) => t.id !== rowId,
+    );
+    this.currentTranslations = this.currentTranslations.filter(
+      (t) => t.id !== rowId,
+    );
+
+    // ChangeTracker에 원본 데이터 업데이트
+    this.changeTracker.initializeOriginalData(
+      this.originalTranslations,
+      Array.from(this.options.languages),
+    );
+
+    // Virtualizer 업데이트
+    this.updateVirtualizer();
+
+    // 상태바 업데이트
+    this.updateStatusBar();
+
+    logger.debug(`Deleted row with id: ${rowId}`);
+  }
+
+  /**
+   * 현재 선택된 행 삭제
+   */
+  deleteCurrentRow(): void {
+    const focusedCell = this.focusManager.getFocusedCell();
+    if (focusedCell === null) {
+      logger.warn("No row selected to delete");
+      return;
+    }
+
+    const translation = this.currentTranslations[focusedCell.rowIndex];
+    if (translation) {
+      this.deleteRow(translation.id);
+    }
+  }
+
+  /**
+   * Virtualizer 업데이트
+   */
+  private updateVirtualizer(): void {
+    if (this.rowVirtualizer) {
+      // count 업데이트를 위해 새로운 virtualizer 옵션 적용
+      // @tanstack/virtual-core에서는 count를 직접 변경할 수 없으므로
+      // 다시 렌더링하여 새로운 count를 반영
+      this.renderVirtualRows();
+    }
+  }
+
+  /**
+   * 특정 행으로 스크롤하고 셀에 포커스
+   */
+  private scrollToRowAndFocus(rowIndex: number, columnId: string): void {
+    if (this.rowVirtualizer) {
+      this.rowVirtualizer.scrollToIndex(rowIndex, {
+        align: "center",
+        behavior: "smooth",
+      });
+
+      // 스크롤 후 포커스 (약간의 지연 필요)
+      setTimeout(() => {
+        this.focusManager.focusCell(rowIndex, columnId);
+
+        // 해당 셀을 찾아서 편집 모드로 진입
+        const cell = this.bodyElement?.querySelector(
+          `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`,
+        ) as HTMLElement | null;
+
+        if (cell) {
+          this.startEditing(rowIndex, columnId, cell);
+        }
+      }, 100);
+    }
+  }
+
+  /**
+   * 새로 추가된 행 목록 반환
+   */
+  getNewRows(): NewTranslation[] {
+    return Array.from(this.newRows.values());
+  }
+
+  /**
+   * 삭제된 행 목록 반환
+   */
+  getDeletedRows(): DeletedTranslation[] {
+    return Array.from(this.deletedRows.values());
+  }
+
+  /**
+   * 행이 새로 추가된 행인지 확인
+   */
+  isNewRow(rowId: string): boolean {
+    return this.newRows.has(rowId);
+  }
+
+  /**
+   * 새 행 추가 placeholder 렌더링
+   */
+  private renderAddRowPlaceholder(): void {
+    if (this.options.readOnly) {
+      this.removeAddRowPlaceholder();
+      return;
+    }
+
+    if (!this.scrollElement) {
+      return;
+    }
+
+    // 이미 있으면 제거
+    this.removeAddRowPlaceholder();
+
+    // Placeholder 생성
+    this.addRowPlaceholder = document.createElement("div");
+    this.addRowPlaceholder.className = "add-row-placeholder";
+    this.addRowPlaceholder.innerHTML = `
+      <div class="add-row-placeholder-content">
+        <span class="add-row-icon">+</span>
+        <span class="add-row-text">Click to add new translation key</span>
+        <span class="add-row-shortcut">or press Ctrl+N</span>
+      </div>
+    `;
+
+    // 클릭 이벤트
+    this.addRowPlaceholder.addEventListener("click", () => {
+      this.addRow();
+    });
+
+    // scrollElement 내부, bodyElement 다음에 추가
+    this.scrollElement.appendChild(this.addRowPlaceholder);
+  }
+
+  /**
+   * 새 행 추가 placeholder 제거
+   */
+  private removeAddRowPlaceholder(): void {
+    if (this.addRowPlaceholder && this.addRowPlaceholder.parentNode) {
+      this.addRowPlaceholder.parentNode.removeChild(this.addRowPlaceholder);
+      this.addRowPlaceholder = null;
+    }
+  }
+
+  /**
+   * 저장 후 새 행/삭제된 행 추적 초기화
+   */
+  clearRowTracking(): void {
+    this.newRows.clear();
+    this.deletedRows.clear();
+  }
+
+  /**
+   * 모든 변경사항 초기화 (변경, 새 행, 삭제된 행)
+   */
+  clearAllChanges(): void {
+    this.clearChanges();
+    this.clearRowTracking();
   }
 }

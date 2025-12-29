@@ -3,7 +3,7 @@
  *
  * 테이블 구조 대신 div 기반 그리드로 구현하여 가상 스크롤링과 완벽하게 호환
  */
-import type { Translation, TranslationChange } from "@/types/translation";
+import type { Translation, TranslationChange, NewTranslation, DeletedTranslation } from "@/types/translation";
 import { type SearchMatch } from "./text-search-matcher";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
@@ -53,6 +53,9 @@ export declare class VirtualTableDiv {
     private currentFilter;
     private currentSearchKeyword;
     private filterManager;
+    private newRows;
+    private deletedRows;
+    private addRowPlaceholder;
     private currentGotoMatches;
     private quickSearch;
     private quickSearchUI;
@@ -311,5 +314,69 @@ export declare class VirtualTableDiv {
      * 중복 Key 수 계산
      */
     private countDuplicateKeys;
+    /**
+     * 고유한 임시 ID 생성
+     */
+    private generateTempId;
+    /**
+     * 새 행 추가 (맨 아래에)
+     */
+    addRow(): void;
+    /**
+     * 현재 선택된 행 위에 새 행 추가
+     */
+    addRowAbove(): void;
+    /**
+     * 현재 선택된 행 아래에 새 행 추가
+     */
+    addRowBelow(): void;
+    /**
+     * 특정 위치에 새 행 삽입
+     */
+    private insertRowAt;
+    /**
+     * 행 삭제
+     */
+    deleteRow(rowId: string): void;
+    /**
+     * 현재 선택된 행 삭제
+     */
+    deleteCurrentRow(): void;
+    /**
+     * Virtualizer 업데이트
+     */
+    private updateVirtualizer;
+    /**
+     * 특정 행으로 스크롤하고 셀에 포커스
+     */
+    private scrollToRowAndFocus;
+    /**
+     * 새로 추가된 행 목록 반환
+     */
+    getNewRows(): NewTranslation[];
+    /**
+     * 삭제된 행 목록 반환
+     */
+    getDeletedRows(): DeletedTranslation[];
+    /**
+     * 행이 새로 추가된 행인지 확인
+     */
+    isNewRow(rowId: string): boolean;
+    /**
+     * 새 행 추가 placeholder 렌더링
+     */
+    private renderAddRowPlaceholder;
+    /**
+     * 새 행 추가 placeholder 제거
+     */
+    private removeAddRowPlaceholder;
+    /**
+     * 저장 후 새 행/삭제된 행 추적 초기화
+     */
+    clearRowTracking(): void;
+    /**
+     * 모든 변경사항 초기화 (변경, 새 행, 삭제된 행)
+     */
+    clearAllChanges(): void;
 }
 //# sourceMappingURL=virtual-table-div.d.ts.map
