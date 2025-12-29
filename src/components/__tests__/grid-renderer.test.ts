@@ -9,9 +9,17 @@ import type { Translation } from "@/types/translation";
 describe("GridRenderer", () => {
   let renderer: GridRenderer;
   let callbacks: {
-    onCellDblClick?: (rowIndex: number, columnId: string, cell: HTMLElement) => void;
+    onCellDblClick?: (
+      rowIndex: number,
+      columnId: string,
+      cell: HTMLElement,
+    ) => void;
     onCellFocus?: (rowIndex: number, columnId: string) => void;
-    updateCellStyle?: (rowId: string, columnId: string, cell?: HTMLElement) => void;
+    updateCellStyle?: (
+      rowId: string,
+      columnId: string,
+      cell?: HTMLElement,
+    ) => void;
   };
 
   beforeEach(() => {
@@ -135,7 +143,7 @@ describe("GridRenderer", () => {
         true,
         200,
         0,
-        10
+        10,
       );
 
       expect(cell.className).toBe("virtual-grid-cell");
@@ -155,7 +163,7 @@ describe("GridRenderer", () => {
         false,
         200,
         0,
-        10
+        10,
       );
 
       expect(cell.getAttribute("tabindex")).toBe("-1");
@@ -170,7 +178,7 @@ describe("GridRenderer", () => {
         true,
         200,
         100,
-        10
+        10,
       );
 
       expect(cell.style.position).toBe("sticky");
@@ -187,7 +195,7 @@ describe("GridRenderer", () => {
         true,
         200,
         0,
-        0
+        0,
       );
 
       const dblclickEvent = new MouseEvent("dblclick", { bubbles: true });
@@ -205,7 +213,7 @@ describe("GridRenderer", () => {
         true,
         200,
         0,
-        0
+        0,
       );
 
       cell.focus();
@@ -232,7 +240,7 @@ describe("GridRenderer", () => {
         false, // editable = false (readOnly 모드에서 모든 셀은 편집 불가)
         200,
         0,
-        0
+        0,
       );
 
       const dblclickEvent = new MouseEvent("dblclick", { bubbles: true });
@@ -264,18 +272,32 @@ describe("GridRenderer", () => {
       expect(callbacks.updateCellStyle).toHaveBeenCalledWith("1", "key", cell);
     });
 
-    it("should re-add dblclick listener for editable cells", () => {
-      const cell = document.createElement("div");
-      cell.setAttribute("data-row-index", "0");
-      cell.setAttribute("data-column-id", "key");
+    it("should preserve existing content element when updating", () => {
+      // createCell로 생성된 셀 사용 (이벤트 리스너가 이미 추가됨)
+      const cell = renderer.createCell(
+        "1",
+        "key",
+        "old.value",
+        0,
+        true,
+        200,
+        0,
+        0,
+      );
+      const originalContent = cell.querySelector(".virtual-grid-cell-content");
 
+      // 내용 업데이트
       renderer.updateCellContent(cell, "1", "key", "new.value", 0);
 
+      // 기존 content 요소가 재사용되었는지 확인
+      const updatedContent = cell.querySelector(".virtual-grid-cell-content");
+      expect(updatedContent).toBe(originalContent);
+      expect(updatedContent?.textContent).toBe("new.value");
+
+      // 이벤트 리스너가 유지되는지 확인 (createCell에서 추가됨)
       const dblclickEvent = new MouseEvent("dblclick", { bubbles: true });
       cell.dispatchEvent(dblclickEvent);
-
       expect(callbacks.onCellDblClick).toHaveBeenCalled();
     });
   });
 });
-

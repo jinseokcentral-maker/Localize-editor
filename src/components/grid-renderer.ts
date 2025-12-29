@@ -1,6 +1,6 @@
 /**
  * 그리드 렌더링 모듈
- * 
+ *
  * 헤더, 행, 셀 렌더링 관련 로직을 담당합니다.
  */
 
@@ -14,9 +14,17 @@ export interface ColumnWidths {
 }
 
 export interface GridRendererCallbacks {
-  onCellDblClick?: (rowIndex: number, columnId: string, cell: HTMLElement) => void;
+  onCellDblClick?: (
+    rowIndex: number,
+    columnId: string,
+    cell: HTMLElement,
+  ) => void;
   onCellFocus?: (rowIndex: number, columnId: string) => void;
-  updateCellStyle?: (rowId: string, columnId: string, cell?: HTMLElement) => void;
+  updateCellStyle?: (
+    rowId: string,
+    columnId: string,
+    cell?: HTMLElement,
+  ) => void;
 }
 
 export interface GridRendererOptions {
@@ -41,7 +49,7 @@ export class GridRenderer {
     width: number,
     left: number,
     zIndex: number,
-    columnId?: string
+    columnId?: string,
   ): HTMLElement {
     const header = document.createElement("div");
     header.className = "virtual-grid-header-cell";
@@ -72,7 +80,7 @@ export class GridRenderer {
   createRow(
     translation: Translation,
     rowIndex: number,
-    columnWidths: ColumnWidths
+    columnWidths: ColumnWidths,
   ): HTMLElement {
     const row = document.createElement("div");
     row.className = "virtual-grid-row";
@@ -89,7 +97,7 @@ export class GridRenderer {
       false, // 편집 불가
       columnWidths.rowNumber,
       0,
-      15 // 가장 높은 z-index로 sticky
+      15, // 가장 높은 z-index로 sticky
     );
     rowNumberCell.classList.add("row-number-cell");
     row.appendChild(rowNumberCell);
@@ -103,7 +111,7 @@ export class GridRenderer {
       !this.options.readOnly, // 읽기 전용 모드면 편집 불가
       columnWidths.key,
       columnWidths.rowNumber, // 행 번호 컬럼 너비만큼 left 오프셋
-      10
+      10,
     );
     row.appendChild(keyCell);
 
@@ -116,7 +124,7 @@ export class GridRenderer {
       !this.options.readOnly, // 읽기 전용 모드면 편집 불가
       columnWidths.context,
       columnWidths.rowNumber + columnWidths.key, // 행 번호 + Key 너비만큼 left 오프셋
-      10
+      10,
     );
     row.appendChild(contextCell);
 
@@ -126,7 +134,8 @@ export class GridRenderer {
       const langWidth = columnWidths.languages[index]!;
       // 언어 셀은 읽기 전용 모드에서는 편집 불가
       // editable 파라미터는 실제 편집 가능 여부를 의미 (readOnly 체크 포함)
-      const leftOffset = columnWidths.rowNumber + columnWidths.key + columnWidths.context;
+      const leftOffset =
+        columnWidths.rowNumber + columnWidths.key + columnWidths.context;
       const cell = this.createCell(
         translation.id,
         `values.${lang}`,
@@ -135,7 +144,7 @@ export class GridRenderer {
         !this.options.readOnly, // 읽기 전용 모드면 false
         langWidth,
         leftOffset,
-        0
+        0,
       );
       row.appendChild(cell);
     });
@@ -154,7 +163,7 @@ export class GridRenderer {
     editable: boolean,
     width: number,
     left: number,
-    zIndex: number
+    zIndex: number,
   ): HTMLElement {
     const cell = document.createElement("div");
     cell.className = "virtual-grid-cell";
@@ -215,29 +224,28 @@ export class GridRenderer {
 
   /**
    * 셀 내용 업데이트
+   * DOM 조작을 최소화하여 성능 최적화
    */
   updateCellContent(
     cell: HTMLElement,
     rowId: string,
     columnId: string,
     value: string,
-    rowIndex: number
+    _rowIndex: number,
   ): void {
-    cell.innerHTML = "";
-    const cellContent = document.createElement("div");
-    cellContent.className = "virtual-grid-cell-content";
-    cellContent.textContent = value;
-    cell.appendChild(cellContent);
-
-    // 편집 가능한 셀은 더블클릭 이벤트 다시 추가
-    if (!this.options.readOnly && this.options.editableColumns.has(columnId)) {
-      cell.addEventListener("dblclick", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (this.options.callbacks.onCellDblClick) {
-          this.options.callbacks.onCellDblClick(rowIndex, columnId, cell);
-        }
-      });
+    // 기존 content 요소 재사용 (DOM 생성 최소화)
+    let cellContent = cell.querySelector(
+      ".virtual-grid-cell-content",
+    ) as HTMLElement;
+    if (cellContent) {
+      // 기존 요소의 텍스트만 업데이트
+      cellContent.textContent = value;
+    } else {
+      // content 요소가 없는 경우에만 새로 생성
+      cellContent = document.createElement("div");
+      cellContent.className = "virtual-grid-cell-content";
+      cellContent.textContent = value;
+      cell.appendChild(cellContent);
     }
 
     // 스타일 업데이트
@@ -246,4 +254,3 @@ export class GridRenderer {
     }
   }
 }
-

@@ -1,113 +1,114 @@
 import { Data, Effect, Option } from "effect";
 import { z } from "zod";
-function memo(r, j, M) {
-	let N = M.initialDeps ?? [], P, F = !0;
-	function I() {
-		let I;
-		M.key && M.debug?.() && (I = Date.now());
-		let L = r();
-		if (!(L.length !== N.length || L.some((r, j) => N[j] !== r))) return P;
-		N = L;
-		let R;
-		if (M.key && M.debug?.() && (R = Date.now()), P = j(...L), M.key && M.debug?.()) {
-			let r = Math.round((Date.now() - I) * 100) / 100, j = Math.round((Date.now() - R) * 100) / 100, N = j / 16, P = (r, j) => {
-				for (r = String(r); r.length < j;) r = " " + r;
-				return r;
+import Fuse from "fuse.js";
+function memo(u, R, B) {
+	let V = B.initialDeps ?? [], H, U = !0;
+	function W() {
+		let W;
+		B.key && B.debug?.() && (W = Date.now());
+		let G = u();
+		if (!(G.length !== V.length || G.some((u, R) => V[R] !== u))) return H;
+		V = G;
+		let K;
+		if (B.key && B.debug?.() && (K = Date.now()), H = R(...G), B.key && B.debug?.()) {
+			let u = Math.round((Date.now() - W) * 100) / 100, R = Math.round((Date.now() - K) * 100) / 100, V = R / 16, H = (u, R) => {
+				for (u = String(u); u.length < R;) u = " " + u;
+				return u;
 			};
-			console.info(`%c⏱ ${P(j, 5)} /${P(r, 5)} ms`, `
+			console.info(`%c⏱ ${H(R, 5)} /${H(u, 5)} ms`, `
             font-size: .6rem;
             font-weight: bold;
-            color: hsl(${Math.max(0, Math.min(120 - 120 * N, 120))}deg 100% 31%);`, M?.key);
+            color: hsl(${Math.max(0, Math.min(120 - 120 * V, 120))}deg 100% 31%);`, B?.key);
 		}
-		return M?.onChange && !(F && M.skipInitialOnChange) && M.onChange(P), F = !1, P;
+		return B?.onChange && !(U && B.skipInitialOnChange) && B.onChange(H), U = !1, H;
 	}
-	return I.updateDeps = (r) => {
-		N = r;
-	}, I;
+	return W.updateDeps = (u) => {
+		V = u;
+	}, W;
 }
-function notUndefined(r, j) {
-	if (r === void 0) throw Error(`Unexpected undefined${j ? `: ${j}` : ""}`);
-	return r;
+function notUndefined(u, R) {
+	if (u === void 0) throw Error(`Unexpected undefined${R ? `: ${R}` : ""}`);
+	return u;
 }
-const approxEqual = (r, j) => Math.abs(r - j) < 1.01, debounce = (r, j, M) => {
-	let N;
-	return function(...P) {
-		r.clearTimeout(N), N = r.setTimeout(() => j.apply(this, P), M);
+const approxEqual = (u, R) => Math.abs(u - R) < 1.01, debounce = (u, R, B) => {
+	let V;
+	return function(...H) {
+		u.clearTimeout(V), V = u.setTimeout(() => R.apply(this, H), B);
 	};
 };
-var getRect = (r) => {
-	let { offsetWidth: j, offsetHeight: M } = r;
+var getRect = (u) => {
+	let { offsetWidth: R, offsetHeight: B } = u;
 	return {
-		width: j,
-		height: M
+		width: R,
+		height: B
 	};
 };
-const defaultKeyExtractor = (r) => r, defaultRangeExtractor = (r) => {
-	let j = Math.max(r.startIndex - r.overscan, 0), M = Math.min(r.endIndex + r.overscan, r.count - 1), N = [];
-	for (let r = j; r <= M; r++) N.push(r);
-	return N;
-}, observeElementRect = (r, j) => {
-	let M = r.scrollElement;
-	if (!M) return;
-	let N = r.targetWindow;
-	if (!N) return;
-	let P = (r) => {
-		let { width: M, height: N } = r;
-		j({
-			width: Math.round(M),
-			height: Math.round(N)
+const defaultKeyExtractor = (u) => u, defaultRangeExtractor = (u) => {
+	let R = Math.max(u.startIndex - u.overscan, 0), B = Math.min(u.endIndex + u.overscan, u.count - 1), V = [];
+	for (let u = R; u <= B; u++) V.push(u);
+	return V;
+}, observeElementRect = (u, R) => {
+	let B = u.scrollElement;
+	if (!B) return;
+	let V = u.targetWindow;
+	if (!V) return;
+	let H = (u) => {
+		let { width: B, height: V } = u;
+		R({
+			width: Math.round(B),
+			height: Math.round(V)
 		});
 	};
-	if (P(getRect(M)), !N.ResizeObserver) return () => {};
-	let F = new N.ResizeObserver((j) => {
-		let N = () => {
-			let r = j[0];
-			if (r?.borderBoxSize) {
-				let j = r.borderBoxSize[0];
-				if (j) {
-					P({
-						width: j.inlineSize,
-						height: j.blockSize
+	if (H(getRect(B)), !V.ResizeObserver) return () => {};
+	let U = new V.ResizeObserver((R) => {
+		let V = () => {
+			let u = R[0];
+			if (u?.borderBoxSize) {
+				let R = u.borderBoxSize[0];
+				if (R) {
+					H({
+						width: R.inlineSize,
+						height: R.blockSize
 					});
 					return;
 				}
 			}
-			P(getRect(M));
+			H(getRect(B));
 		};
-		r.options.useAnimationFrameWithResizeObserver ? requestAnimationFrame(N) : N();
+		u.options.useAnimationFrameWithResizeObserver ? requestAnimationFrame(V) : V();
 	});
-	return F.observe(M, { box: "border-box" }), () => {
-		F.unobserve(M);
+	return U.observe(B, { box: "border-box" }), () => {
+		U.unobserve(B);
 	};
 };
 var addEventListenerOptions = { passive: !0 }, supportsScrollend = typeof window > "u" ? !0 : "onscrollend" in window;
-const observeElementOffset = (r, j) => {
-	let M = r.scrollElement;
-	if (!M) return;
-	let N = r.targetWindow;
-	if (!N) return;
-	let P = 0, F = r.options.useScrollendEvent && supportsScrollend ? () => void 0 : debounce(N, () => {
-		j(P, !1);
-	}, r.options.isScrollingResetDelay), I = (N) => () => {
-		let { horizontal: I, isRtl: L } = r.options;
-		P = I ? M.scrollLeft * (L && -1 || 1) : M.scrollTop, F(), j(P, N);
-	}, R = I(!0), B = I(!1);
-	B(), M.addEventListener("scroll", R, addEventListenerOptions);
-	let V = r.options.useScrollendEvent && supportsScrollend;
-	return V && M.addEventListener("scrollend", B, addEventListenerOptions), () => {
-		M.removeEventListener("scroll", R), V && M.removeEventListener("scrollend", B);
+const observeElementOffset = (u, R) => {
+	let B = u.scrollElement;
+	if (!B) return;
+	let V = u.targetWindow;
+	if (!V) return;
+	let H = 0, U = u.options.useScrollendEvent && supportsScrollend ? () => void 0 : debounce(V, () => {
+		R(H, !1);
+	}, u.options.isScrollingResetDelay), W = (V) => () => {
+		let { horizontal: W, isRtl: G } = u.options;
+		H = W ? B.scrollLeft * (G && -1 || 1) : B.scrollTop, U(), R(H, V);
+	}, G = W(!0), q = W(!1);
+	q(), B.addEventListener("scroll", G, addEventListenerOptions);
+	let J = u.options.useScrollendEvent && supportsScrollend;
+	return J && B.addEventListener("scrollend", q, addEventListenerOptions), () => {
+		B.removeEventListener("scroll", G), J && B.removeEventListener("scrollend", q);
 	};
-}, measureElement = (r, j, M) => {
-	if (j?.borderBoxSize) {
-		let r = j.borderBoxSize[0];
-		if (r) return Math.round(r[M.options.horizontal ? "inlineSize" : "blockSize"]);
+}, measureElement = (u, R, B) => {
+	if (R?.borderBoxSize) {
+		let u = R.borderBoxSize[0];
+		if (u) return Math.round(u[B.options.horizontal ? "inlineSize" : "blockSize"]);
 	}
-	return r[M.options.horizontal ? "offsetWidth" : "offsetHeight"];
-}, elementScroll = (r, { adjustments: j = 0, behavior: M }, N) => {
-	let P = r + j;
-	N.scrollElement?.scrollTo?.({
-		[N.options.horizontal ? "left" : "top"]: P,
-		behavior: M
+	return u[B.options.horizontal ? "offsetWidth" : "offsetHeight"];
+}, elementScroll = (u, { adjustments: R = 0, behavior: B }, V) => {
+	let H = u + R;
+	V.scrollElement?.scrollTo?.({
+		[V.options.horizontal ? "left" : "top"]: H,
+		behavior: B
 	});
 };
 var Virtualizer = class {
@@ -130,29 +131,29 @@ var Virtualizer = class {
 	shouldAdjustScrollPositionOnItemSizeChange;
 	elementsCache = /* @__PURE__ */ new Map();
 	observer = (() => {
-		let r = null, j = () => r || (!this.targetWindow || !this.targetWindow.ResizeObserver ? null : r = new this.targetWindow.ResizeObserver((r) => {
-			r.forEach((r) => {
-				let j = () => {
-					this._measureElement(r.target, r);
+		let u = null, R = () => u || (!this.targetWindow || !this.targetWindow.ResizeObserver ? null : u = new this.targetWindow.ResizeObserver((u) => {
+			u.forEach((u) => {
+				let R = () => {
+					this._measureElement(u.target, u);
 				};
-				this.options.useAnimationFrameWithResizeObserver ? requestAnimationFrame(j) : j();
+				this.options.useAnimationFrameWithResizeObserver ? requestAnimationFrame(R) : R();
 			});
 		}));
 		return {
 			disconnect: () => {
-				j()?.disconnect(), r = null;
+				R()?.disconnect(), u = null;
 			},
-			observe: (r) => j()?.observe(r, { box: "border-box" }),
-			unobserve: (r) => j()?.unobserve(r)
+			observe: (u) => R()?.observe(u, { box: "border-box" }),
+			unobserve: (u) => R()?.unobserve(u)
 		};
 	})();
 	range = null;
-	constructor(r) {
-		this.setOptions(r);
+	constructor(u) {
+		this.setOptions(u);
 	}
-	setOptions = (r) => {
-		Object.entries(r).forEach(([j, M]) => {
-			M === void 0 && delete r[j];
+	setOptions = (u) => {
+		Object.entries(u).forEach(([R, B]) => {
+			B === void 0 && delete u[R];
 		}), this.options = {
 			debug: !1,
 			initialOffset: 0,
@@ -180,18 +181,18 @@ var Virtualizer = class {
 			isRtl: !1,
 			useScrollendEvent: !1,
 			useAnimationFrameWithResizeObserver: !1,
-			...r
+			...u
 		};
 	};
-	notify = (r) => {
-		this.options.onChange?.(this, r);
+	notify = (u) => {
+		this.options.onChange?.(this, u);
 	};
 	maybeNotify = memo(() => (this.calculateRange(), [
 		this.isScrolling,
 		this.range ? this.range.startIndex : null,
 		this.range ? this.range.endIndex : null
-	]), (r) => {
-		this.notify(r);
+	]), (u) => {
+		this.notify(u);
 	}, {
 		key: !1,
 		debug: () => this.options.debug,
@@ -202,41 +203,41 @@ var Virtualizer = class {
 		]
 	});
 	cleanup = () => {
-		this.unsubs.filter(Boolean).forEach((r) => r()), this.unsubs = [], this.observer.disconnect(), this.scrollElement = null, this.targetWindow = null;
+		this.unsubs.filter(Boolean).forEach((u) => u()), this.unsubs = [], this.observer.disconnect(), this.scrollElement = null, this.targetWindow = null;
 	};
 	_didMount = () => () => {
 		this.cleanup();
 	};
 	_willUpdate = () => {
-		let r = this.options.enabled ? this.options.getScrollElement() : null;
-		if (this.scrollElement !== r) {
-			if (this.cleanup(), !r) {
+		let u = this.options.enabled ? this.options.getScrollElement() : null;
+		if (this.scrollElement !== u) {
+			if (this.cleanup(), !u) {
 				this.maybeNotify();
 				return;
 			}
-			this.scrollElement = r, this.scrollElement && "ownerDocument" in this.scrollElement ? this.targetWindow = this.scrollElement.ownerDocument.defaultView : this.targetWindow = this.scrollElement?.window ?? null, this.elementsCache.forEach((r) => {
-				this.observer.observe(r);
+			this.scrollElement = u, this.scrollElement && "ownerDocument" in this.scrollElement ? this.targetWindow = this.scrollElement.ownerDocument.defaultView : this.targetWindow = this.scrollElement?.window ?? null, this.elementsCache.forEach((u) => {
+				this.observer.observe(u);
 			}), this._scrollToOffset(this.getScrollOffset(), {
 				adjustments: void 0,
 				behavior: void 0
-			}), this.unsubs.push(this.options.observeElementRect(this, (r) => {
-				this.scrollRect = r, this.maybeNotify();
-			})), this.unsubs.push(this.options.observeElementOffset(this, (r, j) => {
-				this.scrollAdjustments = 0, this.scrollDirection = j ? this.getScrollOffset() < r ? "forward" : "backward" : null, this.scrollOffset = r, this.isScrolling = j, this.maybeNotify();
+			}), this.unsubs.push(this.options.observeElementRect(this, (u) => {
+				this.scrollRect = u, this.maybeNotify();
+			})), this.unsubs.push(this.options.observeElementOffset(this, (u, R) => {
+				this.scrollAdjustments = 0, this.scrollDirection = R ? this.getScrollOffset() < u ? "forward" : "backward" : null, this.scrollOffset = u, this.isScrolling = R, this.maybeNotify();
 			}));
 		}
 	};
 	getSize = () => this.options.enabled ? (this.scrollRect = this.scrollRect ?? this.options.initialRect, this.scrollRect[this.options.horizontal ? "width" : "height"]) : (this.scrollRect = null, 0);
 	getScrollOffset = () => this.options.enabled ? (this.scrollOffset = this.scrollOffset ?? (typeof this.options.initialOffset == "function" ? this.options.initialOffset() : this.options.initialOffset), this.scrollOffset) : (this.scrollOffset = null, 0);
-	getFurthestMeasurement = (r, j) => {
-		let M = /* @__PURE__ */ new Map(), N = /* @__PURE__ */ new Map();
-		for (let P = j - 1; P >= 0; P--) {
-			let j = r[P];
-			if (M.has(j.lane)) continue;
-			let F = N.get(j.lane);
-			if (F == null || j.end > F.end ? N.set(j.lane, j) : j.end < F.end && M.set(j.lane, !0), M.size === this.options.lanes) break;
+	getFurthestMeasurement = (u, R) => {
+		let B = /* @__PURE__ */ new Map(), V = /* @__PURE__ */ new Map();
+		for (let H = R - 1; H >= 0; H--) {
+			let R = u[H];
+			if (B.has(R.lane)) continue;
+			let U = V.get(R.lane);
+			if (U == null || R.end > U.end ? V.set(R.lane, R) : R.end < U.end && B.set(R.lane, !0), B.size === this.options.lanes) break;
 		}
-		return N.size === this.options.lanes ? Array.from(N.values()).sort((r, j) => r.end === j.end ? r.index - j.index : r.end - j.end)[0] : void 0;
+		return V.size === this.options.lanes ? Array.from(V.values()).sort((u, R) => u.end === R.end ? u.index - R.index : u.end - R.end)[0] : void 0;
 	};
 	getMeasurementOptions = memo(() => [
 		this.options.count,
@@ -245,13 +246,13 @@ var Virtualizer = class {
 		this.options.getItemKey,
 		this.options.enabled,
 		this.options.lanes
-	], (r, j, M, N, P, F) => (this.prevLanes !== void 0 && this.prevLanes !== F && (this.lanesChangedFlag = !0), this.prevLanes = F, this.pendingMeasuredCacheIndexes = [], {
-		count: r,
-		paddingStart: j,
-		scrollMargin: M,
-		getItemKey: N,
-		enabled: P,
-		lanes: F
+	], (u, R, B, V, H, U) => (this.prevLanes !== void 0 && this.prevLanes !== U && (this.lanesChangedFlag = !0), this.prevLanes = U, this.pendingMeasuredCacheIndexes = [], {
+		count: u,
+		paddingStart: R,
+		scrollMargin: B,
+		getItemKey: V,
+		enabled: H,
+		lanes: U
 	}), {
 		key: !1,
 		skipInitialOnChange: !0,
@@ -259,40 +260,40 @@ var Virtualizer = class {
 			this.notify(this.isScrolling);
 		}
 	});
-	getMeasurements = memo(() => [this.getMeasurementOptions(), this.itemSizeCache], ({ count: r, paddingStart: j, scrollMargin: M, getItemKey: N, enabled: P, lanes: F }, I) => {
-		if (!P) return this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), [];
-		if (this.laneAssignments.size > r) for (let j of this.laneAssignments.keys()) j >= r && this.laneAssignments.delete(j);
-		this.lanesChangedFlag && (this.lanesChangedFlag = !1, this.lanesSettling = !0, this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), this.pendingMeasuredCacheIndexes = []), this.measurementsCache.length === 0 && (this.measurementsCache = this.options.initialMeasurementsCache, this.measurementsCache.forEach((r) => {
-			this.itemSizeCache.set(r.key, r.size);
+	getMeasurements = memo(() => [this.getMeasurementOptions(), this.itemSizeCache], ({ count: u, paddingStart: R, scrollMargin: B, getItemKey: V, enabled: H, lanes: U }, W) => {
+		if (!H) return this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), [];
+		if (this.laneAssignments.size > u) for (let R of this.laneAssignments.keys()) R >= u && this.laneAssignments.delete(R);
+		this.lanesChangedFlag && (this.lanesChangedFlag = !1, this.lanesSettling = !0, this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), this.pendingMeasuredCacheIndexes = []), this.measurementsCache.length === 0 && (this.measurementsCache = this.options.initialMeasurementsCache, this.measurementsCache.forEach((u) => {
+			this.itemSizeCache.set(u.key, u.size);
 		}));
-		let L = this.lanesSettling ? 0 : this.pendingMeasuredCacheIndexes.length > 0 ? Math.min(...this.pendingMeasuredCacheIndexes) : 0;
-		this.pendingMeasuredCacheIndexes = [], this.lanesSettling && this.measurementsCache.length === r && (this.lanesSettling = !1);
-		let R = this.measurementsCache.slice(0, L), B = Array(F).fill(void 0);
-		for (let r = 0; r < L; r++) {
-			let j = R[r];
-			j && (B[j.lane] = r);
+		let G = this.lanesSettling ? 0 : this.pendingMeasuredCacheIndexes.length > 0 ? Math.min(...this.pendingMeasuredCacheIndexes) : 0;
+		this.pendingMeasuredCacheIndexes = [], this.lanesSettling && this.measurementsCache.length === u && (this.lanesSettling = !1);
+		let K = this.measurementsCache.slice(0, G), q = Array(U).fill(void 0);
+		for (let u = 0; u < G; u++) {
+			let R = K[u];
+			R && (q[R.lane] = u);
 		}
-		for (let P = L; P < r; P++) {
-			let r = N(P), F = this.laneAssignments.get(P), L, V;
-			if (F !== void 0 && this.options.lanes > 1) {
-				L = F;
-				let r = B[L], N = r === void 0 ? void 0 : R[r];
-				V = N ? N.end + this.options.gap : j + M;
+		for (let H = G; H < u; H++) {
+			let u = V(H), U = this.laneAssignments.get(H), G, J;
+			if (U !== void 0 && this.options.lanes > 1) {
+				G = U;
+				let u = q[G], V = u === void 0 ? void 0 : K[u];
+				J = V ? V.end + this.options.gap : R + B;
 			} else {
-				let r = this.options.lanes === 1 ? R[P - 1] : this.getFurthestMeasurement(R, P);
-				V = r ? r.end + this.options.gap : j + M, L = r ? r.lane : P % this.options.lanes, this.options.lanes > 1 && this.laneAssignments.set(P, L);
+				let u = this.options.lanes === 1 ? K[H - 1] : this.getFurthestMeasurement(K, H);
+				J = u ? u.end + this.options.gap : R + B, G = u ? u.lane : H % this.options.lanes, this.options.lanes > 1 && this.laneAssignments.set(H, G);
 			}
-			let H = I.get(r), U = typeof H == "number" ? H : this.options.estimateSize(P), W = V + U;
-			R[P] = {
-				index: P,
-				start: V,
-				size: U,
-				end: W,
-				key: r,
-				lane: L
-			}, B[L] = P;
+			let Y = W.get(u), X = typeof Y == "number" ? Y : this.options.estimateSize(H), Z = J + X;
+			K[H] = {
+				index: H,
+				start: J,
+				size: X,
+				end: Z,
+				key: u,
+				lane: G
+			}, q[G] = H;
 		}
-		return this.measurementsCache = R, R;
+		return this.measurementsCache = K, K;
 	}, {
 		key: !1,
 		debug: () => this.options.debug
@@ -302,211 +303,211 @@ var Virtualizer = class {
 		this.getSize(),
 		this.getScrollOffset(),
 		this.options.lanes
-	], (r, j, M, N) => this.range = r.length > 0 && j > 0 ? calculateRange({
-		measurements: r,
-		outerSize: j,
-		scrollOffset: M,
-		lanes: N
+	], (u, R, B, V) => this.range = u.length > 0 && R > 0 ? calculateRange({
+		measurements: u,
+		outerSize: R,
+		scrollOffset: B,
+		lanes: V
 	}) : null, {
 		key: !1,
 		debug: () => this.options.debug
 	});
 	getVirtualIndexes = memo(() => {
-		let r = null, j = null, M = this.calculateRange();
-		return M && (r = M.startIndex, j = M.endIndex), this.maybeNotify.updateDeps([
+		let u = null, R = null, B = this.calculateRange();
+		return B && (u = B.startIndex, R = B.endIndex), this.maybeNotify.updateDeps([
 			this.isScrolling,
-			r,
-			j
+			u,
+			R
 		]), [
 			this.options.rangeExtractor,
 			this.options.overscan,
 			this.options.count,
-			r,
-			j
+			u,
+			R
 		];
-	}, (r, j, M, N, P) => N === null || P === null ? [] : r({
-		startIndex: N,
-		endIndex: P,
-		overscan: j,
-		count: M
+	}, (u, R, B, V, H) => V === null || H === null ? [] : u({
+		startIndex: V,
+		endIndex: H,
+		overscan: R,
+		count: B
 	}), {
 		key: !1,
 		debug: () => this.options.debug
 	});
-	indexFromElement = (r) => {
-		let j = this.options.indexAttribute, M = r.getAttribute(j);
-		return M ? parseInt(M, 10) : (console.warn(`Missing attribute name '${j}={index}' on measured element.`), -1);
+	indexFromElement = (u) => {
+		let R = this.options.indexAttribute, B = u.getAttribute(R);
+		return B ? parseInt(B, 10) : (console.warn(`Missing attribute name '${R}={index}' on measured element.`), -1);
 	};
-	_measureElement = (r, j) => {
-		let M = this.indexFromElement(r), N = this.measurementsCache[M];
-		if (!N) return;
-		let P = N.key, F = this.elementsCache.get(P);
-		F !== r && (F && this.observer.unobserve(F), this.observer.observe(r), this.elementsCache.set(P, r)), r.isConnected && this.resizeItem(M, this.options.measureElement(r, j, this));
+	_measureElement = (u, R) => {
+		let B = this.indexFromElement(u), V = this.measurementsCache[B];
+		if (!V) return;
+		let H = V.key, U = this.elementsCache.get(H);
+		U !== u && (U && this.observer.unobserve(U), this.observer.observe(u), this.elementsCache.set(H, u)), u.isConnected && this.resizeItem(B, this.options.measureElement(u, R, this));
 	};
-	resizeItem = (r, j) => {
-		let M = this.measurementsCache[r];
-		if (!M) return;
-		let N = j - (this.itemSizeCache.get(M.key) ?? M.size);
-		N !== 0 && ((this.shouldAdjustScrollPositionOnItemSizeChange === void 0 ? M.start < this.getScrollOffset() + this.scrollAdjustments : this.shouldAdjustScrollPositionOnItemSizeChange(M, N, this)) && this._scrollToOffset(this.getScrollOffset(), {
-			adjustments: this.scrollAdjustments += N,
+	resizeItem = (u, R) => {
+		let B = this.measurementsCache[u];
+		if (!B) return;
+		let V = R - (this.itemSizeCache.get(B.key) ?? B.size);
+		V !== 0 && ((this.shouldAdjustScrollPositionOnItemSizeChange === void 0 ? B.start < this.getScrollOffset() + this.scrollAdjustments : this.shouldAdjustScrollPositionOnItemSizeChange(B, V, this)) && this._scrollToOffset(this.getScrollOffset(), {
+			adjustments: this.scrollAdjustments += V,
 			behavior: void 0
-		}), this.pendingMeasuredCacheIndexes.push(M.index), this.itemSizeCache = new Map(this.itemSizeCache.set(M.key, j)), this.notify(!1));
+		}), this.pendingMeasuredCacheIndexes.push(B.index), this.itemSizeCache = new Map(this.itemSizeCache.set(B.key, R)), this.notify(!1));
 	};
-	measureElement = (r) => {
-		if (!r) {
-			this.elementsCache.forEach((r, j) => {
-				r.isConnected || (this.observer.unobserve(r), this.elementsCache.delete(j));
+	measureElement = (u) => {
+		if (!u) {
+			this.elementsCache.forEach((u, R) => {
+				u.isConnected || (this.observer.unobserve(u), this.elementsCache.delete(R));
 			});
 			return;
 		}
-		this._measureElement(r, void 0);
+		this._measureElement(u, void 0);
 	};
-	getVirtualItems = memo(() => [this.getVirtualIndexes(), this.getMeasurements()], (r, j) => {
-		let M = [];
-		for (let N = 0, P = r.length; N < P; N++) {
-			let P = j[r[N]];
-			M.push(P);
+	getVirtualItems = memo(() => [this.getVirtualIndexes(), this.getMeasurements()], (u, R) => {
+		let B = [];
+		for (let V = 0, H = u.length; V < H; V++) {
+			let H = R[u[V]];
+			B.push(H);
 		}
-		return M;
+		return B;
 	}, {
 		key: !1,
 		debug: () => this.options.debug
 	});
-	getVirtualItemForOffset = (r) => {
-		let j = this.getMeasurements();
-		if (j.length !== 0) return notUndefined(j[findNearestBinarySearch(0, j.length - 1, (r) => notUndefined(j[r]).start, r)]);
+	getVirtualItemForOffset = (u) => {
+		let R = this.getMeasurements();
+		if (R.length !== 0) return notUndefined(R[findNearestBinarySearch(0, R.length - 1, (u) => notUndefined(R[u]).start, u)]);
 	};
-	getOffsetForAlignment = (r, j, M = 0) => {
-		let N = this.getSize(), P = this.getScrollOffset();
-		j === "auto" && (j = r >= P + N ? "end" : "start"), j === "center" ? r += (M - N) / 2 : j === "end" && (r -= N);
-		let F = this.getTotalSize() + this.options.scrollMargin - N;
-		return Math.max(Math.min(F, r), 0);
+	getOffsetForAlignment = (u, R, B = 0) => {
+		let V = this.getSize(), H = this.getScrollOffset();
+		R === "auto" && (R = u >= H + V ? "end" : "start"), R === "center" ? u += (B - V) / 2 : R === "end" && (u -= V);
+		let U = this.getTotalSize() + this.options.scrollMargin - V;
+		return Math.max(Math.min(U, u), 0);
 	};
-	getOffsetForIndex = (r, j = "auto") => {
-		r = Math.max(0, Math.min(r, this.options.count - 1));
-		let M = this.measurementsCache[r];
-		if (!M) return;
-		let N = this.getSize(), P = this.getScrollOffset();
-		if (j === "auto") if (M.end >= P + N - this.options.scrollPaddingEnd) j = "end";
-		else if (M.start <= P + this.options.scrollPaddingStart) j = "start";
-		else return [P, j];
-		let F = j === "end" ? M.end + this.options.scrollPaddingEnd : M.start - this.options.scrollPaddingStart;
-		return [this.getOffsetForAlignment(F, j, M.size), j];
+	getOffsetForIndex = (u, R = "auto") => {
+		u = Math.max(0, Math.min(u, this.options.count - 1));
+		let B = this.measurementsCache[u];
+		if (!B) return;
+		let V = this.getSize(), H = this.getScrollOffset();
+		if (R === "auto") if (B.end >= H + V - this.options.scrollPaddingEnd) R = "end";
+		else if (B.start <= H + this.options.scrollPaddingStart) R = "start";
+		else return [H, R];
+		let U = R === "end" ? B.end + this.options.scrollPaddingEnd : B.start - this.options.scrollPaddingStart;
+		return [this.getOffsetForAlignment(U, R, B.size), R];
 	};
 	isDynamicMode = () => this.elementsCache.size > 0;
-	scrollToOffset = (r, { align: j = "start", behavior: M } = {}) => {
-		M === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), this._scrollToOffset(this.getOffsetForAlignment(r, j), {
+	scrollToOffset = (u, { align: R = "start", behavior: B } = {}) => {
+		B === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), this._scrollToOffset(this.getOffsetForAlignment(u, R), {
 			adjustments: void 0,
-			behavior: M
+			behavior: B
 		});
 	};
-	scrollToIndex = (r, { align: j = "auto", behavior: M } = {}) => {
-		M === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), r = Math.max(0, Math.min(r, this.options.count - 1));
-		let N = 0, P = (j) => {
+	scrollToIndex = (u, { align: R = "auto", behavior: B } = {}) => {
+		B === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), u = Math.max(0, Math.min(u, this.options.count - 1));
+		let V = 0, H = (R) => {
 			if (!this.targetWindow) return;
-			let N = this.getOffsetForIndex(r, j);
-			if (!N) {
-				console.warn("Failed to get offset for index:", r);
+			let V = this.getOffsetForIndex(u, R);
+			if (!V) {
+				console.warn("Failed to get offset for index:", u);
 				return;
 			}
-			let [P, L] = N;
-			this._scrollToOffset(P, {
+			let [H, W] = V;
+			this._scrollToOffset(H, {
 				adjustments: void 0,
-				behavior: M
+				behavior: B
 			}), this.targetWindow.requestAnimationFrame(() => {
-				let j = this.getScrollOffset(), M = this.getOffsetForIndex(r, L);
-				if (!M) {
-					console.warn("Failed to get offset for index:", r);
+				let R = this.getScrollOffset(), B = this.getOffsetForIndex(u, W);
+				if (!B) {
+					console.warn("Failed to get offset for index:", u);
 					return;
 				}
-				approxEqual(M[0], j) || F(L);
+				approxEqual(B[0], R) || U(W);
 			});
-		}, F = (j) => {
-			this.targetWindow && (N++, N < 10 ? this.targetWindow.requestAnimationFrame(() => P(j)) : console.warn(`Failed to scroll to index ${r} after 10 attempts.`));
+		}, U = (R) => {
+			this.targetWindow && (V++, V < 10 ? this.targetWindow.requestAnimationFrame(() => H(R)) : console.warn(`Failed to scroll to index ${u} after 10 attempts.`));
 		};
-		P(j);
+		H(R);
 	};
-	scrollBy = (r, { behavior: j } = {}) => {
-		j === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), this._scrollToOffset(this.getScrollOffset() + r, {
+	scrollBy = (u, { behavior: R } = {}) => {
+		R === "smooth" && this.isDynamicMode() && console.warn("The `smooth` scroll behavior is not fully supported with dynamic size."), this._scrollToOffset(this.getScrollOffset() + u, {
 			adjustments: void 0,
-			behavior: j
+			behavior: R
 		});
 	};
 	getTotalSize = () => {
-		let r = this.getMeasurements(), j;
-		if (r.length === 0) j = this.options.paddingStart;
-		else if (this.options.lanes === 1) j = r[r.length - 1]?.end ?? 0;
+		let u = this.getMeasurements(), R;
+		if (u.length === 0) R = this.options.paddingStart;
+		else if (this.options.lanes === 1) R = u[u.length - 1]?.end ?? 0;
 		else {
-			let M = Array(this.options.lanes).fill(null), N = r.length - 1;
-			for (; N >= 0 && M.some((r) => r === null);) {
-				let j = r[N];
-				M[j.lane] === null && (M[j.lane] = j.end), N--;
+			let B = Array(this.options.lanes).fill(null), V = u.length - 1;
+			for (; V >= 0 && B.some((u) => u === null);) {
+				let R = u[V];
+				B[R.lane] === null && (B[R.lane] = R.end), V--;
 			}
-			j = Math.max(...M.filter((r) => r !== null));
+			R = Math.max(...B.filter((u) => u !== null));
 		}
-		return Math.max(j - this.options.scrollMargin + this.options.paddingEnd, 0);
+		return Math.max(R - this.options.scrollMargin + this.options.paddingEnd, 0);
 	};
-	_scrollToOffset = (r, { adjustments: j, behavior: M }) => {
-		this.options.scrollToFn(r, {
-			behavior: M,
-			adjustments: j
+	_scrollToOffset = (u, { adjustments: R, behavior: B }) => {
+		this.options.scrollToFn(u, {
+			behavior: B,
+			adjustments: R
 		}, this);
 	};
 	measure = () => {
 		this.itemSizeCache = /* @__PURE__ */ new Map(), this.laneAssignments = /* @__PURE__ */ new Map(), this.notify(!1);
 	};
-}, findNearestBinarySearch = (r, j, M, N) => {
-	for (; r <= j;) {
-		let P = (r + j) / 2 | 0, F = M(P);
-		if (F < N) r = P + 1;
-		else if (F > N) j = P - 1;
-		else return P;
+}, findNearestBinarySearch = (u, R, B, V) => {
+	for (; u <= R;) {
+		let H = (u + R) / 2 | 0, U = B(H);
+		if (U < V) u = H + 1;
+		else if (U > V) R = H - 1;
+		else return H;
 	}
-	return r > 0 ? r - 1 : 0;
+	return u > 0 ? u - 1 : 0;
 };
-function calculateRange({ measurements: r, outerSize: j, scrollOffset: M, lanes: N }) {
-	let P = r.length - 1, F = (j) => r[j].start;
-	if (r.length <= N) return {
+function calculateRange({ measurements: u, outerSize: R, scrollOffset: B, lanes: V }) {
+	let H = u.length - 1, U = (R) => u[R].start;
+	if (u.length <= V) return {
 		startIndex: 0,
-		endIndex: P
+		endIndex: H
 	};
-	let I = findNearestBinarySearch(0, P, F, M), L = I;
-	if (N === 1) for (; L < P && r[L].end < M + j;) L++;
-	else if (N > 1) {
-		let F = Array(N).fill(0);
-		for (; L < P && F.some((r) => r < M + j);) {
-			let j = r[L];
-			F[j.lane] = j.end, L++;
+	let W = findNearestBinarySearch(0, H, U, B), G = W;
+	if (V === 1) for (; G < H && u[G].end < B + R;) G++;
+	else if (V > 1) {
+		let U = Array(V).fill(0);
+		for (; G < H && U.some((u) => u < B + R);) {
+			let R = u[G];
+			U[R.lane] = R.end, G++;
 		}
-		let R = Array(N).fill(M + j);
-		for (; I >= 0 && R.some((r) => r >= M);) {
-			let j = r[I];
-			R[j.lane] = j.start, I--;
+		let K = Array(V).fill(B + R);
+		for (; W >= 0 && K.some((u) => u >= B);) {
+			let R = u[W];
+			K[R.lane] = R.start, W--;
 		}
-		I = Math.max(0, I - I % N), L = Math.min(P, L + (N - 1 - L % N));
+		W = Math.max(0, W - W % V), G = Math.min(H, G + (V - 1 - G % V));
 	}
 	return {
-		startIndex: I,
-		endIndex: L
+		startIndex: W,
+		endIndex: G
 	};
 }
 var ChangeTrackerError = class extends Data.TaggedError("ChangeTrackerError") {}, ValidationError = class extends Data.TaggedError("ValidationError") {}, CellEditorError = class extends Data.TaggedError("CellEditorError") {}, VimCommandTrackerError = class extends Data.TaggedError("VimCommandTrackerError") {}, CommandLineError = class extends Data.TaggedError("CommandLineError") {};
-const RowIdSchema = z.string().min(1, "Row ID must not be empty"), FieldSchema = z.string().refine((r) => r === "key" || r === "context" || r.startsWith("values."), { message: "Field must be 'key', 'context', or start with 'values.'" }), LangSchema = z.string().min(1, "Language code must not be empty");
+const RowIdSchema = z.string().min(1, "Row ID must not be empty"), FieldSchema = z.string().refine((u) => u === "key" || u === "context" || u.startsWith("values."), { message: "Field must be 'key', 'context', or start with 'values.'" }), LangSchema = z.string().min(1, "Language code must not be empty");
 z.string().regex(/^.+-.+$/, "Change key must be in format 'rowId-field'");
-function validateWithEffect(r, M, P) {
+function validateWithEffect(u, B, H) {
 	return Effect.try({
-		try: () => r.parse(M),
-		catch: (r) => r instanceof z.ZodError ? new ValidationError({
-			message: P || "Validation failed",
-			issues: r.issues.map((r) => ({
-				path: r.path.map(String),
-				message: r.message
+		try: () => u.parse(B),
+		catch: (u) => u instanceof z.ZodError ? new ValidationError({
+			message: H || "Validation failed",
+			issues: u.issues.map((u) => ({
+				path: u.path.map(String),
+				message: u.message
 			}))
 		}) : new ValidationError({
-			message: P || "Validation failed",
+			message: H || "Validation failed",
 			issues: [{
 				path: [],
-				message: String(r)
+				message: String(u)
 			}]
 		})
 	});
@@ -521,162 +522,162 @@ const defaultConfig = { enableValidation: !1 }, LogLevel = {
 	constructor() {
 		this.level = LogLevel.WARN;
 	}
-	setLevel(r) {
-		this.level = r;
+	setLevel(u) {
+		this.level = u;
 	}
 	getLevel() {
 		return this.level;
 	}
-	debug(...r) {
-		this.level <= LogLevel.DEBUG && console.log("[DEBUG]", ...r);
+	debug(...u) {
+		this.level <= LogLevel.DEBUG && console.log("[DEBUG]", ...u);
 	}
-	info(...r) {
-		this.level <= LogLevel.INFO && console.log("[INFO]", ...r);
+	info(...u) {
+		this.level <= LogLevel.INFO && console.log("[INFO]", ...u);
 	}
-	warn(...r) {
-		this.level <= LogLevel.WARN && console.warn("[WARN]", ...r);
+	warn(...u) {
+		this.level <= LogLevel.WARN && console.warn("[WARN]", ...u);
 	}
-	error(...r) {
-		this.level <= LogLevel.ERROR && console.error("[ERROR]", ...r);
+	error(...u) {
+		this.level <= LogLevel.ERROR && console.error("[ERROR]", ...u);
 	}
 }();
 var ChangeTracker = class {
 	config;
 	changes = /* @__PURE__ */ new Map();
 	originalData = /* @__PURE__ */ new Map();
-	constructor(r = defaultConfig) {
+	constructor(u = defaultConfig) {
 		this.config = {
 			...defaultConfig,
-			...r
+			...u
 		};
 	}
-	initializeOriginalData(r, M) {
+	initializeOriginalData(u, B) {
 		if (this.config.enableValidation) {
-			for (let r of M) {
-				let M = validateWithEffect(LangSchema, r, `Invalid language code: ${r}`);
-				Effect.runSync(Effect.match(M, {
-					onFailure: (r) => {
-						throw logger.error("ChangeTracker: Invalid language code", r), r;
+			for (let u of B) {
+				let B = validateWithEffect(LangSchema, u, `Invalid language code: ${u}`);
+				Effect.runSync(Effect.match(B, {
+					onFailure: (u) => {
+						throw logger.error("ChangeTracker: Invalid language code", u), u;
 					},
 					onSuccess: () => {}
 				}));
 			}
-			for (let M of r) {
-				let r = validateWithEffect(RowIdSchema, M.id, `Invalid row ID: ${M.id}`);
-				if (Effect.runSync(Effect.match(r, {
-					onFailure: (r) => {
-						throw logger.error("ChangeTracker: Invalid row ID", r), r;
+			for (let B of u) {
+				let u = validateWithEffect(RowIdSchema, B.id, `Invalid row ID: ${B.id}`);
+				if (Effect.runSync(Effect.match(u, {
+					onFailure: (u) => {
+						throw logger.error("ChangeTracker: Invalid row ID", u), u;
 					},
 					onSuccess: () => {}
-				})), typeof M.key != "string" || M.key.length === 0) {
-					let r = new ChangeTrackerError({
-						message: `Invalid key for translation ${M.id}`,
+				})), typeof B.key != "string" || B.key.length === 0) {
+					let u = new ChangeTrackerError({
+						message: `Invalid key for translation ${B.id}`,
 						code: "INVALID_CHANGE_DATA"
 					});
-					Effect.runSync(Effect.match(Effect.fail(r), {
-						onFailure: (r) => {
-							throw logger.error("ChangeTracker: Invalid translation key", r), r;
+					Effect.runSync(Effect.match(Effect.fail(u), {
+						onFailure: (u) => {
+							throw logger.error("ChangeTracker: Invalid translation key", u), u;
 						},
 						onSuccess: () => {}
 					}));
 				}
 			}
 		}
-		this.originalData.clear(), this.changes.clear(), r.forEach((r) => {
-			let j = /* @__PURE__ */ new Map();
-			j.set("key", r.key), j.set("context", r.context || ""), M.forEach((M) => {
-				j.set(`values.${M}`, r.values[M] || "");
-			}), this.originalData.set(r.id, j);
+		this.originalData.clear(), this.changes.clear(), u.forEach((u) => {
+			let R = /* @__PURE__ */ new Map();
+			R.set("key", u.key), R.set("context", u.context || ""), B.forEach((B) => {
+				R.set(`values.${B}`, u.values[B] || "");
+			}), this.originalData.set(u.id, R);
 		});
 	}
-	getOriginalValueEffect(r, N) {
-		return Effect.flatMap(validateWithEffect(RowIdSchema, r, "Invalid row ID"), (r) => Effect.flatMap(validateWithEffect(FieldSchema, N, "Invalid field"), (N) => {
-			let P = this.originalData.get(r);
-			if (!P) return Effect.fail(new ChangeTrackerError({
-				message: `Original data not found for row ID: ${r}`,
+	getOriginalValueEffect(u, V) {
+		return Effect.flatMap(validateWithEffect(RowIdSchema, u, "Invalid row ID"), (u) => Effect.flatMap(validateWithEffect(FieldSchema, V, "Invalid field"), (V) => {
+			let H = this.originalData.get(u);
+			if (!H) return Effect.fail(new ChangeTrackerError({
+				message: `Original data not found for row ID: ${u}`,
 				code: "ORIGINAL_DATA_NOT_FOUND"
 			}));
-			let F = P.get(N);
-			return Effect.succeed(Option.fromNullable(F));
+			let U = H.get(V);
+			return Effect.succeed(Option.fromNullable(U));
 		}));
 	}
-	getOriginalValue(r, N) {
-		if (!this.config.enableValidation) return this.originalData.get(r)?.get(N) ?? "";
-		let P = this.getOriginalValueEffect(r, N);
-		return Effect.runSync(Effect.match(P, {
+	getOriginalValue(u, V) {
+		if (!this.config.enableValidation) return this.originalData.get(u)?.get(V) ?? "";
+		let H = this.getOriginalValueEffect(u, V);
+		return Effect.runSync(Effect.match(H, {
 			onFailure: () => "",
-			onSuccess: (r) => Option.getOrElse(r, () => "")
+			onSuccess: (u) => Option.getOrElse(u, () => "")
 		}));
 	}
-	trackChangeEffect(r, M, N, P, F, I) {
-		return Effect.flatMap(validateWithEffect(RowIdSchema, r, "Invalid row ID"), (r) => Effect.flatMap(validateWithEffect(FieldSchema, M, "Invalid field"), (M) => Effect.flatMap(validateWithEffect(LangSchema, N, "Invalid language code"), (N) => {
-			if (typeof I != "string" || I.length === 0) return Effect.fail(new ChangeTrackerError({
+	trackChangeEffect(u, B, V, H, U, W) {
+		return Effect.flatMap(validateWithEffect(RowIdSchema, u, "Invalid row ID"), (u) => Effect.flatMap(validateWithEffect(FieldSchema, B, "Invalid field"), (B) => Effect.flatMap(validateWithEffect(LangSchema, V, "Invalid language code"), (V) => {
+			if (typeof W != "string" || W.length === 0) return Effect.fail(new ChangeTrackerError({
 				message: "Key must be a non-empty string",
 				code: "INVALID_CHANGE_DATA"
 			}));
-			let L = `${r}-${M}`;
-			if (P === F) return this.changes.delete(L), Effect.void;
-			let R = {
-				id: r,
-				key: I,
-				lang: N,
-				oldValue: P,
-				newValue: F
+			let G = `${u}-${B}`;
+			if (H === U) return this.changes.delete(G), Effect.void;
+			let K = {
+				id: u,
+				key: W,
+				lang: V,
+				oldValue: H,
+				newValue: U
 			};
-			return this.changes.set(L, R), Effect.void;
+			return this.changes.set(G, K), Effect.void;
 		})));
 	}
-	trackChange(r, M, N, P, F, I, L) {
+	trackChange(u, B, V, H, U, W, G) {
 		if (!this.config.enableValidation) {
-			let j = `${r}-${M}`;
-			if (P === F) {
-				this.changes.delete(j), L && L(r, M, !1);
+			let R = `${u}-${B}`;
+			if (H === U) {
+				this.changes.delete(R), G && G(u, B, !1);
 				return;
 			}
-			let R = {
-				id: r,
-				key: I,
-				lang: N,
-				oldValue: P,
-				newValue: F
+			let K = {
+				id: u,
+				key: W,
+				lang: V,
+				oldValue: H,
+				newValue: U
 			};
-			this.changes.set(j, R), L && L(r, M, !0);
+			this.changes.set(R, K), G && G(u, B, !0);
 			return;
 		}
-		let R = this.trackChangeEffect(r, M, N, P, F, I);
-		Effect.runSync(Effect.match(R, {
-			onFailure: (r) => {
-				logger.warn("ChangeTracker: Failed to track change", r);
+		let K = this.trackChangeEffect(u, B, V, H, U, W);
+		Effect.runSync(Effect.match(K, {
+			onFailure: (u) => {
+				logger.warn("ChangeTracker: Failed to track change", u);
 			},
 			onSuccess: () => {
-				L && L(r, M, P !== F);
+				G && G(u, B, H !== U);
 			}
 		}));
 	}
-	hasChangeEffect(r, M) {
-		return Effect.flatMap(validateWithEffect(RowIdSchema, r, "Invalid row ID"), (r) => Effect.flatMap(validateWithEffect(FieldSchema, M, "Invalid field"), (M) => {
-			let N = `${r}-${M}`;
-			return Effect.succeed(this.changes.has(N));
+	hasChangeEffect(u, B) {
+		return Effect.flatMap(validateWithEffect(RowIdSchema, u, "Invalid row ID"), (u) => Effect.flatMap(validateWithEffect(FieldSchema, B, "Invalid field"), (B) => {
+			let V = `${u}-${B}`;
+			return Effect.succeed(this.changes.has(V));
 		}));
 	}
-	hasChange(r, M) {
+	hasChange(u, B) {
 		if (!this.config.enableValidation) {
-			let j = `${r}-${M}`;
-			return this.changes.has(j);
+			let R = `${u}-${B}`;
+			return this.changes.has(R);
 		}
-		let N = this.hasChangeEffect(r, M);
-		return Effect.runSync(Effect.match(N, {
+		let V = this.hasChangeEffect(u, B);
+		return Effect.runSync(Effect.match(V, {
 			onFailure: () => !1,
-			onSuccess: (r) => r
+			onSuccess: (u) => u
 		}));
 	}
 	getChanges() {
 		return Array.from(this.changes.values());
 	}
-	clearChanges(r) {
-		r && this.changes.forEach((j, M) => {
-			let N = j.id;
-			r(N, M.slice(N.length + 1), !1);
+	clearChanges(u) {
+		u && this.changes.forEach((R, B) => {
+			let V = R.id;
+			u(V, B.slice(V.length + 1), !1);
 		}), this.changes.clear();
 	}
 	getChangesMap() {
@@ -686,8 +687,8 @@ var ChangeTracker = class {
 	history = [];
 	currentIndex = -1;
 	maxHistorySize = 100;
-	push(r) {
-		this.history = this.history.slice(0, this.currentIndex + 1), this.history.push(r), this.currentIndex++, this.history.length > this.maxHistorySize && (this.history.shift(), this.currentIndex--);
+	push(u) {
+		this.history = this.history.slice(0, this.currentIndex + 1), this.history.push(u), this.currentIndex++, this.history.length > this.maxHistorySize && (this.history.shift(), this.currentIndex--);
 	}
 	canUndo() {
 		return this.currentIndex >= 0;
@@ -697,13 +698,13 @@ var ChangeTracker = class {
 	}
 	undo() {
 		if (!this.canUndo()) return null;
-		let r = this.history[this.currentIndex];
+		let u = this.history[this.currentIndex];
 		return this.currentIndex--, {
-			type: r.type,
-			rowId: r.rowId,
-			columnId: r.columnId,
-			oldValue: r.newValue,
-			newValue: r.oldValue
+			type: u.type,
+			rowId: u.rowId,
+			columnId: u.columnId,
+			oldValue: u.newValue,
+			newValue: u.oldValue
 		};
 	}
 	redo() {
@@ -726,17 +727,17 @@ var ChangeTracker = class {
 	modifierKeyDownHandler = null;
 	modifierKeyUpHandler = null;
 	attach() {
-		this.modifierKeyDownHandler || this.modifierKeyUpHandler || (this.modifierKeyDownHandler = (r) => {
-			(r.key === "Meta" || r.key === "MetaLeft" || r.key === "MetaRight") && (this.metaKeyPressed = !0), (r.key === "Control" || r.key === "ControlLeft" || r.key === "ControlRight") && (this.ctrlKeyPressed = !0);
-		}, this.modifierKeyUpHandler = (r) => {
-			(r.key === "Meta" || r.key === "MetaLeft" || r.key === "MetaRight") && (this.metaKeyPressed = !1), (r.key === "Control" || r.key === "ControlLeft" || r.key === "ControlRight") && (this.ctrlKeyPressed = !1);
+		this.modifierKeyDownHandler || this.modifierKeyUpHandler || (this.modifierKeyDownHandler = (u) => {
+			(u.key === "Meta" || u.key === "MetaLeft" || u.key === "MetaRight") && (this.metaKeyPressed = !0), (u.key === "Control" || u.key === "ControlLeft" || u.key === "ControlRight") && (this.ctrlKeyPressed = !0);
+		}, this.modifierKeyUpHandler = (u) => {
+			(u.key === "Meta" || u.key === "MetaLeft" || u.key === "MetaRight") && (this.metaKeyPressed = !1), (u.key === "Control" || u.key === "ControlLeft" || u.key === "ControlRight") && (this.ctrlKeyPressed = !1);
 		}, window.addEventListener("keydown", this.modifierKeyDownHandler, !0), window.addEventListener("keyup", this.modifierKeyUpHandler, !0));
 	}
 	detach() {
 		this.modifierKeyDownHandler &&= (window.removeEventListener("keydown", this.modifierKeyDownHandler, !0), null), this.modifierKeyUpHandler &&= (window.removeEventListener("keyup", this.modifierKeyUpHandler, !0), null);
 	}
-	isModifierPressed(r) {
-		return navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? this.metaKeyPressed || r.metaKey || this.ctrlKeyPressed || r.ctrlKey : this.ctrlKeyPressed || r.ctrlKey || this.metaKeyPressed || r.metaKey;
+	isModifierPressed(u) {
+		return navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? this.metaKeyPressed || u.metaKey || this.ctrlKeyPressed || u.ctrlKey : this.ctrlKeyPressed || u.ctrlKey || this.metaKeyPressed || u.metaKey;
 	}
 	get metaKey() {
 		return this.metaKeyPressed;
@@ -752,10 +753,10 @@ var ChangeTracker = class {
 	getFocusedCell() {
 		return this.focusedCell;
 	}
-	focusCell(r, j) {
+	focusCell(u, R) {
 		this.focusedCell = {
-			rowIndex: r,
-			columnId: j
+			rowIndex: u,
+			columnId: R
 		};
 	}
 	blur() {
@@ -765,25 +766,25 @@ var ChangeTracker = class {
 		return this.focusedCell !== null;
 	}
 };
-function toMutableTranslation(r) {
+function toMutableTranslation(u) {
 	return {
-		id: r.id,
-		key: r.key,
-		context: r.context,
-		values: { ...r.values },
-		createdAt: r.createdAt,
-		updatedAt: r.updatedAt,
-		updatedBy: r.updatedBy
+		id: u.id,
+		key: u.key,
+		context: u.context,
+		values: { ...u.values },
+		createdAt: u.createdAt,
+		updatedAt: u.updatedAt,
+		updatedBy: u.updatedBy
 	};
 }
-function getLangFromColumnId(r) {
-	return r === "key" ? "key" : r === "context" ? "context" : r.startsWith("values.") ? r.replace("values.", "") : r;
+function getLangFromColumnId(u) {
+	return u === "key" ? "key" : u === "context" ? "context" : u.startsWith("values.") ? u.replace("values.", "") : u;
 }
-function getTranslationKey(r, j, M, N) {
-	return M === "key" ? N : r.find((r) => r.id === j)?.key || "";
+function getTranslationKey(u, R, B, V) {
+	return B === "key" ? V : u.find((u) => u.id === R)?.key || "";
 }
-function checkKeyDuplicate(r, j, M) {
-	return r.some((r) => r.id !== j && r.key.trim() === M.trim());
+function checkKeyDuplicate(u, R, B) {
+	return u.some((u) => u.id !== R && u.key.trim() === B.trim());
 }
 var CellEditor = class {
 	editingCell = null;
@@ -793,8 +794,8 @@ var CellEditor = class {
 	changeTracker;
 	undoRedoManager;
 	callbacks;
-	constructor(r, j, M, N = {}) {
-		this.translations = r, this.changeTracker = j, this.undoRedoManager = M, this.callbacks = N;
+	constructor(u, R, B, V = {}) {
+		this.translations = u, this.changeTracker = R, this.undoRedoManager = B, this.callbacks = V;
 	}
 	getEditingCell() {
 		return this.editingCell;
@@ -802,238 +803,238 @@ var CellEditor = class {
 	isEditing() {
 		return this.editingCell !== null;
 	}
-	startEditingEffect(r, M, N, P) {
+	startEditingEffect(u, B, V, H) {
 		this.editingCell && this.stopEditing();
-		let F = P.querySelector(".virtual-grid-cell-content");
-		if (!F) return Effect.fail(new CellEditorError({
+		let U = H.querySelector(".virtual-grid-cell-content");
+		if (!U) return Effect.fail(new CellEditorError({
 			message: "Cell content not found",
 			code: "TRANSLATION_NOT_FOUND"
 		}));
-		let I = F.textContent || "", L = this.createEditInput(I);
-		P.innerHTML = "", P.appendChild(L), requestAnimationFrame(() => {
-			L.focus(), L.select();
+		let W = U.textContent || "", G = this.createEditInput(W);
+		H.innerHTML = "", H.appendChild(G), requestAnimationFrame(() => {
+			G.focus(), G.select();
 		}), this.editingCell = {
-			rowIndex: r,
-			columnId: M,
-			rowId: N
+			rowIndex: u,
+			columnId: B,
+			rowId: V
 		}, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!0);
-		let R = !1;
-		if (M === "key") {
-			let r = () => {
-				let r = L.value.trim();
-				R = !1, P.classList.remove("cell-duplicate-key"), r && checkKeyDuplicate(this.translations, N, r) && (R = !0, P.classList.add("cell-duplicate-key"));
+		let K = !1;
+		if (B === "key") {
+			let u = () => {
+				let u = G.value.trim();
+				K = !1, H.classList.remove("cell-duplicate-key"), u && checkKeyDuplicate(this.translations, V, u) && (K = !0, H.classList.add("cell-duplicate-key"));
 			};
-			L.addEventListener("input", r), r();
+			G.addEventListener("input", u), u();
 		}
-		return this.attachInputListeners(L, P, (r) => {
+		return this.attachInputListeners(G, H, (u) => {
 			if (this.isFinishingEdit) return;
-			this.isFinishingEdit = !0, r && M === "key" && R && (r = !1), r && L.value !== I && this.applyCellChange(N, M, I, L.value).catch((r) => {
-				logger.error("Failed to apply cell change:", r);
+			this.isFinishingEdit = !0, u && B === "key" && K && (u = !1), u && G.value !== W && this.applyCellChange(V, B, W, G.value).catch((u) => {
+				logger.error("Failed to apply cell change:", u);
 			});
-			let j = r ? L.value : I;
-			this.callbacks.updateCellContent && this.callbacks.updateCellContent(P, N, M, j), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
-		}, r, M, I, N), Effect.void;
+			let R = u ? G.value : W;
+			this.callbacks.updateCellContent && this.callbacks.updateCellContent(H, V, B, R), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
+		}, u, B, W, V), Effect.void;
 	}
-	startEditing(r, j, M, N) {
+	startEditing(u, R, B, V) {
 		this.editingCell && this.stopEditing();
-		let P = N.querySelector(".virtual-grid-cell-content");
-		if (!P) return;
-		let F = P.textContent || "", I = this.createEditInput(F);
-		N.innerHTML = "", N.appendChild(I), requestAnimationFrame(() => {
-			I.focus(), I.select();
+		let H = V.querySelector(".virtual-grid-cell-content");
+		if (!H) return;
+		let U = H.textContent || "", W = this.createEditInput(U);
+		V.innerHTML = "", V.appendChild(W), requestAnimationFrame(() => {
+			W.focus(), W.select();
 		}), this.editingCell = {
-			rowIndex: r,
-			columnId: j,
-			rowId: M
+			rowIndex: u,
+			columnId: R,
+			rowId: B
 		}, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!0);
-		let L = !1;
-		if (j === "key") {
-			let r = () => {
-				let r = I.value.trim();
-				L = !1, N.classList.remove("cell-duplicate-key"), r && checkKeyDuplicate(this.translations, M, r) && (L = !0, N.classList.add("cell-duplicate-key"));
+		let G = !1;
+		if (R === "key") {
+			let u = () => {
+				let u = W.value.trim();
+				G = !1, V.classList.remove("cell-duplicate-key"), u && checkKeyDuplicate(this.translations, B, u) && (G = !0, V.classList.add("cell-duplicate-key"));
 			};
-			I.addEventListener("input", r), r();
+			W.addEventListener("input", u), u();
 		}
-		this.attachInputListeners(I, N, (r) => {
+		this.attachInputListeners(W, V, (u) => {
 			if (this.isFinishingEdit) return;
-			this.isFinishingEdit = !0, r && j === "key" && L && (r = !1), r && I.value !== F && this.applyCellChange(M, j, F, I.value).catch((r) => {
-				logger.error("Failed to apply cell change:", r);
+			this.isFinishingEdit = !0, u && R === "key" && G && (u = !1), u && W.value !== U && this.applyCellChange(B, R, U, W.value).catch((u) => {
+				logger.error("Failed to apply cell change:", u);
 			});
-			let P = r ? I.value : F;
-			this.callbacks.updateCellContent && this.callbacks.updateCellContent(N, M, j, P), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
-		}, r, j, F, M);
+			let H = u ? W.value : U;
+			this.callbacks.updateCellContent && this.callbacks.updateCellContent(V, B, R, H), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
+		}, u, R, U, B);
 	}
-	attachInputListeners(r, j, M, N, P, F, I) {
-		r.addEventListener("blur", () => {
-			this.isFinishingEdit || (this.isEscapeKeyPressed ? (M(!1), this.isEscapeKeyPressed = !1) : M(!0));
-		}), r.addEventListener("beforeinput", (r) => {
-			(r.inputType === "historyUndo" || r.inputType === "historyRedo") && (r.preventDefault(), M(!0));
-		}), r.addEventListener("keydown", (j) => {
-			if (j.key === "Enter") {
-				j.preventDefault(), j.stopPropagation();
-				let F = j.shiftKey ? "up" : "down";
-				M(!0), r.blur(), P.startsWith("values.") && this.callbacks.onEditFinished && requestAnimationFrame(() => {
-					this.callbacks.onEditFinished && this.callbacks.onEditFinished(N, P, F);
+	attachInputListeners(u, R, B, V, H, U, W) {
+		u.addEventListener("blur", () => {
+			this.isFinishingEdit || (this.isEscapeKeyPressed ? (B(!1), this.isEscapeKeyPressed = !1) : B(!0));
+		}), u.addEventListener("beforeinput", (u) => {
+			(u.inputType === "historyUndo" || u.inputType === "historyRedo") && (u.preventDefault(), B(!0));
+		}), u.addEventListener("keydown", (R) => {
+			if (R.key === "Enter") {
+				R.preventDefault(), R.stopPropagation();
+				let U = R.shiftKey ? "up" : "down";
+				B(!0), u.blur(), H.startsWith("values.") && this.callbacks.onEditFinished && requestAnimationFrame(() => {
+					this.callbacks.onEditFinished && this.callbacks.onEditFinished(V, H, U);
 				});
-			} else j.key === "Escape" ? (j.preventDefault(), j.stopPropagation(), this.isEscapeKeyPressed = !0, r.blur()) : j.key === "Tab" && (j.preventDefault(), j.stopPropagation(), M(!0), r.blur());
+			} else R.key === "Escape" ? (R.preventDefault(), R.stopPropagation(), this.isEscapeKeyPressed = !0, u.blur()) : R.key === "Tab" && (R.preventDefault(), R.stopPropagation(), B(!0), u.blur());
 		});
 	}
-	applyCellChangeEffect(r, M, N, P) {
-		let F = this.translations.find((j) => j.id === r);
-		if (!F) return Effect.fail(new CellEditorError({
-			message: `Translation not found: ${r}`,
+	applyCellChangeEffect(u, B, V, H) {
+		let U = this.translations.find((R) => R.id === u);
+		if (!U) return Effect.fail(new CellEditorError({
+			message: `Translation not found: ${u}`,
 			code: "TRANSLATION_NOT_FOUND"
 		}));
-		let I = toMutableTranslation(F);
-		if (M === "key") I.key = P;
-		else if (M === "context") I.context = P;
-		else if (M.startsWith("values.")) {
-			let r = M.replace("values.", "");
-			I.values[r] = P;
+		let W = toMutableTranslation(U);
+		if (B === "key") W.key = H;
+		else if (B === "context") W.context = H;
+		else if (B.startsWith("values.")) {
+			let u = B.replace("values.", "");
+			W.values[u] = H;
 		} else return Effect.fail(new CellEditorError({
-			message: `Invalid column ID: ${M}`,
+			message: `Invalid column ID: ${B}`,
 			code: "INVALID_COLUMN_ID"
 		}));
 		this.undoRedoManager.push({
 			type: "cell-change",
-			rowId: r,
-			columnId: M,
-			oldValue: N,
-			newValue: P
+			rowId: u,
+			columnId: B,
+			oldValue: V,
+			newValue: H
 		});
-		let L = this.changeTracker.getOriginalValue(r, M), R = getLangFromColumnId(M), B = getTranslationKey(this.translations, r, M, P);
-		return this.changeTracker.trackChange(r, M, R, L, P, B, () => {
-			this.callbacks.updateCellStyle && this.callbacks.updateCellStyle(r, M);
-		}), this.callbacks.onCellChange && this.callbacks.onCellChange(r, M, P), Effect.void;
+		let G = this.changeTracker.getOriginalValue(u, B), K = getLangFromColumnId(B), q = getTranslationKey(this.translations, u, B, H);
+		return this.changeTracker.trackChange(u, B, K, G, H, q, () => {
+			this.callbacks.updateCellStyle && this.callbacks.updateCellStyle(u, B);
+		}), this.callbacks.onCellChange && this.callbacks.onCellChange(u, B, H), Effect.void;
 	}
-	async applyCellChange(r, M, N, P) {
-		let F = this.applyCellChangeEffect(r, M, N, P);
-		return Effect.runPromise(F);
+	async applyCellChange(u, B, V, H) {
+		let U = this.applyCellChangeEffect(u, B, V, H);
+		return Effect.runPromise(U);
 	}
-	stopEditingEffect(r) {
-		return this.editingCell && this.stopEditing(r), Effect.void;
+	stopEditingEffect(u) {
+		return this.editingCell && this.stopEditing(u), Effect.void;
 	}
-	stopEditing(r) {
-		if (!this.editingCell || !r) {
+	stopEditing(u) {
+		if (!this.editingCell || !u) {
 			this.editingCell = null;
 			return;
 		}
-		let j = r.querySelector(`[data-row-index="${this.editingCell.rowIndex}"]`);
-		if (j) {
-			let r = j.querySelector(`[data-column-id="${this.editingCell.columnId}"]`);
-			if (r) {
-				let j = r.querySelector("input");
-				if (j) {
-					let M = r.getAttribute("data-row-id"), N = this.editingCell.columnId, P = j.value;
-					this.isFinishingEdit = !0, this.callbacks.updateCellContent && M && this.callbacks.updateCellContent(r, M, N, P), this.isFinishingEdit = !1;
+		let R = u.querySelector(`[data-row-index="${this.editingCell.rowIndex}"]`);
+		if (R) {
+			let u = R.querySelector(`[data-column-id="${this.editingCell.columnId}"]`);
+			if (u) {
+				let R = u.querySelector("input");
+				if (R) {
+					let B = u.getAttribute("data-row-id"), V = this.editingCell.columnId, H = R.value;
+					this.isFinishingEdit = !0, this.callbacks.updateCellContent && B && this.callbacks.updateCellContent(u, B, V, H), this.isFinishingEdit = !1;
 				}
 			}
 		}
 		this.editingCell = null;
 	}
-	createEditInput(r) {
-		let j = document.createElement("input");
-		return j.type = "text", j.value = r, j.className = "virtual-grid-cell-input", j.style.width = "100%", j.style.height = "100%", j.style.border = "2px solid #3b82f6", j.style.outline = "none", j.style.padding = "4px 8px", j.style.fontSize = "14px", j.style.fontFamily = "inherit", j.style.backgroundColor = "#fff", j;
+	createEditInput(u) {
+		let R = document.createElement("input");
+		return R.type = "text", R.value = u, R.className = "virtual-grid-cell-input", R.style.width = "100%", R.style.height = "100%", R.style.border = "2px solid #3b82f6", R.style.outline = "none", R.style.padding = "4px 8px", R.style.fontSize = "14px", R.style.fontFamily = "inherit", R.style.backgroundColor = "#fff", R;
 	}
-	setEscapeKeyPressed(r) {
-		this.isEscapeKeyPressed = r;
+	setEscapeKeyPressed(u) {
+		this.isEscapeKeyPressed = u;
 	}
 }, KeyboardHandler = class {
 	keyboardHandler = null;
 	modifierKeyTracker;
 	focusManager;
 	callbacks;
-	constructor(r, j, M = {}) {
-		this.modifierKeyTracker = r, this.focusManager = j, this.callbacks = M;
+	constructor(u, R, B = {}) {
+		this.modifierKeyTracker = u, this.focusManager = R, this.callbacks = B;
 	}
 	attach() {
-		this.keyboardHandler || (this.keyboardHandler = (r) => {
-			let j = this.modifierKeyTracker.isModifierPressed(r), M = r.target, N = M.tagName === "INPUT" || M.tagName === "TEXTAREA" || M.isContentEditable, P = (r.key === "z" || r.key === "Z" || r.code === "KeyZ") && !r.shiftKey;
-			if (j && P) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onUndo && this.callbacks.onUndo();
+		this.keyboardHandler || (this.keyboardHandler = (u) => {
+			let R = this.modifierKeyTracker.isModifierPressed(u), B = u.target, V = B.tagName === "INPUT" || B.tagName === "TEXTAREA" || B.isContentEditable, H = (u.key === "z" || u.key === "Z" || u.code === "KeyZ") && !u.shiftKey;
+			if (R && H) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onUndo && this.callbacks.onUndo();
 				return;
 			}
-			let F = r.key === "y" || r.key === "Y" || r.code === "KeyY" || (r.key === "z" || r.key === "Z" || r.code === "KeyZ") && r.shiftKey;
-			if (j && F) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onRedo && this.callbacks.onRedo();
+			let U = u.key === "y" || u.key === "Y" || u.code === "KeyY" || (u.key === "z" || u.key === "Z" || u.code === "KeyZ") && u.shiftKey;
+			if (R && U) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onRedo && this.callbacks.onRedo();
 				return;
 			}
-			if (j && (r.key === "k" || r.code === "KeyK")) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onOpenCommandPalette && this.callbacks.onOpenCommandPalette("excel");
+			if (R && (u.key === "k" || u.code === "KeyK")) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenCommandPalette && this.callbacks.onOpenCommandPalette("excel");
 				return;
 			}
-			if (j && (r.key === "f" || r.code === "KeyF") && !N) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onOpenFind && this.callbacks.onOpenFind();
+			if (R && (u.key === "f" || u.code === "KeyF") && !V) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenFind && this.callbacks.onOpenFind();
 				return;
 			}
-			if (j && (r.key === "h" || r.code === "KeyH") && !N) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onOpenReplace && this.callbacks.onOpenReplace();
+			if (R && (u.key === "h" || u.code === "KeyH") && !V) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenReplace && this.callbacks.onOpenReplace();
 				return;
 			}
-			if ((r.key === "/" || r.code === "Slash") && !N && (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())) {
-				r.preventDefault(), r.stopPropagation(), this.callbacks.onOpenQuickSearch && this.callbacks.onOpenQuickSearch();
+			if ((u.key === "/" || u.code === "Slash") && !V && (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())) {
+				u.preventDefault(), u.stopPropagation(), this.callbacks.onOpenQuickSearch && this.callbacks.onOpenQuickSearch();
 				return;
 			}
-			if (this.callbacks.isQuickSearchMode && this.callbacks.isQuickSearchMode() && !N) {
-				if (r.key === "n" && !r.shiftKey) {
-					r.preventDefault(), r.stopPropagation(), this.callbacks.onQuickSearchNext && this.callbacks.onQuickSearchNext();
+			if (this.callbacks.isQuickSearchMode && this.callbacks.isQuickSearchMode() && !V) {
+				if (u.key === "n" && !u.shiftKey) {
+					u.preventDefault(), u.stopPropagation(), this.callbacks.onQuickSearchNext && this.callbacks.onQuickSearchNext();
 					return;
 				}
-				if (r.key === "N" || r.key === "n" && r.shiftKey) {
-					r.preventDefault(), r.stopPropagation(), this.callbacks.onQuickSearchPrev && this.callbacks.onQuickSearchPrev();
+				if (u.key === "N" || u.key === "n" && u.shiftKey) {
+					u.preventDefault(), u.stopPropagation(), this.callbacks.onQuickSearchPrev && this.callbacks.onQuickSearchPrev();
 					return;
 				}
 			}
-			if (r.key === "F2" || r.code === "F2") {
-				if (this.focusManager.hasFocus() && !N) {
-					r.preventDefault(), r.stopPropagation();
-					let j = this.focusManager.getFocusedCell();
-					if (j && this.callbacks.onStartEditing) {
-						if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(j.columnId) || this.callbacks.isReadOnly && this.callbacks.isReadOnly()) return;
-						this.callbacks.onStartEditing(j.rowIndex, j.columnId);
+			if (u.key === "F2" || u.code === "F2") {
+				if (this.focusManager.hasFocus() && !V) {
+					u.preventDefault(), u.stopPropagation();
+					let R = this.focusManager.getFocusedCell();
+					if (R && this.callbacks.onStartEditing) {
+						if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(R.columnId) || this.callbacks.isReadOnly && this.callbacks.isReadOnly()) return;
+						this.callbacks.onStartEditing(R.rowIndex, R.columnId);
 					}
 				}
 				return;
 			}
-			if (r.key === "Enter" && this.focusManager.hasFocus() && !N && (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())) {
-				let j = this.focusManager.getFocusedCell();
-				if (j) {
-					let M = j.columnId.startsWith("values.");
-					if (r.shiftKey) {
-						if (!M) return;
-					} else if (!M) {
-						if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(j.columnId) || this.callbacks.isReadOnly && this.callbacks.isReadOnly()) return;
+			if (u.key === "Enter" && this.focusManager.hasFocus() && !V && (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())) {
+				let R = this.focusManager.getFocusedCell();
+				if (R) {
+					let B = R.columnId.startsWith("values.");
+					if (u.shiftKey) {
+						if (!B) return;
+					} else if (!B) {
+						if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(R.columnId) || this.callbacks.isReadOnly && this.callbacks.isReadOnly()) return;
 						if (this.callbacks.onStartEditing) {
-							r.preventDefault(), r.stopPropagation(), this.callbacks.onStartEditing(j.rowIndex, j.columnId);
+							u.preventDefault(), u.stopPropagation(), this.callbacks.onStartEditing(R.rowIndex, R.columnId);
 							return;
 						}
 					}
 				}
 			}
-			this.focusManager.hasFocus() && !N && this.handleKeyboardNavigation(r);
+			this.focusManager.hasFocus() && !V && this.handleKeyboardNavigation(u);
 		}, document.addEventListener("keydown", this.keyboardHandler, !0));
 	}
 	detach() {
 		this.keyboardHandler &&= (document.removeEventListener("keydown", this.keyboardHandler, !0), null);
 	}
-	handleKeyboardNavigation(r) {
-		let j = this.focusManager.getFocusedCell();
-		if (!j || !this.callbacks.getAllColumns || !this.callbacks.focusCell) return;
-		let { rowIndex: M, columnId: N } = j, P = this.callbacks.getAllColumns(), F = this.callbacks.getMaxRowIndex ? this.callbacks.getMaxRowIndex() : Infinity, I = P.indexOf(N);
-		if (I < 0) return;
-		let L = M, R = I;
-		if (r.key === "Tab" && (r.preventDefault(), r.stopPropagation(), r.shiftKey ? I > 0 ? R = I - 1 : M > 0 ? (L = M - 1, R = P.length - 1) : (L = F, R = P.length - 1) : I < P.length - 1 ? R = I + 1 : M < F ? (L = M + 1, R = 0) : (L = 0, R = 0)), r.key === "Enter" && N.startsWith("values.")) if (r.preventDefault(), r.stopPropagation(), r.shiftKey) if (M > 0) L = M - 1;
+	handleKeyboardNavigation(u) {
+		let R = this.focusManager.getFocusedCell();
+		if (!R || !this.callbacks.getAllColumns || !this.callbacks.focusCell) return;
+		let { rowIndex: B, columnId: V } = R, H = this.callbacks.getAllColumns(), U = this.callbacks.getMaxRowIndex ? this.callbacks.getMaxRowIndex() : Infinity, W = H.indexOf(V);
+		if (W < 0) return;
+		let G = B, K = W;
+		if (u.key === "Tab" && (u.preventDefault(), u.stopPropagation(), u.shiftKey ? W > 0 ? K = W - 1 : B > 0 ? (G = B - 1, K = H.length - 1) : (G = U, K = H.length - 1) : W < H.length - 1 ? K = W + 1 : B < U ? (G = B + 1, K = 0) : (G = 0, K = 0)), u.key === "Enter" && V.startsWith("values.")) if (u.preventDefault(), u.stopPropagation(), u.shiftKey) if (B > 0) G = B - 1;
 		else return;
-		else if (M < F) L = M + 1;
+		else if (B < U) G = B + 1;
 		else return;
-		r.key.startsWith("Arrow") && (r.preventDefault(), r.stopPropagation(), r.key === "ArrowRight" && I < P.length - 1 ? R = I + 1 : r.key === "ArrowLeft" && I > 0 ? R = I - 1 : r.key === "ArrowDown" && M < F ? L = M + 1 : r.key === "ArrowUp" && M > 0 && (L = M - 1));
-		let B = P[R];
-		B && (this.focusManager.focusCell(L, B), this.callbacks.focusCell(L, B), this.callbacks.onNavigate && this.callbacks.onNavigate(L, B));
+		u.key.startsWith("Arrow") && (u.preventDefault(), u.stopPropagation(), u.key === "ArrowRight" && W < H.length - 1 ? K = W + 1 : u.key === "ArrowLeft" && W > 0 ? K = W - 1 : u.key === "ArrowDown" && B < U ? G = B + 1 : u.key === "ArrowUp" && B > 0 && (G = B - 1));
+		let q = H[K];
+		q && (this.focusManager.focusCell(G, q), this.callbacks.focusCell(G, q), this.callbacks.onNavigate && this.callbacks.onNavigate(G, q));
 	}
-	updateCallbacks(r) {
+	updateCallbacks(u) {
 		this.callbacks = {
 			...this.callbacks,
-			...r
+			...u
 		};
 	}
 }, ColumnResizer = class {
@@ -1044,31 +1045,31 @@ var CellEditor = class {
 	resizeHandler = null;
 	resizeEndHandler = null;
 	options;
-	constructor(r) {
-		this.options = r;
+	constructor(u) {
+		this.options = u;
 	}
-	addResizeHandle(r, j) {
-		let M = document.createElement("div");
-		M.className = "column-resize-handle", M.setAttribute("data-column-id", j), M.style.position = "absolute", M.style.right = "-2px", M.style.top = "0", M.style.bottom = "0", M.style.width = "4px", M.style.cursor = "col-resize", M.style.zIndex = "25", M.style.backgroundColor = "transparent", M.addEventListener("mousedown", (M) => {
-			M.preventDefault(), M.stopPropagation(), this.startResize(j, M.clientX, r);
-		}), r.appendChild(M);
+	addResizeHandle(u, R) {
+		let B = document.createElement("div");
+		B.className = "column-resize-handle", B.setAttribute("data-column-id", R), B.style.position = "absolute", B.style.right = "-2px", B.style.top = "0", B.style.bottom = "0", B.style.width = "4px", B.style.cursor = "col-resize", B.style.zIndex = "25", B.style.backgroundColor = "transparent", B.addEventListener("mousedown", (B) => {
+			B.preventDefault(), B.stopPropagation(), this.startResize(R, B.clientX, u);
+		}), u.appendChild(B);
 	}
-	startResize(r, j, M) {
-		this.isResizing = !0, this.resizeStartX = j, this.resizeStartWidth = M.offsetWidth || M.getBoundingClientRect().width, this.resizeColumnId = r, this.options.callbacks.onResizeStart && this.options.callbacks.onResizeStart(r), this.resizeHandler = (r) => {
-			!this.isResizing || !this.resizeColumnId || (r.preventDefault(), this.handleResize(r.clientX));
-		}, this.resizeEndHandler = (r) => {
-			this.isResizing && (r.preventDefault(), this.endResize());
+	startResize(u, R, B) {
+		this.isResizing = !0, this.resizeStartX = R, this.resizeStartWidth = B.offsetWidth || B.getBoundingClientRect().width, this.resizeColumnId = u, this.options.callbacks.onResizeStart && this.options.callbacks.onResizeStart(u), this.resizeHandler = (u) => {
+			!this.isResizing || !this.resizeColumnId || (u.preventDefault(), this.handleResize(u.clientX));
+		}, this.resizeEndHandler = (u) => {
+			this.isResizing && (u.preventDefault(), this.endResize());
 		}, document.addEventListener("mousemove", this.resizeHandler, !0), document.addEventListener("mouseup", this.resizeEndHandler, !0), document.body.style.cursor = "col-resize", document.body.style.userSelect = "none";
 	}
-	handleResize(r) {
+	handleResize(u) {
 		if (!this.resizeColumnId) return;
-		let j = r - this.resizeStartX, M = this.options.columnMinWidths.get(this.resizeColumnId) || 80, N = Math.max(M, this.resizeStartWidth + j), P = `values.${this.options.languages[this.options.languages.length - 1]}`;
-		this.resizeColumnId !== P && this.options.columnWidths.set(this.resizeColumnId, N), this.options.callbacks.onResize && this.options.callbacks.onResize(this.resizeColumnId, N);
+		let R = u - this.resizeStartX, B = this.options.columnMinWidths.get(this.resizeColumnId) || 80, V = Math.max(B, this.resizeStartWidth + R), H = `values.${this.options.languages[this.options.languages.length - 1]}`;
+		this.resizeColumnId !== H && this.options.columnWidths.set(this.resizeColumnId, V), this.options.callbacks.onResize && this.options.callbacks.onResize(this.resizeColumnId, V);
 	}
 	endResize() {
 		this.resizeHandler &&= (document.removeEventListener("mousemove", this.resizeHandler, !0), null), this.resizeEndHandler &&= (document.removeEventListener("mouseup", this.resizeEndHandler, !0), null), document.body.style.cursor = "", document.body.style.userSelect = "";
-		let r = this.resizeColumnId, j = r && this.options.columnWidths.get(r) || this.resizeStartWidth;
-		this.isResizing = !1, this.resizeColumnId = null, r && this.options.callbacks.onResizeEnd && this.options.callbacks.onResizeEnd(r, j);
+		let u = this.resizeColumnId, R = u && this.options.columnWidths.get(u) || this.resizeStartWidth;
+		this.isResizing = !1, this.resizeColumnId = null, u && this.options.callbacks.onResizeEnd && this.options.callbacks.onResizeEnd(u, R);
 	}
 	isResizingActive() {
 		return this.isResizing;
@@ -1084,1031 +1085,154 @@ var CellEditor = class {
 	defaultContextWidth;
 	defaultLangWidth;
 	options;
-	constructor(r) {
-		this.options = r, this.defaultKeyWidth = r.defaultKeyWidth ?? 200, this.defaultContextWidth = r.defaultContextWidth ?? 200, this.defaultLangWidth = r.defaultLangWidth ?? 150;
+	constructor(u) {
+		this.options = u, this.defaultKeyWidth = u.defaultKeyWidth ?? 200, this.defaultContextWidth = u.defaultContextWidth ?? 200, this.defaultLangWidth = u.defaultLangWidth ?? 150;
 	}
-	getColumnWidthValue(r, j) {
-		return this.options.columnWidths.get(r) || j || this.getDefaultWidth(r);
+	getColumnWidthValue(u, R) {
+		return this.options.columnWidths.get(u) || R || this.getDefaultWidth(u);
 	}
-	getDefaultWidth(r) {
-		return r === "row-number" ? 50 : r === "key" ? this.defaultKeyWidth : r === "context" ? this.defaultContextWidth : this.defaultLangWidth;
+	getDefaultWidth(u) {
+		return u === "row-number" ? 50 : u === "key" ? this.defaultKeyWidth : u === "context" ? this.defaultContextWidth : this.defaultLangWidth;
 	}
-	calculateColumnWidths(r) {
-		let j = this.getColumnWidthValue("row-number", 50), M = this.getColumnWidthValue("key", this.defaultKeyWidth), N = this.getColumnWidthValue("context", this.defaultContextWidth), P = this.options.languages.map((r) => this.getColumnWidthValue(`values.${r}`, this.defaultLangWidth)), F = j + M + N + P.slice(0, -1).reduce((r, j) => r + j, 0), I = this.options.languages[this.options.languages.length - 1], L = this.options.columnMinWidths.get(`values.${I}`) || 80, R = Math.max(L, r - F);
+	calculateColumnWidths(u) {
+		let R = this.getColumnWidthValue("row-number", 50), B = this.getColumnWidthValue("key", this.defaultKeyWidth), V = this.getColumnWidthValue("context", this.defaultContextWidth), H = this.options.languages.map((u) => this.getColumnWidthValue(`values.${u}`, this.defaultLangWidth)), U = R + B + V + H.slice(0, -1).reduce((u, R) => u + R, 0), W = this.options.languages[this.options.languages.length - 1], G = this.options.columnMinWidths.get(`values.${W}`) || 80, K = Math.max(G, u - U);
 		return {
-			rowNumber: j,
-			key: M,
-			context: N,
-			languages: [...P.slice(0, -1), R]
+			rowNumber: R,
+			key: B,
+			context: V,
+			languages: [...H.slice(0, -1), K]
 		};
 	}
-	applyColumnWidth(r, j, M) {
-		let N = `values.${this.options.languages[this.options.languages.length - 1]}`;
-		r !== N && this.options.columnWidths.set(r, j);
-		let P = this.getColumnWidthValue("row-number", 50), F = r === "key" ? j : this.getColumnWidthValue("key", this.defaultKeyWidth), I = r === "context" ? j : this.getColumnWidthValue("context", this.defaultContextWidth), L = this.options.languages.slice(0, -1).map((M) => {
-			let N = `values.${M}`;
-			return r === N ? j : this.getColumnWidthValue(N, this.defaultLangWidth);
-		}), R = P + F + I + L.reduce((r, j) => r + j, 0), B = this.options.columnMinWidths.get(N) || 80, V = Math.max(B, M - R);
+	applyColumnWidth(u, R, B) {
+		let V = `values.${this.options.languages[this.options.languages.length - 1]}`;
+		u !== V && this.options.columnWidths.set(u, R);
+		let H = this.getColumnWidthValue("row-number", 50), U = u === "key" ? R : this.getColumnWidthValue("key", this.defaultKeyWidth), W = u === "context" ? R : this.getColumnWidthValue("context", this.defaultContextWidth), G = this.options.languages.slice(0, -1).map((B) => {
+			let V = `values.${B}`;
+			return u === V ? R : this.getColumnWidthValue(V, this.defaultLangWidth);
+		}), K = H + U + W + G.reduce((u, R) => u + R, 0), q = this.options.columnMinWidths.get(V) || 80, J = Math.max(q, B - K);
 		return {
 			columnWidths: {
-				rowNumber: P,
-				key: F,
-				context: I,
-				languages: [...L, V]
+				rowNumber: H,
+				key: U,
+				context: W,
+				languages: [...G, J]
 			},
-			totalWidth: M
+			totalWidth: B
 		};
 	}
 }, GridRenderer = class {
 	options;
-	constructor(r) {
-		this.options = r;
+	constructor(u) {
+		this.options = u;
 	}
-	createHeaderCell(r, j, M, N, P) {
-		let F = document.createElement("div");
-		return F.className = "virtual-grid-header-cell", F.setAttribute("role", "columnheader"), F.textContent = r, P && F.setAttribute("data-column-id", P), F.style.width = `${j}px`, F.style.minWidth = `${j}px`, F.style.maxWidth = `${j}px`, (M > 0 || N > 0) && (F.style.position = "sticky", F.style.left = `${M}px`, F.style.zIndex = N.toString(), F.style.backgroundColor = "#f8fafc"), F.style.overflow = "visible", F;
+	createHeaderCell(u, R, B, V, H) {
+		let U = document.createElement("div");
+		return U.className = "virtual-grid-header-cell", U.setAttribute("role", "columnheader"), U.textContent = u, H && U.setAttribute("data-column-id", H), U.style.width = `${R}px`, U.style.minWidth = `${R}px`, U.style.maxWidth = `${R}px`, (B > 0 || V > 0) && (U.style.position = "sticky", U.style.left = `${B}px`, U.style.zIndex = V.toString(), U.style.backgroundColor = "#f8fafc"), U.style.overflow = "visible", U;
 	}
-	createRow(r, j, M) {
-		let N = document.createElement("div");
-		N.className = "virtual-grid-row", N.setAttribute("role", "row"), N.setAttribute("data-row-index", j.toString()), N.setAttribute("data-row-id", r.id);
-		let P = this.createCell(r.id, "row-number", (j + 1).toString(), j, !1, M.rowNumber, 0, 15);
-		P.classList.add("row-number-cell"), N.appendChild(P);
-		let F = this.createCell(r.id, "key", r.key, j, !this.options.readOnly, M.key, M.rowNumber, 10);
-		N.appendChild(F);
-		let I = this.createCell(r.id, "context", r.context || "", j, !this.options.readOnly, M.context, M.rowNumber + M.key, 10);
-		return N.appendChild(I), this.options.languages.forEach((P, F) => {
-			let I = r.values[P] || "", L = M.languages[F], R = M.rowNumber + M.key + M.context, B = this.createCell(r.id, `values.${P}`, I, j, !this.options.readOnly, L, R, 0);
-			N.appendChild(B);
-		}), N;
+	createRow(u, R, B) {
+		let V = document.createElement("div");
+		V.className = "virtual-grid-row", V.setAttribute("role", "row"), V.setAttribute("data-row-index", R.toString()), V.setAttribute("data-row-id", u.id);
+		let H = this.createCell(u.id, "row-number", (R + 1).toString(), R, !1, B.rowNumber, 0, 15);
+		H.classList.add("row-number-cell"), V.appendChild(H);
+		let U = this.createCell(u.id, "key", u.key, R, !this.options.readOnly, B.key, B.rowNumber, 10);
+		V.appendChild(U);
+		let W = this.createCell(u.id, "context", u.context || "", R, !this.options.readOnly, B.context, B.rowNumber + B.key, 10);
+		return V.appendChild(W), this.options.languages.forEach((H, U) => {
+			let W = u.values[H] || "", G = B.languages[U], K = B.rowNumber + B.key + B.context, q = this.createCell(u.id, `values.${H}`, W, R, !this.options.readOnly, G, K, 0);
+			V.appendChild(q);
+		}), V;
 	}
-	createCell(r, j, M, N, P, F, I, L) {
-		let R = document.createElement("div");
-		R.className = "virtual-grid-cell", R.setAttribute("role", "gridcell"), R.setAttribute("data-row-id", r), R.setAttribute("data-column-id", j), R.setAttribute("data-row-index", N.toString()), R.setAttribute("tabindex", P ? "0" : "-1"), R.style.width = `${F}px`, R.style.minWidth = `${F}px`, R.style.maxWidth = `${F}px`, (I > 0 || L > 0) && (R.style.position = "sticky", R.style.left = `${I}px`, R.style.zIndex = L.toString(), R.style.backgroundColor = "#fafafa");
-		let B = document.createElement("div");
-		return B.className = "virtual-grid-cell-content", B.textContent = M, R.appendChild(B), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(r, j, R), P && !this.options.readOnly && (R.addEventListener("dblclick", (r) => {
-			r.preventDefault(), r.stopPropagation(), this.options.callbacks.onCellDblClick && this.options.callbacks.onCellDblClick(N, j, R);
-		}), R.addEventListener("focus", () => {
-			this.options.callbacks.onCellFocus && this.options.callbacks.onCellFocus(N, j), R.classList.add("focused");
-		}), R.addEventListener("blur", () => {
-			R.classList.remove("focused");
-		})), R;
+	createCell(u, R, B, V, H, U, W, G) {
+		let K = document.createElement("div");
+		K.className = "virtual-grid-cell", K.setAttribute("role", "gridcell"), K.setAttribute("data-row-id", u), K.setAttribute("data-column-id", R), K.setAttribute("data-row-index", V.toString()), K.setAttribute("tabindex", H ? "0" : "-1"), K.style.width = `${U}px`, K.style.minWidth = `${U}px`, K.style.maxWidth = `${U}px`, (W > 0 || G > 0) && (K.style.position = "sticky", K.style.left = `${W}px`, K.style.zIndex = G.toString(), K.style.backgroundColor = "#fafafa");
+		let q = document.createElement("div");
+		return q.className = "virtual-grid-cell-content", q.textContent = B, K.appendChild(q), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(u, R, K), H && !this.options.readOnly && (K.addEventListener("dblclick", (u) => {
+			u.preventDefault(), u.stopPropagation(), this.options.callbacks.onCellDblClick && this.options.callbacks.onCellDblClick(V, R, K);
+		}), K.addEventListener("focus", () => {
+			this.options.callbacks.onCellFocus && this.options.callbacks.onCellFocus(V, R), K.classList.add("focused");
+		}), K.addEventListener("blur", () => {
+			K.classList.remove("focused");
+		})), K;
 	}
-	updateCellContent(r, j, M, N, P) {
-		r.innerHTML = "";
-		let F = document.createElement("div");
-		F.className = "virtual-grid-cell-content", F.textContent = N, r.appendChild(F), !this.options.readOnly && this.options.editableColumns.has(M) && r.addEventListener("dblclick", (j) => {
-			j.preventDefault(), j.stopPropagation(), this.options.callbacks.onCellDblClick && this.options.callbacks.onCellDblClick(P, M, r);
-		}), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(j, M, r);
+	updateCellContent(u, R, B, V, H) {
+		let U = u.querySelector(".virtual-grid-cell-content");
+		U ? U.textContent = V : (U = document.createElement("div"), U.className = "virtual-grid-cell-content", U.textContent = V, u.appendChild(U)), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(R, B, u);
 	}
 }, CommandRegistry = class {
 	commands = /* @__PURE__ */ new Map();
 	usageCounts = /* @__PURE__ */ new Map();
 	storageKey = "command-palette-usage";
 	callbacks;
-	constructor(r = {}) {
-		this.callbacks = r, this.loadUsageCounts();
+	constructor(u = {}) {
+		this.callbacks = u, this.loadUsageCounts();
 	}
-	registerCommand(r) {
-		let j = {
-			...r,
-			usageCount: r.usageCount ?? 0,
-			availableInModes: r.availableInModes ?? ["all"]
+	registerCommand(u) {
+		let R = {
+			...u,
+			usageCount: u.usageCount ?? 0,
+			availableInModes: u.availableInModes ?? ["all"]
 		};
-		this.commands.set(r.id, j), this.applySavedUsageCount(r.id);
+		this.commands.set(u.id, R), this.applySavedUsageCount(u.id);
 	}
-	getCommandById(r) {
-		return this.commands.get(r);
+	getCommandById(u) {
+		return this.commands.get(u);
 	}
-	getCommands(r) {
-		let j = Array.from(this.commands.values());
-		return !r || r === "all" ? j : j.filter((j) => {
-			let M = j.availableInModes ?? ["all"];
-			return M.includes("all") || M.includes(r);
+	getCommands(u) {
+		let R = Array.from(this.commands.values());
+		return !u || u === "all" ? R : R.filter((R) => {
+			let B = R.availableInModes ?? ["all"];
+			return B.includes("all") || B.includes(u);
 		});
 	}
-	incrementUsage(r) {
-		let j = (this.usageCounts.get(r) ?? 0) + 1;
-		this.usageCounts.set(r, j);
-		let M = this.commands.get(r);
-		M && (M.usageCount = j), this.saveUsageCounts(), this.callbacks.onCommandExecuted && this.callbacks.onCommandExecuted(r);
+	incrementUsage(u) {
+		let R = (this.usageCounts.get(u) ?? 0) + 1;
+		this.usageCounts.set(u, R);
+		let B = this.commands.get(u);
+		B && (B.usageCount = R), this.saveUsageCounts(), this.callbacks.onCommandExecuted && this.callbacks.onCommandExecuted(u);
 	}
-	getPopularCommands(r = 10, j) {
-		return this.getCommands(j).sort((r, j) => {
-			let M = this.usageCounts.get(r.id) ?? 0;
-			return (this.usageCounts.get(j.id) ?? 0) - M;
-		}).slice(0, r);
+	getPopularCommands(u = 10, R) {
+		return this.getCommands(R).sort((u, R) => {
+			let B = this.usageCounts.get(u.id) ?? 0;
+			return (this.usageCounts.get(R.id) ?? 0) - B;
+		}).slice(0, u);
 	}
 	loadUsageCounts() {
 		try {
-			let r = localStorage.getItem(this.storageKey);
-			if (r) {
-				let j = JSON.parse(r);
-				this.usageCounts = new Map(Object.entries(j));
+			let u = localStorage.getItem(this.storageKey);
+			if (u) {
+				let R = JSON.parse(u);
+				this.usageCounts = new Map(Object.entries(R));
 			}
-		} catch (r) {
-			logger.warn("Failed to load command usage counts:", r);
+		} catch (u) {
+			logger.warn("Failed to load command usage counts:", u);
 		}
 	}
-	applySavedUsageCount(r) {
-		let j = this.usageCounts.get(r);
-		if (j !== void 0) {
-			let M = this.commands.get(r);
-			M && (M.usageCount = j);
+	applySavedUsageCount(u) {
+		let R = this.usageCounts.get(u);
+		if (R !== void 0) {
+			let B = this.commands.get(u);
+			B && (B.usageCount = R);
 		}
 	}
 	saveUsageCounts() {
 		try {
-			let r = Object.fromEntries(this.usageCounts);
-			localStorage.setItem(this.storageKey, JSON.stringify(r));
-		} catch (r) {
-			logger.warn("Failed to save command usage counts:", r);
+			let u = Object.fromEntries(this.usageCounts);
+			localStorage.setItem(this.storageKey, JSON.stringify(u));
+		} catch (u) {
+			logger.warn("Failed to save command usage counts:", u);
 		}
 	}
 	clear() {
 		this.commands.clear(), this.usageCounts.clear(), localStorage.removeItem(this.storageKey);
 	}
 };
-function isArray(r) {
-	return Array.isArray ? Array.isArray(r) : getTag(r) === "[object Array]";
-}
-var INFINITY = Infinity;
-function baseToString(r) {
-	if (typeof r == "string") return r;
-	let j = r + "";
-	return j == "0" && 1 / r == -INFINITY ? "-0" : j;
-}
-function toString(r) {
-	return r == null ? "" : baseToString(r);
-}
-function isString(r) {
-	return typeof r == "string";
-}
-function isNumber(r) {
-	return typeof r == "number";
-}
-function isBoolean(r) {
-	return r === !0 || r === !1 || isObjectLike(r) && getTag(r) == "[object Boolean]";
-}
-function isObject(r) {
-	return typeof r == "object";
-}
-function isObjectLike(r) {
-	return isObject(r) && r !== null;
-}
-function isDefined(r) {
-	return r != null;
-}
-function isBlank(r) {
-	return !r.trim().length;
-}
-function getTag(r) {
-	return r == null ? r === void 0 ? "[object Undefined]" : "[object Null]" : Object.prototype.toString.call(r);
-}
-var INCORRECT_INDEX_TYPE = "Incorrect 'index' type", LOGICAL_SEARCH_INVALID_QUERY_FOR_KEY = (r) => `Invalid value for key ${r}`, PATTERN_LENGTH_TOO_LARGE = (r) => `Pattern length exceeds max of ${r}.`, MISSING_KEY_PROPERTY = (r) => `Missing ${r} property in key`, INVALID_KEY_WEIGHT_VALUE = (r) => `Property 'weight' in key '${r}' must be a positive integer`, hasOwn = Object.prototype.hasOwnProperty, KeyStore = class {
-	constructor(r) {
-		this._keys = [], this._keyMap = {};
-		let j = 0;
-		r.forEach((r) => {
-			let M = createKey(r);
-			this._keys.push(M), this._keyMap[M.id] = M, j += M.weight;
-		}), this._keys.forEach((r) => {
-			r.weight /= j;
-		});
-	}
-	get(r) {
-		return this._keyMap[r];
-	}
-	keys() {
-		return this._keys;
-	}
-	toJSON() {
-		return JSON.stringify(this._keys);
-	}
-};
-function createKey(r) {
-	let j = null, M = null, N = null, P = 1, F = null;
-	if (isString(r) || isArray(r)) N = r, j = createKeyPath(r), M = createKeyId(r);
-	else {
-		if (!hasOwn.call(r, "name")) throw Error(MISSING_KEY_PROPERTY("name"));
-		let I = r.name;
-		if (N = I, hasOwn.call(r, "weight") && (P = r.weight, P <= 0)) throw Error(INVALID_KEY_WEIGHT_VALUE(I));
-		j = createKeyPath(I), M = createKeyId(I), F = r.getFn;
-	}
-	return {
-		path: j,
-		id: M,
-		weight: P,
-		src: N,
-		getFn: F
-	};
-}
-function createKeyPath(r) {
-	return isArray(r) ? r : r.split(".");
-}
-function createKeyId(r) {
-	return isArray(r) ? r.join(".") : r;
-}
-function get(r, j) {
-	let M = [], N = !1, P = (r, j, F) => {
-		if (isDefined(r)) if (!j[F]) M.push(r);
-		else {
-			let I = r[j[F]];
-			if (!isDefined(I)) return;
-			if (F === j.length - 1 && (isString(I) || isNumber(I) || isBoolean(I))) M.push(toString(I));
-			else if (isArray(I)) {
-				N = !0;
-				for (let r = 0, M = I.length; r < M; r += 1) P(I[r], j, F + 1);
-			} else j.length && P(I, j, F + 1);
-		}
-	};
-	return P(r, isString(j) ? j.split(".") : j, 0), N ? M : M[0];
-}
-var MatchOptions = {
-	includeMatches: !1,
-	findAllMatches: !1,
-	minMatchCharLength: 1
-}, BasicOptions = {
-	isCaseSensitive: !1,
-	ignoreDiacritics: !1,
-	includeScore: !1,
-	keys: [],
-	shouldSort: !0,
-	sortFn: (r, j) => r.score === j.score ? r.idx < j.idx ? -1 : 1 : r.score < j.score ? -1 : 1
-}, FuzzyOptions = {
-	location: 0,
-	threshold: .6,
-	distance: 100
-}, AdvancedOptions = {
-	useExtendedSearch: !1,
-	getFn: get,
-	ignoreLocation: !1,
-	ignoreFieldNorm: !1,
-	fieldNormWeight: 1
-}, Config = {
-	...BasicOptions,
-	...MatchOptions,
-	...FuzzyOptions,
-	...AdvancedOptions
-}, SPACE = /[^ ]+/g;
-function norm(r = 1, j = 3) {
-	let M = /* @__PURE__ */ new Map(), N = 10 ** j;
-	return {
-		get(j) {
-			let P = j.match(SPACE).length;
-			if (M.has(P)) return M.get(P);
-			let F = 1 / P ** (.5 * r), I = parseFloat(Math.round(F * N) / N);
-			return M.set(P, I), I;
-		},
-		clear() {
-			M.clear();
-		}
-	};
-}
-var FuseIndex = class {
-	constructor({ getFn: r = Config.getFn, fieldNormWeight: j = Config.fieldNormWeight } = {}) {
-		this.norm = norm(j, 3), this.getFn = r, this.isCreated = !1, this.setIndexRecords();
-	}
-	setSources(r = []) {
-		this.docs = r;
-	}
-	setIndexRecords(r = []) {
-		this.records = r;
-	}
-	setKeys(r = []) {
-		this.keys = r, this._keysMap = {}, r.forEach((r, j) => {
-			this._keysMap[r.id] = j;
-		});
-	}
-	create() {
-		this.isCreated || !this.docs.length || (this.isCreated = !0, isString(this.docs[0]) ? this.docs.forEach((r, j) => {
-			this._addString(r, j);
-		}) : this.docs.forEach((r, j) => {
-			this._addObject(r, j);
-		}), this.norm.clear());
-	}
-	add(r) {
-		let j = this.size();
-		isString(r) ? this._addString(r, j) : this._addObject(r, j);
-	}
-	removeAt(r) {
-		this.records.splice(r, 1);
-		for (let j = r, M = this.size(); j < M; j += 1) --this.records[j].i;
-	}
-	getValueForItemAtKeyId(r, j) {
-		return r[this._keysMap[j]];
-	}
-	size() {
-		return this.records.length;
-	}
-	_addString(r, j) {
-		if (!isDefined(r) || isBlank(r)) return;
-		let M = {
-			v: r,
-			i: j,
-			n: this.norm.get(r)
-		};
-		this.records.push(M);
-	}
-	_addObject(r, j) {
-		let M = {
-			i: j,
-			$: {}
-		};
-		this.keys.forEach((j, N) => {
-			let P = j.getFn ? j.getFn(r) : this.getFn(r, j.path);
-			if (isDefined(P)) {
-				if (isArray(P)) {
-					let r = [], j = [{
-						nestedArrIndex: -1,
-						value: P
-					}];
-					for (; j.length;) {
-						let { nestedArrIndex: M, value: N } = j.pop();
-						if (isDefined(N)) if (isString(N) && !isBlank(N)) {
-							let j = {
-								v: N,
-								i: M,
-								n: this.norm.get(N)
-							};
-							r.push(j);
-						} else isArray(N) && N.forEach((r, M) => {
-							j.push({
-								nestedArrIndex: M,
-								value: r
-							});
-						});
-					}
-					M.$[N] = r;
-				} else if (isString(P) && !isBlank(P)) {
-					let r = {
-						v: P,
-						n: this.norm.get(P)
-					};
-					M.$[N] = r;
-				}
-			}
-		}), this.records.push(M);
-	}
-	toJSON() {
-		return {
-			keys: this.keys,
-			records: this.records
-		};
-	}
-};
-function createIndex(r, j, { getFn: M = Config.getFn, fieldNormWeight: N = Config.fieldNormWeight } = {}) {
-	let P = new FuseIndex({
-		getFn: M,
-		fieldNormWeight: N
-	});
-	return P.setKeys(r.map(createKey)), P.setSources(j), P.create(), P;
-}
-function parseIndex(r, { getFn: j = Config.getFn, fieldNormWeight: M = Config.fieldNormWeight } = {}) {
-	let { keys: N, records: P } = r, F = new FuseIndex({
-		getFn: j,
-		fieldNormWeight: M
-	});
-	return F.setKeys(N), F.setIndexRecords(P), F;
-}
-function computeScore$1(r, { errors: j = 0, currentLocation: M = 0, expectedLocation: N = 0, distance: P = Config.distance, ignoreLocation: F = Config.ignoreLocation } = {}) {
-	let I = j / r.length;
-	if (F) return I;
-	let L = Math.abs(N - M);
-	return P ? I + L / P : L ? 1 : I;
-}
-function convertMaskToIndices(r = [], j = Config.minMatchCharLength) {
-	let M = [], N = -1, P = -1, F = 0;
-	for (let I = r.length; F < I; F += 1) {
-		let I = r[F];
-		I && N === -1 ? N = F : !I && N !== -1 && (P = F - 1, P - N + 1 >= j && M.push([N, P]), N = -1);
-	}
-	return r[F - 1] && F - N >= j && M.push([N, F - 1]), M;
-}
-var MAX_BITS = 32;
-function search(r, j, M, { location: N = Config.location, distance: P = Config.distance, threshold: F = Config.threshold, findAllMatches: I = Config.findAllMatches, minMatchCharLength: L = Config.minMatchCharLength, includeMatches: R = Config.includeMatches, ignoreLocation: B = Config.ignoreLocation } = {}) {
-	if (j.length > MAX_BITS) throw Error(PATTERN_LENGTH_TOO_LARGE(MAX_BITS));
-	let V = j.length, H = r.length, U = Math.max(0, Math.min(N, H)), W = F, G = U, K = L > 1 || R, q = K ? Array(H) : [], J;
-	for (; (J = r.indexOf(j, G)) > -1;) {
-		let r = computeScore$1(j, {
-			currentLocation: J,
-			expectedLocation: U,
-			distance: P,
-			ignoreLocation: B
-		});
-		if (W = Math.min(r, W), G = J + V, K) {
-			let r = 0;
-			for (; r < V;) q[J + r] = 1, r += 1;
-		}
-	}
-	G = -1;
-	let Y = [], X = 1, Z = V + H, Q = 1 << V - 1;
-	for (let N = 0; N < V; N += 1) {
-		let F = 0, L = Z;
-		for (; F < L;) computeScore$1(j, {
-			errors: N,
-			currentLocation: U + L,
-			expectedLocation: U,
-			distance: P,
-			ignoreLocation: B
-		}) <= W ? F = L : Z = L, L = Math.floor((Z - F) / 2 + F);
-		Z = L;
-		let R = Math.max(1, U - L + 1), J = I ? H : Math.min(U + L, H) + V, $ = Array(J + 2);
-		$[J + 1] = (1 << N) - 1;
-		for (let F = J; F >= R; --F) {
-			let I = F - 1, L = M[r.charAt(I)];
-			if (K && (q[I] = +!!L), $[F] = ($[F + 1] << 1 | 1) & L, N && ($[F] |= (Y[F + 1] | Y[F]) << 1 | 1 | Y[F + 1]), $[F] & Q && (X = computeScore$1(j, {
-				errors: N,
-				currentLocation: I,
-				expectedLocation: U,
-				distance: P,
-				ignoreLocation: B
-			}), X <= W)) {
-				if (W = X, G = I, G <= U) break;
-				R = Math.max(1, 2 * U - G);
-			}
-		}
-		if (computeScore$1(j, {
-			errors: N + 1,
-			currentLocation: U,
-			expectedLocation: U,
-			distance: P,
-			ignoreLocation: B
-		}) > W) break;
-		Y = $;
-	}
-	let $ = {
-		isMatch: G >= 0,
-		score: Math.max(.001, X)
-	};
-	if (K) {
-		let r = convertMaskToIndices(q, L);
-		r.length ? R && ($.indices = r) : $.isMatch = !1;
-	}
-	return $;
-}
-function createPatternAlphabet(r) {
-	let j = {};
-	for (let M = 0, N = r.length; M < N; M += 1) {
-		let P = r.charAt(M);
-		j[P] = (j[P] || 0) | 1 << N - M - 1;
-	}
-	return j;
-}
-var stripDiacritics = String.prototype.normalize ? ((r) => r.normalize("NFD").replace(/[\u0300-\u036F\u0483-\u0489\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u0711\u0730-\u074A\u07A6-\u07B0\u07EB-\u07F3\u07FD\u0816-\u0819\u081B-\u0823\u0825-\u0827\u0829-\u082D\u0859-\u085B\u08D3-\u08E1\u08E3-\u0903\u093A-\u093C\u093E-\u094F\u0951-\u0957\u0962\u0963\u0981-\u0983\u09BC\u09BE-\u09C4\u09C7\u09C8\u09CB-\u09CD\u09D7\u09E2\u09E3\u09FE\u0A01-\u0A03\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A70\u0A71\u0A75\u0A81-\u0A83\u0ABC\u0ABE-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AE2\u0AE3\u0AFA-\u0AFF\u0B01-\u0B03\u0B3C\u0B3E-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B62\u0B63\u0B82\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD7\u0C00-\u0C04\u0C3E-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C62\u0C63\u0C81-\u0C83\u0CBC\u0CBE-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CE2\u0CE3\u0D00-\u0D03\u0D3B\u0D3C\u0D3E-\u0D44\u0D46-\u0D48\u0D4A-\u0D4D\u0D57\u0D62\u0D63\u0D82\u0D83\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DF2\u0DF3\u0E31\u0E34-\u0E3A\u0E47-\u0E4E\u0EB1\u0EB4-\u0EB9\u0EBB\u0EBC\u0EC8-\u0ECD\u0F18\u0F19\u0F35\u0F37\u0F39\u0F3E\u0F3F\u0F71-\u0F84\u0F86\u0F87\u0F8D-\u0F97\u0F99-\u0FBC\u0FC6\u102B-\u103E\u1056-\u1059\u105E-\u1060\u1062-\u1064\u1067-\u106D\u1071-\u1074\u1082-\u108D\u108F\u109A-\u109D\u135D-\u135F\u1712-\u1714\u1732-\u1734\u1752\u1753\u1772\u1773\u17B4-\u17D3\u17DD\u180B-\u180D\u1885\u1886\u18A9\u1920-\u192B\u1930-\u193B\u1A17-\u1A1B\u1A55-\u1A5E\u1A60-\u1A7C\u1A7F\u1AB0-\u1ABE\u1B00-\u1B04\u1B34-\u1B44\u1B6B-\u1B73\u1B80-\u1B82\u1BA1-\u1BAD\u1BE6-\u1BF3\u1C24-\u1C37\u1CD0-\u1CD2\u1CD4-\u1CE8\u1CED\u1CF2-\u1CF4\u1CF7-\u1CF9\u1DC0-\u1DF9\u1DFB-\u1DFF\u20D0-\u20F0\u2CEF-\u2CF1\u2D7F\u2DE0-\u2DFF\u302A-\u302F\u3099\u309A\uA66F-\uA672\uA674-\uA67D\uA69E\uA69F\uA6F0\uA6F1\uA802\uA806\uA80B\uA823-\uA827\uA880\uA881\uA8B4-\uA8C5\uA8E0-\uA8F1\uA8FF\uA926-\uA92D\uA947-\uA953\uA980-\uA983\uA9B3-\uA9C0\uA9E5\uAA29-\uAA36\uAA43\uAA4C\uAA4D\uAA7B-\uAA7D\uAAB0\uAAB2-\uAAB4\uAAB7\uAAB8\uAABE\uAABF\uAAC1\uAAEB-\uAAEF\uAAF5\uAAF6\uABE3-\uABEA\uABEC\uABED\uFB1E\uFE00-\uFE0F\uFE20-\uFE2F]/g, "")) : ((r) => r), BitapSearch = class {
-	constructor(r, { location: j = Config.location, threshold: M = Config.threshold, distance: N = Config.distance, includeMatches: P = Config.includeMatches, findAllMatches: F = Config.findAllMatches, minMatchCharLength: I = Config.minMatchCharLength, isCaseSensitive: L = Config.isCaseSensitive, ignoreDiacritics: R = Config.ignoreDiacritics, ignoreLocation: B = Config.ignoreLocation } = {}) {
-		if (this.options = {
-			location: j,
-			threshold: M,
-			distance: N,
-			includeMatches: P,
-			findAllMatches: F,
-			minMatchCharLength: I,
-			isCaseSensitive: L,
-			ignoreDiacritics: R,
-			ignoreLocation: B
-		}, r = L ? r : r.toLowerCase(), r = R ? stripDiacritics(r) : r, this.pattern = r, this.chunks = [], !this.pattern.length) return;
-		let V = (r, j) => {
-			this.chunks.push({
-				pattern: r,
-				alphabet: createPatternAlphabet(r),
-				startIndex: j
-			});
-		}, H = this.pattern.length;
-		if (H > MAX_BITS) {
-			let r = 0, j = H % MAX_BITS, M = H - j;
-			for (; r < M;) V(this.pattern.substr(r, MAX_BITS), r), r += MAX_BITS;
-			if (j) {
-				let r = H - MAX_BITS;
-				V(this.pattern.substr(r), r);
-			}
-		} else V(this.pattern, 0);
-	}
-	searchIn(r) {
-		let { isCaseSensitive: j, ignoreDiacritics: M, includeMatches: N } = this.options;
-		if (r = j ? r : r.toLowerCase(), r = M ? stripDiacritics(r) : r, this.pattern === r) {
-			let j = {
-				isMatch: !0,
-				score: 0
-			};
-			return N && (j.indices = [[0, r.length - 1]]), j;
-		}
-		let { location: P, distance: F, threshold: I, findAllMatches: L, minMatchCharLength: R, ignoreLocation: B } = this.options, V = [], H = 0, U = !1;
-		this.chunks.forEach(({ pattern: j, alphabet: M, startIndex: W }) => {
-			let { isMatch: G, score: K, indices: q } = search(r, j, M, {
-				location: P + W,
-				distance: F,
-				threshold: I,
-				findAllMatches: L,
-				minMatchCharLength: R,
-				includeMatches: N,
-				ignoreLocation: B
-			});
-			G && (U = !0), H += K, G && q && (V = [...V, ...q]);
-		});
-		let W = {
-			isMatch: U,
-			score: U ? H / this.chunks.length : 1
-		};
-		return U && N && (W.indices = V), W;
-	}
-}, BaseMatch = class {
-	constructor(r) {
-		this.pattern = r;
-	}
-	static isMultiMatch(r) {
-		return getMatch(r, this.multiRegex);
-	}
-	static isSingleMatch(r) {
-		return getMatch(r, this.singleRegex);
-	}
-	search() {}
-};
-function getMatch(r, j) {
-	let M = r.match(j);
-	return M ? M[1] : null;
-}
-var ExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "exact";
-	}
-	static get multiRegex() {
-		return /^="(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^=(.*)$/;
-	}
-	search(r) {
-		let j = r === this.pattern;
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [0, this.pattern.length - 1]
-		};
-	}
-}, InverseExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "inverse-exact";
-	}
-	static get multiRegex() {
-		return /^!"(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^!(.*)$/;
-	}
-	search(r) {
-		let j = r.indexOf(this.pattern) === -1;
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [0, r.length - 1]
-		};
-	}
-}, PrefixExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "prefix-exact";
-	}
-	static get multiRegex() {
-		return /^\^"(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^\^(.*)$/;
-	}
-	search(r) {
-		let j = r.startsWith(this.pattern);
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [0, this.pattern.length - 1]
-		};
-	}
-}, InversePrefixExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "inverse-prefix-exact";
-	}
-	static get multiRegex() {
-		return /^!\^"(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^!\^(.*)$/;
-	}
-	search(r) {
-		let j = !r.startsWith(this.pattern);
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [0, r.length - 1]
-		};
-	}
-}, SuffixExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "suffix-exact";
-	}
-	static get multiRegex() {
-		return /^"(.*)"\$$/;
-	}
-	static get singleRegex() {
-		return /^(.*)\$$/;
-	}
-	search(r) {
-		let j = r.endsWith(this.pattern);
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [r.length - this.pattern.length, r.length - 1]
-		};
-	}
-}, InverseSuffixExactMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "inverse-suffix-exact";
-	}
-	static get multiRegex() {
-		return /^!"(.*)"\$$/;
-	}
-	static get singleRegex() {
-		return /^!(.*)\$$/;
-	}
-	search(r) {
-		let j = !r.endsWith(this.pattern);
-		return {
-			isMatch: j,
-			score: j ? 0 : 1,
-			indices: [0, r.length - 1]
-		};
-	}
-}, FuzzyMatch = class extends BaseMatch {
-	constructor(r, { location: j = Config.location, threshold: M = Config.threshold, distance: N = Config.distance, includeMatches: P = Config.includeMatches, findAllMatches: F = Config.findAllMatches, minMatchCharLength: I = Config.minMatchCharLength, isCaseSensitive: L = Config.isCaseSensitive, ignoreDiacritics: R = Config.ignoreDiacritics, ignoreLocation: B = Config.ignoreLocation } = {}) {
-		super(r), this._bitapSearch = new BitapSearch(r, {
-			location: j,
-			threshold: M,
-			distance: N,
-			includeMatches: P,
-			findAllMatches: F,
-			minMatchCharLength: I,
-			isCaseSensitive: L,
-			ignoreDiacritics: R,
-			ignoreLocation: B
-		});
-	}
-	static get type() {
-		return "fuzzy";
-	}
-	static get multiRegex() {
-		return /^"(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^(.*)$/;
-	}
-	search(r) {
-		return this._bitapSearch.searchIn(r);
-	}
-}, IncludeMatch = class extends BaseMatch {
-	constructor(r) {
-		super(r);
-	}
-	static get type() {
-		return "include";
-	}
-	static get multiRegex() {
-		return /^'"(.*)"$/;
-	}
-	static get singleRegex() {
-		return /^'(.*)$/;
-	}
-	search(r) {
-		let j = 0, M, N = [], P = this.pattern.length;
-		for (; (M = r.indexOf(this.pattern, j)) > -1;) j = M + P, N.push([M, j - 1]);
-		let F = !!N.length;
-		return {
-			isMatch: F,
-			score: F ? 0 : 1,
-			indices: N
-		};
-	}
-}, searchers = [
-	ExactMatch,
-	IncludeMatch,
-	PrefixExactMatch,
-	InversePrefixExactMatch,
-	InverseSuffixExactMatch,
-	SuffixExactMatch,
-	InverseExactMatch,
-	FuzzyMatch
-], searchersLen = searchers.length, SPACE_RE = / +(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/, OR_TOKEN = "|";
-function parseQuery(r, j = {}) {
-	return r.split(OR_TOKEN).map((r) => {
-		let M = r.trim().split(SPACE_RE).filter((r) => r && !!r.trim()), N = [];
-		for (let r = 0, P = M.length; r < P; r += 1) {
-			let P = M[r], F = !1, I = -1;
-			for (; !F && ++I < searchersLen;) {
-				let r = searchers[I], M = r.isMultiMatch(P);
-				M && (N.push(new r(M, j)), F = !0);
-			}
-			if (!F) for (I = -1; ++I < searchersLen;) {
-				let r = searchers[I], M = r.isSingleMatch(P);
-				if (M) {
-					N.push(new r(M, j));
-					break;
-				}
-			}
-		}
-		return N;
-	});
-}
-var MultiMatchSet = new Set([FuzzyMatch.type, IncludeMatch.type]), ExtendedSearch = class {
-	constructor(r, { isCaseSensitive: j = Config.isCaseSensitive, ignoreDiacritics: M = Config.ignoreDiacritics, includeMatches: N = Config.includeMatches, minMatchCharLength: P = Config.minMatchCharLength, ignoreLocation: F = Config.ignoreLocation, findAllMatches: I = Config.findAllMatches, location: L = Config.location, threshold: R = Config.threshold, distance: B = Config.distance } = {}) {
-		this.query = null, this.options = {
-			isCaseSensitive: j,
-			ignoreDiacritics: M,
-			includeMatches: N,
-			minMatchCharLength: P,
-			findAllMatches: I,
-			ignoreLocation: F,
-			location: L,
-			threshold: R,
-			distance: B
-		}, r = j ? r : r.toLowerCase(), r = M ? stripDiacritics(r) : r, this.pattern = r, this.query = parseQuery(this.pattern, this.options);
-	}
-	static condition(r, j) {
-		return j.useExtendedSearch;
-	}
-	searchIn(r) {
-		let j = this.query;
-		if (!j) return {
-			isMatch: !1,
-			score: 1
-		};
-		let { includeMatches: M, isCaseSensitive: N, ignoreDiacritics: P } = this.options;
-		r = N ? r : r.toLowerCase(), r = P ? stripDiacritics(r) : r;
-		let F = 0, I = [], L = 0;
-		for (let N = 0, P = j.length; N < P; N += 1) {
-			let P = j[N];
-			I.length = 0, F = 0;
-			for (let j = 0, N = P.length; j < N; j += 1) {
-				let N = P[j], { isMatch: R, indices: B, score: V } = N.search(r);
-				if (R) {
-					if (F += 1, L += V, M) {
-						let r = N.constructor.type;
-						MultiMatchSet.has(r) ? I = [...I, ...B] : I.push(B);
-					}
-				} else {
-					L = 0, F = 0, I.length = 0;
-					break;
-				}
-			}
-			if (F) {
-				let r = {
-					isMatch: !0,
-					score: L / F
-				};
-				return M && (r.indices = I), r;
-			}
-		}
-		return {
-			isMatch: !1,
-			score: 1
-		};
-	}
-}, registeredSearchers = [];
-function register(...r) {
-	registeredSearchers.push(...r);
-}
-function createSearcher(r, j) {
-	for (let M = 0, N = registeredSearchers.length; M < N; M += 1) {
-		let N = registeredSearchers[M];
-		if (N.condition(r, j)) return new N(r, j);
-	}
-	return new BitapSearch(r, j);
-}
-var LogicalOperator = {
-	AND: "$and",
-	OR: "$or"
-}, KeyType = {
-	PATH: "$path",
-	PATTERN: "$val"
-}, isExpression = (r) => !!(r[LogicalOperator.AND] || r[LogicalOperator.OR]), isPath = (r) => !!r[KeyType.PATH], isLeaf = (r) => !isArray(r) && isObject(r) && !isExpression(r), convertToExplicit = (r) => ({ [LogicalOperator.AND]: Object.keys(r).map((j) => ({ [j]: r[j] })) });
-function parse(r, j, { auto: M = !0 } = {}) {
-	let N = (r) => {
-		let P = Object.keys(r), F = isPath(r);
-		if (!F && P.length > 1 && !isExpression(r)) return N(convertToExplicit(r));
-		if (isLeaf(r)) {
-			let N = F ? r[KeyType.PATH] : P[0], I = F ? r[KeyType.PATTERN] : r[N];
-			if (!isString(I)) throw Error(LOGICAL_SEARCH_INVALID_QUERY_FOR_KEY(N));
-			let L = {
-				keyId: createKeyId(N),
-				pattern: I
-			};
-			return M && (L.searcher = createSearcher(I, j)), L;
-		}
-		let I = {
-			children: [],
-			operator: P[0]
-		};
-		return P.forEach((j) => {
-			let M = r[j];
-			isArray(M) && M.forEach((r) => {
-				I.children.push(N(r));
-			});
-		}), I;
-	};
-	return isExpression(r) || (r = convertToExplicit(r)), N(r);
-}
-function computeScore(r, { ignoreFieldNorm: j = Config.ignoreFieldNorm }) {
-	r.forEach((r) => {
-		let M = 1;
-		r.matches.forEach(({ key: r, norm: N, score: P }) => {
-			let F = r ? r.weight : null;
-			M *= (P === 0 && F ? 2 ** -52 : P) ** +((F || 1) * (j ? 1 : N));
-		}), r.score = M;
-	});
-}
-function transformMatches(r, j) {
-	let M = r.matches;
-	j.matches = [], isDefined(M) && M.forEach((r) => {
-		if (!isDefined(r.indices) || !r.indices.length) return;
-		let { indices: M, value: N } = r, P = {
-			indices: M,
-			value: N
-		};
-		r.key && (P.key = r.key.src), r.idx > -1 && (P.refIndex = r.idx), j.matches.push(P);
-	});
-}
-function transformScore(r, j) {
-	j.score = r.score;
-}
-function format(r, j, { includeMatches: M = Config.includeMatches, includeScore: N = Config.includeScore } = {}) {
-	let P = [];
-	return M && P.push(transformMatches), N && P.push(transformScore), r.map((r) => {
-		let { idx: M } = r, N = {
-			item: j[M],
-			refIndex: M
-		};
-		return P.length && P.forEach((j) => {
-			j(r, N);
-		}), N;
-	});
-}
-var Fuse = class {
-	constructor(r, j = {}, M) {
-		this.options = {
-			...Config,
-			...j
-		}, this.options.useExtendedSearch, this._keyStore = new KeyStore(this.options.keys), this.setCollection(r, M);
-	}
-	setCollection(r, j) {
-		if (this._docs = r, j && !(j instanceof FuseIndex)) throw Error(INCORRECT_INDEX_TYPE);
-		this._myIndex = j || createIndex(this.options.keys, this._docs, {
-			getFn: this.options.getFn,
-			fieldNormWeight: this.options.fieldNormWeight
-		});
-	}
-	add(r) {
-		isDefined(r) && (this._docs.push(r), this._myIndex.add(r));
-	}
-	remove(r = () => !1) {
-		let j = [];
-		for (let M = 0, N = this._docs.length; M < N; M += 1) {
-			let P = this._docs[M];
-			r(P, M) && (this.removeAt(M), --M, --N, j.push(P));
-		}
-		return j;
-	}
-	removeAt(r) {
-		this._docs.splice(r, 1), this._myIndex.removeAt(r);
-	}
-	getIndex() {
-		return this._myIndex;
-	}
-	search(r, { limit: j = -1 } = {}) {
-		let { includeMatches: M, includeScore: N, shouldSort: P, sortFn: F, ignoreFieldNorm: I } = this.options, L = isString(r) ? isString(this._docs[0]) ? this._searchStringList(r) : this._searchObjectList(r) : this._searchLogical(r);
-		return computeScore(L, { ignoreFieldNorm: I }), P && L.sort(F), isNumber(j) && j > -1 && (L = L.slice(0, j)), format(L, this._docs, {
-			includeMatches: M,
-			includeScore: N
-		});
-	}
-	_searchStringList(r) {
-		let j = createSearcher(r, this.options), { records: M } = this._myIndex, N = [];
-		return M.forEach(({ v: r, i: M, n: P }) => {
-			if (!isDefined(r)) return;
-			let { isMatch: F, score: I, indices: L } = j.searchIn(r);
-			F && N.push({
-				item: r,
-				idx: M,
-				matches: [{
-					score: I,
-					value: r,
-					norm: P,
-					indices: L
-				}]
-			});
-		}), N;
-	}
-	_searchLogical(r) {
-		let j = parse(r, this.options), M = (r, j, N) => {
-			if (!r.children) {
-				let { keyId: M, searcher: P } = r, F = this._findMatches({
-					key: this._keyStore.get(M),
-					value: this._myIndex.getValueForItemAtKeyId(j, M),
-					searcher: P
-				});
-				return F && F.length ? [{
-					idx: N,
-					item: j,
-					matches: F
-				}] : [];
-			}
-			let P = [];
-			for (let F = 0, I = r.children.length; F < I; F += 1) {
-				let I = r.children[F], L = M(I, j, N);
-				if (L.length) P.push(...L);
-				else if (r.operator === LogicalOperator.AND) return [];
-			}
-			return P;
-		}, N = this._myIndex.records, P = {}, F = [];
-		return N.forEach(({ $: r, i: N }) => {
-			if (isDefined(r)) {
-				let I = M(j, r, N);
-				I.length && (P[N] || (P[N] = {
-					idx: N,
-					item: r,
-					matches: []
-				}, F.push(P[N])), I.forEach(({ matches: r }) => {
-					P[N].matches.push(...r);
-				}));
-			}
-		}), F;
-	}
-	_searchObjectList(r) {
-		let j = createSearcher(r, this.options), { keys: M, records: N } = this._myIndex, P = [];
-		return N.forEach(({ $: r, i: N }) => {
-			if (!isDefined(r)) return;
-			let F = [];
-			M.forEach((M, N) => {
-				F.push(...this._findMatches({
-					key: M,
-					value: r[N],
-					searcher: j
-				}));
-			}), F.length && P.push({
-				idx: N,
-				item: r,
-				matches: F
-			});
-		}), P;
-	}
-	_findMatches({ key: r, value: j, searcher: M }) {
-		if (!isDefined(j)) return [];
-		let N = [];
-		if (isArray(j)) j.forEach(({ v: j, i: P, n: F }) => {
-			if (!isDefined(j)) return;
-			let { isMatch: I, score: L, indices: R } = M.searchIn(j);
-			I && N.push({
-				score: L,
-				key: r,
-				value: j,
-				idx: P,
-				norm: F,
-				indices: R
-			});
-		});
-		else {
-			let { v: P, n: F } = j, { isMatch: I, score: L, indices: R } = M.searchIn(P);
-			I && N.push({
-				score: L,
-				key: r,
-				value: P,
-				norm: F,
-				indices: R
-			});
-		}
-		return N;
-	}
-};
-Fuse.version = "7.1.0", Fuse.createIndex = createIndex, Fuse.parseIndex = parseIndex, Fuse.config = Config, Fuse.parseQuery = parse, register(ExtendedSearch);
-function searchCommands(r, j) {
-	if (!r.trim()) return j.map((r) => ({
-		command: r,
+function searchCommands(u, R) {
+	if (!u.trim()) return R.map((u) => ({
+		command: u,
 		score: 1,
 		matchedIndices: []
 	}));
-	let M = new Fuse(j, {
+	let B = new Fuse(R, {
 		keys: [
 			{
 				name: "label",
@@ -2131,91 +1255,91 @@ function searchCommands(r, j) {
 		findAllMatches: !1,
 		shouldSort: !0,
 		distance: 100
-	}).search(r).map((r) => {
-		let j = r.score === void 0 ? 0 : 1 - r.score, M = [];
-		if (r.matches) {
-			for (let j of r.matches) if (j.indices) for (let [r, N] of j.indices) for (let j = r; j <= N; j++) M.push(j);
+	}).search(u).map((u) => {
+		let R = u.score === void 0 ? 0 : 1 - u.score, B = [];
+		if (u.matches) {
+			for (let R of u.matches) if (R.indices) for (let [u, V] of R.indices) for (let R = u; R <= V; R++) B.push(R);
 		}
 		return {
-			command: r.item,
-			score: j,
-			matchedIndices: Array.from(new Set(M)).sort((r, j) => r - j)
+			command: u.item,
+			score: R,
+			matchedIndices: Array.from(new Set(B)).sort((u, R) => u - R)
 		};
 	});
-	return M.sort((r, j) => {
-		if (Math.abs(r.score - j.score) < .01) {
-			let M = r.command.usageCount ?? 0;
-			return (j.command.usageCount ?? 0) - M;
+	return B.sort((u, R) => {
+		if (Math.abs(u.score - R.score) < .01) {
+			let B = u.command.usageCount ?? 0;
+			return (R.command.usageCount ?? 0) - B;
 		}
-		return j.score - r.score;
-	}), M;
+		return R.score - u.score;
+	}), B;
 }
-function parseFuzzyFindInput(r) {
-	let j = r.trim();
-	if (!j.startsWith("goto ") && !j.startsWith("go to ")) return {
+function parseFuzzyFindInput(u) {
+	let R = u.trim();
+	if (!R.startsWith("goto ") && !R.startsWith("go to ")) return {
 		isFuzzyFindMode: !1,
 		fuzzyFindQuery: "",
 		quoteChar: null
 	};
-	let M = j.startsWith("goto ") ? j.slice(5) : j.slice(6), N = null;
-	if (M.startsWith("\"")) N = "\"";
-	else if (M.startsWith("'")) N = "'";
+	let B = R.startsWith("goto ") ? R.slice(5) : R.slice(6), V = null;
+	if (B.startsWith("\"")) V = "\"";
+	else if (B.startsWith("'")) V = "'";
 	else return {
 		isFuzzyFindMode: !1,
 		fuzzyFindQuery: "",
 		quoteChar: null
 	};
-	let P = M.slice(1), F = P;
-	return P.endsWith(N) && (F = P.slice(0, -1)), {
+	let H = B.slice(1), U = H;
+	return H.endsWith(V) && (U = H.slice(0, -1)), {
 		isFuzzyFindMode: !0,
-		fuzzyFindQuery: F,
-		quoteChar: N
+		fuzzyFindQuery: U,
+		quoteChar: V
 	};
 }
-function updateInputStyling(r, j, M) {
-	let N = r.parentElement?.querySelector(".command-palette-input-overlay");
-	if (N && N.remove(), !M.isFuzzyFindMode || !M.quoteChar) return null;
-	let P = document.createElement("div");
-	P.className = "command-palette-input-overlay", P.style.cssText = "\n    position: absolute;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    pointer-events: none;\n    padding: 12px 16px;\n    font-size: 16px;\n    font-family: system-ui, -apple-system, sans-serif;\n    white-space: pre;\n    overflow: hidden;\n    box-sizing: border-box;\n    line-height: 1.5;\n    border: none;\n    background: transparent;\n  ";
-	let F = j.indexOf(M.quoteChar), I = j.substring(0, F + 1), L = M.fuzzyFindQuery, R = document.createTextNode(I), B = document.createElement("span");
-	if (B.style.cssText = "color: #1e293b;", B.appendChild(R), P.appendChild(B), L) {
-		let r = document.createElement("span");
-		r.style.cssText = "\n      font-weight: bold;\n      font-style: italic;\n      color: #1e293b;\n    ", r.textContent = L, P.appendChild(r);
+function updateInputStyling(u, R, B) {
+	let V = u.parentElement?.querySelector(".command-palette-input-overlay");
+	if (V && V.remove(), !B.isFuzzyFindMode || !B.quoteChar) return null;
+	let H = document.createElement("div");
+	H.className = "command-palette-input-overlay", H.style.cssText = "\n    position: absolute;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    pointer-events: none;\n    padding: 12px 16px;\n    font-size: 16px;\n    font-family: system-ui, -apple-system, sans-serif;\n    white-space: pre;\n    overflow: hidden;\n    box-sizing: border-box;\n    line-height: 1.5;\n    border: none;\n    background: transparent;\n  ";
+	let U = R.indexOf(B.quoteChar), W = R.substring(0, U + 1), G = B.fuzzyFindQuery, K = document.createTextNode(W), q = document.createElement("span");
+	if (q.style.cssText = "color: #1e293b;", q.appendChild(K), H.appendChild(q), G) {
+		let u = document.createElement("span");
+		u.style.cssText = "\n      font-weight: bold;\n      font-style: italic;\n      color: #1e293b;\n    ", u.textContent = G, H.appendChild(u);
 	}
-	return r.parentElement && r.parentElement.appendChild(P), P;
+	return u.parentElement && u.parentElement.appendChild(H), H;
 }
-function createFuzzyFindList(r, j, M, N, P) {
-	if (r.innerHTML = "", !j || j.trim() === "") {
-		let j = document.createElement("div");
-		j.className = "command-palette-item command-palette-item-empty", j.textContent = "Type to search...", r.appendChild(j);
+function createFuzzyFindList(u, R, B, V, H) {
+	if (u.innerHTML = "", !R || R.trim() === "") {
+		let R = document.createElement("div");
+		R.className = "command-palette-item command-palette-item-empty", R.textContent = "Type to search...", u.appendChild(R);
 		return;
 	}
-	if (M.length === 0) {
-		let j = document.createElement("div");
-		j.className = "command-palette-item command-palette-item-empty", j.textContent = "No matches found", r.appendChild(j);
+	if (B.length === 0) {
+		let R = document.createElement("div");
+		R.className = "command-palette-item command-palette-item-empty", R.textContent = "No matches found", u.appendChild(R);
 		return;
 	}
-	let F = document.createElement("div");
-	F.className = "command-palette-item command-palette-item-empty", F.textContent = `Search Results (${M.length})`, r.appendChild(F), M.forEach((j, M) => {
-		let F = document.createElement("div");
-		F.className = "command-palette-item", F.setAttribute("role", "option"), F.setAttribute("aria-selected", (M === N).toString()), M === N && F.classList.add("command-palette-item-selected");
-		let I = document.createElement("div");
-		I.className = "command-palette-item-label";
-		let L = j.translation, R = "";
-		if (j.matchedFields && j.matchedFields.length > 0) {
-			let r = j.matchedFields[0];
-			if (r.field === "key") R = `Key: ${L.key}`;
-			else if (r.field === "context") R = `Context: ${L.context || ""}`;
-			else if (r.field.startsWith("values.")) {
-				let j = r.field.replace("values.", "");
-				R = `${j.toUpperCase()}: ${L.values?.[j] || ""}`;
-			} else R = L.key || "";
-		} else R = L.key || "";
-		I.textContent = R;
-		let B = document.createElement("div");
-		B.className = "command-palette-item-description", B.textContent = `Row ${j.rowIndex + 1}`, F.appendChild(B), F.appendChild(I), F.addEventListener("click", () => {
-			P(M);
-		}), r.appendChild(F);
+	let U = document.createElement("div");
+	U.className = "command-palette-item command-palette-item-empty", U.textContent = `Search Results (${B.length})`, u.appendChild(U), B.forEach((R, B) => {
+		let U = document.createElement("div");
+		U.className = "command-palette-item", U.setAttribute("role", "option"), U.setAttribute("aria-selected", (B === V).toString()), B === V && U.classList.add("command-palette-item-selected");
+		let W = document.createElement("div");
+		W.className = "command-palette-item-label";
+		let G = R.translation, K = "";
+		if (R.matchedFields && R.matchedFields.length > 0) {
+			let u = R.matchedFields[0];
+			if (u.field === "key") K = `Key: ${G.key}`;
+			else if (u.field === "context") K = `Context: ${G.context || ""}`;
+			else if (u.field.startsWith("values.")) {
+				let R = u.field.replace("values.", "");
+				K = `${R.toUpperCase()}: ${G.values?.[R] || ""}`;
+			} else K = G.key || "";
+		} else K = G.key || "";
+		W.textContent = K;
+		let q = document.createElement("div");
+		q.className = "command-palette-item-description", q.textContent = `Row ${R.rowIndex + 1}`, U.appendChild(q), U.appendChild(W), U.addEventListener("click", () => {
+			H(B);
+		}), u.appendChild(U);
 	});
 }
 var CommandPalette = class {
@@ -2237,11 +1361,11 @@ var CommandPalette = class {
 	fuzzyFindResults = [];
 	fuzzyFindDebounceTimer = null;
 	inputOverlay = null;
-	constructor(r, j = {}) {
-		this.commandRegistry = r, this.callbacks = j;
+	constructor(u, R = {}) {
+		this.commandRegistry = u, this.callbacks = R;
 	}
-	open(r = "excel") {
-		this.isOpen || (this.currentMode = r, this.isOpen = !0, this.query = "", this.selectedIndex = 0, this.isFuzzyFindMode = !1, this.fuzzyFindQuery = "", this.fuzzyFindQuoteChar = null, this.fuzzyFindResults = [], this.createUI(), this.updateCommands(), this.attachEventListeners(), requestAnimationFrame(() => {
+	open(u = "excel") {
+		this.isOpen || (this.currentMode = u, this.isOpen = !0, this.query = "", this.selectedIndex = 0, this.isFuzzyFindMode = !1, this.fuzzyFindQuery = "", this.fuzzyFindQuoteChar = null, this.fuzzyFindResults = [], this.createUI(), this.updateCommands(), this.attachEventListeners(), requestAnimationFrame(() => {
 			this.input?.focus();
 		}));
 	}
@@ -2250,30 +1374,30 @@ var CommandPalette = class {
 	}
 	createUI() {
 		this.overlay = document.createElement("div"), this.overlay.className = "command-palette-overlay", this.overlay.setAttribute("role", "dialog"), this.overlay.setAttribute("aria-label", "Command Palette"), this.overlay.setAttribute("aria-modal", "true"), this.container = document.createElement("div"), this.container.className = "command-palette", this.input = document.createElement("input"), this.input.type = "text", this.input.className = "command-palette-input", this.input.setAttribute("placeholder", "Type a command or search..."), this.input.setAttribute("aria-label", "Command search input"), this.input.setAttribute("autocomplete", "off"), this.input.setAttribute("spellcheck", "false"), this.input.style.color = "transparent", this.input.style.caretColor = "#1e293b", this.list = document.createElement("div"), this.list.className = "command-palette-list", this.list.setAttribute("role", "listbox"), this.list.setAttribute("aria-label", "Command list"), this.footer = document.createElement("div"), this.footer.className = "command-palette-footer", this.footer.innerHTML = "\n      <span class=\"command-palette-hint\">\n        <kbd>↑</kbd><kbd>↓</kbd> Navigate\n        <kbd>Enter</kbd> Execute\n        <kbd>Esc</kbd> Close\n      </span>\n    ";
-		let r = document.createElement("div");
-		r.style.position = "relative", r.appendChild(this.input), this.container.appendChild(r), this.container.appendChild(this.list), this.container.appendChild(this.footer), this.overlay.appendChild(this.container), document.body.appendChild(this.overlay), this.overlay.addEventListener("click", (r) => {
-			r.target === this.overlay && this.close();
+		let u = document.createElement("div");
+		u.style.position = "relative", u.appendChild(this.input), this.container.appendChild(u), this.container.appendChild(this.list), this.container.appendChild(this.footer), this.overlay.appendChild(this.container), document.body.appendChild(this.overlay), this.overlay.addEventListener("click", (u) => {
+			u.target === this.overlay && this.close();
 		});
 	}
 	removeUI() {
 		this.inputOverlay &&= (this.inputOverlay.remove(), null), this.overlay && (document.body.removeChild(this.overlay), this.overlay = null, this.container = null, this.input = null, this.list = null, this.footer = null);
 	}
 	attachEventListeners() {
-		this.input && (this.input.addEventListener("input", (r) => {
-			let j = r.target;
-			this.handleInput(j.value);
-		}), this.input.addEventListener("keydown", (r) => {
-			this.handleKeyDown(r);
+		this.input && (this.input.addEventListener("input", (u) => {
+			let R = u.target;
+			this.handleInput(R.value);
+		}), this.input.addEventListener("keydown", (u) => {
+			this.handleKeyDown(u);
 		}));
 	}
 	detachEventListeners() {}
-	handleInput(r) {
-		this.query = r, this.selectedIndex = 0;
-		let j = parseFuzzyFindInput(r);
-		j.isFuzzyFindMode ? (this.isFuzzyFindMode = !0, this.fuzzyFindQuery = j.fuzzyFindQuery, this.fuzzyFindQuoteChar = j.quoteChar, this.updateInputStyling(r, j), this.updateFuzzyFindResults()) : (this.isFuzzyFindMode = !1, this.fuzzyFindQuery = "", this.fuzzyFindQuoteChar = null, this.updateInputStyling(r, j), this.fuzzyFindResults = [], this.updateCommands());
+	handleInput(u) {
+		this.query = u, this.selectedIndex = 0;
+		let R = parseFuzzyFindInput(u);
+		R.isFuzzyFindMode ? (this.isFuzzyFindMode = !0, this.fuzzyFindQuery = R.fuzzyFindQuery, this.fuzzyFindQuoteChar = R.quoteChar, this.updateInputStyling(u, R), this.updateFuzzyFindResults()) : (this.isFuzzyFindMode = !1, this.fuzzyFindQuery = "", this.fuzzyFindQuoteChar = null, this.updateInputStyling(u, R), this.fuzzyFindResults = [], this.updateCommands());
 	}
-	updateInputStyling(r, j) {
-		this.input && (this.inputOverlay &&= (this.inputOverlay.remove(), null), this.inputOverlay = updateInputStyling(this.input, r, j));
+	updateInputStyling(u, R) {
+		this.input && (this.inputOverlay &&= (this.inputOverlay.remove(), null), this.inputOverlay = updateInputStyling(this.input, u, R));
 	}
 	updateFuzzyFindResults() {
 		this.fuzzyFindDebounceTimer !== null && clearTimeout(this.fuzzyFindDebounceTimer), this.fuzzyFindDebounceTimer = window.setTimeout(() => {
@@ -2281,25 +1405,25 @@ var CommandPalette = class {
 		}, 150);
 	}
 	updateFuzzyFindList() {
-		this.list && (this.fuzzyFindResults.length > 0 && this.selectedIndex >= this.fuzzyFindResults.length && (this.selectedIndex = 0), createFuzzyFindList(this.list, this.fuzzyFindQuery, this.fuzzyFindResults, this.selectedIndex, (r) => {
-			this.selectedIndex = r, this.executeSelectedCommand();
+		this.list && (this.fuzzyFindResults.length > 0 && this.selectedIndex >= this.fuzzyFindResults.length && (this.selectedIndex = 0), createFuzzyFindList(this.list, this.fuzzyFindQuery, this.fuzzyFindResults, this.selectedIndex, (u) => {
+			this.selectedIndex = u, this.executeSelectedCommand();
 		}));
 	}
-	handleKeyDown(r) {
-		let j = this.isFuzzyFindMode ? this.fuzzyFindResults.length - 1 : this.filteredCommands.length - 1;
-		r.key === "ArrowDown" ? (r.preventDefault(), this.selectedIndex = Math.min(this.selectedIndex + 1, j), this.updateList(), this.updateFooter(), this.scrollToSelected()) : r.key === "ArrowUp" ? (r.preventDefault(), this.selectedIndex = Math.max(0, this.selectedIndex - 1), this.updateList(), this.updateFooter(), this.scrollToSelected()) : r.key === "Enter" ? (r.preventDefault(), this.executeSelectedCommand()) : r.key === "Escape" && (r.preventDefault(), this.close());
+	handleKeyDown(u) {
+		let R = this.isFuzzyFindMode ? this.fuzzyFindResults.length - 1 : this.filteredCommands.length - 1;
+		u.key === "ArrowDown" ? (u.preventDefault(), this.selectedIndex = Math.min(this.selectedIndex + 1, R), this.updateList(), this.updateFooter(), this.scrollToSelected()) : u.key === "ArrowUp" ? (u.preventDefault(), this.selectedIndex = Math.max(0, this.selectedIndex - 1), this.updateList(), this.updateFooter(), this.scrollToSelected()) : u.key === "Enter" ? (u.preventDefault(), this.executeSelectedCommand()) : u.key === "Escape" && (u.preventDefault(), this.close());
 	}
 	updateCommands() {
-		let r = this.commandRegistry.getCommands(this.currentMode);
-		this.query.trim() ? this.filteredCommands = searchCommands(this.query, r) : this.filteredCommands = this.commandRegistry.getPopularCommands(10, this.currentMode).map((r) => ({
-			command: r,
+		let u = this.commandRegistry.getCommands(this.currentMode);
+		this.query.trim() ? this.filteredCommands = searchCommands(this.query, u) : this.filteredCommands = this.commandRegistry.getPopularCommands(10, this.currentMode).map((u) => ({
+			command: u,
 			score: 1,
 			matchedIndices: []
 		})), this.filteredCommands = this.filteredCommands.slice(0, 50), this.updateList();
 	}
 	updateFooter() {
 		if (this.footer) if (this.isFuzzyFindMode && this.fuzzyFindResults.length > 0) {
-			let r = this.selectedIndex + 1, j = this.fuzzyFindResults.length;
+			let u = this.selectedIndex + 1, R = this.fuzzyFindResults.length;
 			this.footer.innerHTML = `
         <span class="command-palette-hint">
           <kbd>↑</kbd><kbd>↓</kbd> Navigate
@@ -2307,7 +1431,7 @@ var CommandPalette = class {
           <kbd>Esc</kbd> Close
         </span>
         <span class="command-palette-match-info">
-          ${r}/${j} matches
+          ${u}/${R} matches
         </span>
       `;
 		} else this.footer.innerHTML = "\n        <span class=\"command-palette-hint\">\n          <kbd>↑</kbd><kbd>↓</kbd> Navigate\n          <kbd>Enter</kbd> Execute\n          <kbd>Esc</kbd> Close\n        </span>\n      ";
@@ -2319,66 +1443,66 @@ var CommandPalette = class {
 				return;
 			}
 			if (this.updateFooter(), this.filteredCommands.length === 0) {
-				let r = document.createElement("div");
-				r.className = "command-palette-item command-palette-item-empty", r.textContent = "No commands found", this.list.appendChild(r);
+				let u = document.createElement("div");
+				u.className = "command-palette-item command-palette-item-empty", u.textContent = "No commands found", this.list.appendChild(u);
 				return;
 			}
-			this.filteredCommands.forEach((r, j) => {
-				let M = document.createElement("div");
-				M.className = "command-palette-item", M.setAttribute("role", "option"), M.setAttribute("aria-selected", (j === this.selectedIndex).toString()), j === this.selectedIndex && M.classList.add("command-palette-item-selected");
-				let N = document.createElement("div");
-				if (N.className = "command-palette-item-label", N.textContent = r.command.label, r.command.description) {
-					let j = document.createElement("div");
-					j.className = "command-palette-item-description", j.textContent = r.command.description, M.appendChild(j);
+			this.filteredCommands.forEach((u, R) => {
+				let B = document.createElement("div");
+				B.className = "command-palette-item", B.setAttribute("role", "option"), B.setAttribute("aria-selected", (R === this.selectedIndex).toString()), R === this.selectedIndex && B.classList.add("command-palette-item-selected");
+				let V = document.createElement("div");
+				if (V.className = "command-palette-item-label", V.textContent = u.command.label, u.command.description) {
+					let R = document.createElement("div");
+					R.className = "command-palette-item-description", R.textContent = u.command.description, B.appendChild(R);
 				}
-				if (r.command.shortcut) {
-					let j = document.createElement("div");
-					j.className = "command-palette-item-shortcut", j.textContent = r.command.shortcut, M.appendChild(j);
+				if (u.command.shortcut) {
+					let R = document.createElement("div");
+					R.className = "command-palette-item-shortcut", R.textContent = u.command.shortcut, B.appendChild(R);
 				}
-				M.appendChild(N), M.addEventListener("click", () => {
-					this.selectedIndex = j, this.executeSelectedCommand();
-				}), this.list && this.list.appendChild(M);
+				B.appendChild(V), B.addEventListener("click", () => {
+					this.selectedIndex = R, this.executeSelectedCommand();
+				}), this.list && this.list.appendChild(B);
 			});
 		}
 	}
 	scrollToSelected() {
 		if (!this.list) return;
-		let r = this.list.querySelectorAll(".command-palette-item")[this.selectedIndex];
-		if (r) {
-			if (typeof r.scrollIntoView == "function") try {
-				r.scrollIntoView({
+		let u = this.list.querySelectorAll(".command-palette-item")[this.selectedIndex];
+		if (u) {
+			if (typeof u.scrollIntoView == "function") try {
+				u.scrollIntoView({
 					block: "nearest",
 					behavior: "smooth"
 				});
 			} catch {}
-			if (this.list && r.offsetTop !== void 0) try {
-				let j = r.offsetTop, M = j + (r.offsetHeight || 0), N = this.list.scrollTop || 0, P = this.list.clientHeight || 0, F = N + P;
-				j < N ? this.list.scrollTop = j : M > F && (this.list.scrollTop = M - P);
+			if (this.list && u.offsetTop !== void 0) try {
+				let R = u.offsetTop, B = R + (u.offsetHeight || 0), V = this.list.scrollTop || 0, H = this.list.clientHeight || 0, U = V + H;
+				R < V ? this.list.scrollTop = R : B > U && (this.list.scrollTop = B - H);
 			} catch {}
 		}
 	}
 	executeSelectedCommand() {
 		if (this.isFuzzyFindMode) {
 			if (this.fuzzyFindResults.length === 0) return;
-			let r = this.fuzzyFindResults[this.selectedIndex];
-			r && this.callbacks.onGotoMatch && this.callbacks.onGotoMatch(r), this.close();
+			let u = this.fuzzyFindResults[this.selectedIndex];
+			u && this.callbacks.onGotoMatch && this.callbacks.onGotoMatch(u), this.close();
 			return;
 		}
-		let r = this.filteredCommands[this.selectedIndex];
-		if (!r) return;
-		let j = r.command;
-		this.commandRegistry.incrementUsage(j.id);
+		let u = this.filteredCommands[this.selectedIndex];
+		if (!u) return;
+		let R = u.command;
+		this.commandRegistry.incrementUsage(R.id);
 		try {
-			let r = this.parseCommandArgs(this.query, j.id);
-			j.execute(r), this.callbacks.onCommandExecute && this.callbacks.onCommandExecute(j, r);
-		} catch (r) {
-			logger.error("Error executing command:", r);
+			let u = this.parseCommandArgs(this.query, R.id);
+			R.execute(u), this.callbacks.onCommandExecute && this.callbacks.onCommandExecute(R, u);
+		} catch (u) {
+			logger.error("Error executing command:", u);
 		}
 		this.close();
 	}
-	parseCommandArgs(r, j) {
-		let M = r.trim().split(/\s+/);
-		return j === "goto" && (M[0] === "goto" || M[0] === "go" && M[1] === "to") ? M[0] === "goto" ? M.slice(1) : M.slice(2) : j === "search" && M[0] === "search" || M[0] === j || M[0].startsWith(j) ? M.slice(1) : [];
+	parseCommandArgs(u, R) {
+		let B = u.trim().split(/\s+/);
+		return R === "goto" && (B[0] === "goto" || B[0] === "go" && B[1] === "to") ? B[0] === "goto" ? B.slice(1) : B.slice(2) : R === "search" && B[0] === "search" || B[0] === R || B[0].startsWith(R) ? B.slice(1) : [];
 	}
 	isPaletteOpen() {
 		return this.isOpen;
@@ -2397,116 +1521,116 @@ var CommandPalette = class {
 	}
 }, TextSearchMatcher = class {
 	options;
-	constructor(r) {
-		this.options = r;
+	constructor(u) {
+		this.options = u;
 	}
-	findMatches(r) {
-		if (!r.trim()) return [];
-		let j = r.toLowerCase().trim(), M = [];
-		return this.options.translations.forEach((r, N) => {
-			let P = 0, F = [], I = r.key.toLowerCase();
-			if (I === j ? (P += 50, F.push({
+	findMatches(u) {
+		if (!u.trim()) return [];
+		let R = u.toLowerCase().trim(), B = [];
+		return this.options.translations.forEach((u, V) => {
+			let H = 0, U = [], W = u.key.toLowerCase();
+			if (W === R ? (H += 50, U.push({
 				field: "key",
-				matchedText: r.key,
+				matchedText: u.key,
 				matchType: "exact"
-			})) : I.includes(j) ? (P += 30, F.push({
+			})) : W.includes(R) ? (H += 30, U.push({
 				field: "key",
-				matchedText: r.key,
+				matchedText: u.key,
 				matchType: "contains"
-			})) : this.fuzzyMatch(I, j) && (P += 15, F.push({
+			})) : this.fuzzyMatch(W, R) && (H += 15, U.push({
 				field: "key",
-				matchedText: r.key,
+				matchedText: u.key,
 				matchType: "fuzzy"
-			})), r.context) {
-				let M = r.context.toLowerCase();
-				M === j ? (P += 20, F.push({
+			})), u.context) {
+				let B = u.context.toLowerCase();
+				B === R ? (H += 20, U.push({
 					field: "context",
-					matchedText: r.context,
+					matchedText: u.context,
 					matchType: "exact"
-				})) : M.includes(j) ? (P += 20, F.push({
+				})) : B.includes(R) ? (H += 20, U.push({
 					field: "context",
-					matchedText: r.context,
+					matchedText: u.context,
 					matchType: "contains"
-				})) : this.fuzzyMatch(M, j) && (P += 10, F.push({
+				})) : this.fuzzyMatch(B, R) && (H += 10, U.push({
 					field: "context",
-					matchedText: r.context,
+					matchedText: u.context,
 					matchType: "fuzzy"
 				}));
 			}
-			this.options.languages.forEach((M) => {
-				let N = r.values[M] || "", I = N.toLowerCase();
-				I === j ? (P += 10, F.push({
-					field: `values.${M}`,
-					matchedText: N,
+			this.options.languages.forEach((B) => {
+				let V = u.values[B] || "", W = V.toLowerCase();
+				W === R ? (H += 10, U.push({
+					field: `values.${B}`,
+					matchedText: V,
 					matchType: "exact"
-				})) : I.includes(j) ? (P += 10, F.push({
-					field: `values.${M}`,
-					matchedText: N,
+				})) : W.includes(R) ? (H += 10, U.push({
+					field: `values.${B}`,
+					matchedText: V,
 					matchType: "contains"
-				})) : this.fuzzyMatch(I, j) && (P += 5, F.push({
-					field: `values.${M}`,
-					matchedText: N,
+				})) : this.fuzzyMatch(W, R) && (H += 5, U.push({
+					field: `values.${B}`,
+					matchedText: V,
 					matchType: "fuzzy"
 				}));
-			}), P > 0 && M.push({
-				rowIndex: N,
-				translation: r,
-				score: P,
-				matchedFields: F
+			}), H > 0 && B.push({
+				rowIndex: V,
+				translation: u,
+				score: H,
+				matchedFields: U
 			});
-		}), M.sort((r, j) => j.score === r.score ? r.rowIndex - j.rowIndex : j.score - r.score), M;
+		}), B.sort((u, R) => R.score === u.score ? u.rowIndex - R.rowIndex : R.score - u.score), B;
 	}
-	fuzzyMatch(r, j) {
-		if (j.length === 0) return !0;
-		if (j.length > r.length) return !1;
-		let M = 0;
-		for (let N = 0; N < r.length && M < j.length; N++) r[N] === j[M] && M++;
-		return M === j.length;
+	fuzzyMatch(u, R) {
+		if (R.length === 0) return !0;
+		if (R.length > u.length) return !1;
+		let B = 0;
+		for (let V = 0; V < u.length && B < R.length; V++) u[V] === R[B] && B++;
+		return B === R.length;
 	}
 };
-function parseSearchQuery(r) {
-	if (!r || !r.trim()) return null;
-	let j = r.trim(), M = j.match(/^(\w+):(.+)$/);
-	if (M) {
-		let [, r, j] = M;
-		if (j.trim()) return {
-			keyword: j.trim(),
-			column: r.toLowerCase()
+function parseSearchQuery(u) {
+	if (!u || !u.trim()) return null;
+	let R = u.trim(), B = R.match(/^(\w+):(.+)$/);
+	if (B) {
+		let [, u, R] = B;
+		if (R.trim()) return {
+			keyword: R.trim(),
+			column: u.toLowerCase()
 		};
 	}
-	return { keyword: j };
+	return { keyword: R };
 }
-function findMatchIndices(r, j) {
-	if (!r || !j) return [];
-	let M = r.toLowerCase(), N = j.toLowerCase(), P = [], F = 0;
+function findMatchIndices(u, R) {
+	if (!u || !R) return [];
+	let B = u.toLowerCase(), V = R.toLowerCase(), H = [], U = 0;
 	for (;;) {
-		let r = M.indexOf(N, F);
-		if (r === -1) break;
-		for (let j = 0; j < N.length; j++) P.push(r + j);
-		F = r + 1;
+		let u = B.indexOf(V, U);
+		if (u === -1) break;
+		for (let R = 0; R < V.length; R++) H.push(u + R);
+		U = u + 1;
 	}
-	return P;
+	return H;
 }
 var QuickSearch = class {
 	options;
-	constructor(r) {
-		this.options = r;
+	constructor(u) {
+		this.options = u;
 	}
-	findMatches(r) {
-		if (!r.keyword) return [];
-		let j = [], M = r.keyword.toLowerCase();
-		return this.options.translations.forEach((N, P) => {
-			if (r.column) {
-				let F = this.getColumnIdForSearch(r.column);
-				if (F) {
-					let I = this.getCellValue(N, F);
-					if (I && I.toLowerCase().includes(M)) {
-						let M = findMatchIndices(I, r.keyword);
-						j.push({
-							rowIndex: P,
-							columnId: F,
-							matchedText: I,
-							matchIndices: M
+	findMatches(u) {
+		if (!u.keyword) return [];
+		let R = [], B = u.keyword.toLowerCase();
+		return this.options.translations.forEach((V, H) => {
+			if (u.column) {
+				let U = this.getColumnIdForSearch(u.column);
+				if (U) {
+					let W = this.getCellValue(V, U);
+					if (W && W.toLowerCase().includes(B)) {
+						let B = findMatchIndices(W, u.keyword);
+						R.push({
+							rowIndex: H,
+							columnId: U,
+							matchedText: W,
+							matchIndices: B
 						});
 					}
 				}
@@ -2515,55 +1639,55 @@ var QuickSearch = class {
 			[
 				"key",
 				"context",
-				...this.options.languages.map((r) => `values.${r}`)
-			].forEach((F) => {
-				let I = this.getCellValue(N, F);
-				if (I && I.toLowerCase().includes(M)) {
-					let M = findMatchIndices(I, r.keyword);
-					j.push({
-						rowIndex: P,
-						columnId: F,
-						matchedText: I,
-						matchIndices: M
+				...this.options.languages.map((u) => `values.${u}`)
+			].forEach((U) => {
+				let W = this.getCellValue(V, U);
+				if (W && W.toLowerCase().includes(B)) {
+					let B = findMatchIndices(W, u.keyword);
+					R.push({
+						rowIndex: H,
+						columnId: U,
+						matchedText: W,
+						matchIndices: B
 					});
 				}
 			});
-		}), j;
+		}), R;
 	}
-	getColumnIdForSearch(r) {
-		let j = r.toLowerCase();
-		return j === "key" ? "key" : j === "context" ? "context" : this.options.languages.includes(j) ? `values.${j}` : null;
+	getColumnIdForSearch(u) {
+		let R = u.toLowerCase();
+		return R === "key" ? "key" : R === "context" ? "context" : this.options.languages.includes(R) ? `values.${R}` : null;
 	}
-	getCellValue(r, j) {
-		if (j === "key") return r.key || null;
-		if (j === "context") return r.context || null;
-		if (j.startsWith("values.")) {
-			let M = j.replace("values.", "");
-			return r.values?.[M] || null;
+	getCellValue(u, R) {
+		if (R === "key") return u.key || null;
+		if (R === "context") return u.context || null;
+		if (R.startsWith("values.")) {
+			let B = R.replace("values.", "");
+			return u.values?.[B] || null;
 		}
 		return null;
 	}
-	static highlightText(r, j) {
-		if (!r || j.length === 0) return escapeHtml(r);
-		let M = [...new Set(j)].sort((r, j) => r - j), N = [], P = 0, F = null;
-		if (M.forEach((j, I) => {
-			if (!(F !== null && j === M[I - 1] + 1)) {
-				if (F !== null) {
-					let j = M[I - 1] + 1;
-					N.push(`<mark class="quick-search-highlight">${escapeHtml(r.substring(F, j))}</mark>`), P = j;
+	static highlightText(u, R) {
+		if (!u || R.length === 0) return escapeHtml(u);
+		let B = [...new Set(R)].sort((u, R) => u - R), V = [], H = 0, U = null;
+		if (B.forEach((R, W) => {
+			if (!(U !== null && R === B[W - 1] + 1)) {
+				if (U !== null) {
+					let R = B[W - 1] + 1;
+					V.push(`<mark class="quick-search-highlight">${escapeHtml(u.substring(U, R))}</mark>`), H = R;
 				}
-				j > P && N.push(escapeHtml(r.substring(P, j))), F = j;
+				R > H && V.push(escapeHtml(u.substring(H, R))), U = R;
 			}
-		}), F !== null) {
-			let j = M[M.length - 1] + 1;
-			N.push(`<mark class="quick-search-highlight">${escapeHtml(r.substring(F, j))}</mark>`), P = j;
+		}), U !== null) {
+			let R = B[B.length - 1] + 1;
+			V.push(`<mark class="quick-search-highlight">${escapeHtml(u.substring(U, R))}</mark>`), H = R;
 		}
-		return P < r.length && N.push(escapeHtml(r.substring(P))), N.join("");
+		return H < u.length && V.push(escapeHtml(u.substring(H))), V.join("");
 	}
 };
-function escapeHtml(r) {
-	let j = document.createElement("div");
-	return j.textContent = r, j.innerHTML;
+function escapeHtml(u) {
+	let R = document.createElement("div");
+	return R.textContent = u, R.innerHTML;
 }
 var QuickSearchUI = class {
 	overlay = null;
@@ -2573,8 +1697,8 @@ var QuickSearchUI = class {
 	callbacks;
 	container;
 	destroyTimerId = null;
-	constructor(r, j = {}) {
-		this.container = r, this.callbacks = j;
+	constructor(u, R = {}) {
+		this.container = u, this.callbacks = R;
 	}
 	open() {
 		this.isOpen || (this.isOpen = !0, this.createUI(), requestAnimationFrame(() => {
@@ -2584,29 +1708,29 @@ var QuickSearchUI = class {
 	close() {
 		this.isOpen && (this.isOpen = !1, this.destroyUI(), this.callbacks.onClose && this.callbacks.onClose());
 	}
-	updateStatus(r, j) {
-		this.statusText && (j === 0 ? this.statusText.textContent = "No matches" : this.statusText.textContent = `${r + 1}/${j} matches`);
+	updateStatus(u, R) {
+		this.statusText && (R === 0 ? this.statusText.textContent = "No matches" : this.statusText.textContent = `${u + 1}/${R} matches`);
 	}
 	getQuery() {
 		return this.input?.value || "";
 	}
-	setQuery(r) {
-		this.input && (this.input.value = r);
+	setQuery(u) {
+		this.input && (this.input.value = u);
 	}
 	createUI() {
 		this.overlay = document.createElement("div"), this.overlay.className = "quick-search-overlay", this.overlay.setAttribute("role", "dialog"), this.overlay.setAttribute("aria-label", "Quick Search");
-		let r = document.createElement("div");
-		r.className = "quick-search-bar";
-		let j = document.createElement("div");
-		j.className = "quick-search-label", j.textContent = "/", this.input = document.createElement("input"), this.input.type = "text", this.input.className = "quick-search-input", this.input.placeholder = "Search... (e.g., keyword, key:keyword, en:keyword)", this.input.setAttribute("aria-label", "Search query"), this.statusText = document.createElement("div"), this.statusText.className = "quick-search-status", this.statusText.textContent = "";
-		let M = document.createElement("button");
-		M.className = "quick-search-close", M.textContent = "×", M.setAttribute("aria-label", "Close search"), M.addEventListener("click", () => {
+		let u = document.createElement("div");
+		u.className = "quick-search-bar";
+		let R = document.createElement("div");
+		R.className = "quick-search-label", R.textContent = "/", this.input = document.createElement("input"), this.input.type = "text", this.input.className = "quick-search-input", this.input.placeholder = "Search... (e.g., keyword, key:keyword, en:keyword)", this.input.setAttribute("aria-label", "Search query"), this.statusText = document.createElement("div"), this.statusText.className = "quick-search-status", this.statusText.textContent = "";
+		let B = document.createElement("button");
+		B.className = "quick-search-close", B.textContent = "×", B.setAttribute("aria-label", "Close search"), B.addEventListener("click", () => {
 			this.close();
 		}), this.input.addEventListener("input", () => {
 			this.callbacks.onSearch && this.callbacks.onSearch(this.input?.value || "");
-		}), this.input.addEventListener("keydown", (r) => {
-			r.key === "Escape" ? (r.preventDefault(), r.stopPropagation(), this.close()) : (r.key === "Enter" || r.code === "Enter") && (r.preventDefault(), r.stopPropagation(), this.callbacks.onNextMatch && this.callbacks.onNextMatch());
-		}), r.appendChild(j), r.appendChild(this.input), r.appendChild(this.statusText), r.appendChild(M), this.overlay.appendChild(r), this.container.appendChild(this.overlay), requestAnimationFrame(() => {
+		}), this.input.addEventListener("keydown", (u) => {
+			u.key === "Escape" ? (u.preventDefault(), u.stopPropagation(), this.close()) : (u.key === "Enter" || u.code === "Enter") && (u.preventDefault(), u.stopPropagation(), this.callbacks.onNextMatch && this.callbacks.onNextMatch());
+		}), u.appendChild(R), u.appendChild(this.input), u.appendChild(this.statusText), u.appendChild(B), this.overlay.appendChild(u), this.container.appendChild(this.overlay), requestAnimationFrame(() => {
 			this.overlay && this.overlay.classList.add("quick-search-overlay-open");
 		});
 	}
@@ -2625,28 +1749,28 @@ var QuickSearchUI = class {
 	statusBarElement = null;
 	container;
 	callbacks;
-	constructor(r, j = {}) {
-		this.container = r, this.callbacks = j;
+	constructor(u, R = {}) {
+		this.container = u, this.callbacks = R;
 	}
 	create() {
 		this.statusBarElement || (this.statusBarElement = document.createElement("div"), this.statusBarElement.className = "status-bar", this.statusBarElement.setAttribute("role", "status"), this.statusBarElement.setAttribute("aria-live", "polite"), this.statusBarElement.setAttribute("aria-atomic", "true"), this.container.appendChild(this.statusBarElement));
 	}
-	update(r) {
+	update(u) {
 		if (this.statusBarElement || this.create(), !this.statusBarElement) return;
-		let j = [];
-		if (j.push(`[${r.mode}]`), r.rowIndex === null ? j.push(`Row -/${r.totalRows}`) : j.push(`Row ${r.rowIndex + 1}/${r.totalRows}`), r.columnId) {
-			let M = this.getColumnDisplayName(r.columnId);
-			j.push(`Col: ${M}`);
+		let R = [];
+		if (R.push(`[${u.mode}]`), u.rowIndex === null ? R.push(`Row -/${u.totalRows}`) : R.push(`Row ${u.rowIndex + 1}/${u.totalRows}`), u.columnId) {
+			let B = this.getColumnDisplayName(u.columnId);
+			R.push(`Col: ${B}`);
 		}
-		r.changesCount > 0 && j.push(`${r.changesCount} change${r.changesCount === 1 ? "" : "s"}`), r.emptyCount > 0 && j.push(`${r.emptyCount} empty`), r.duplicateCount > 0 && j.push(`${r.duplicateCount} duplicate${r.duplicateCount === 1 ? "" : "s"}`);
-		let M = j.join(" | "), N = r.command ? `Command: ${r.command}` : "";
+		u.changesCount > 0 && R.push(`${u.changesCount} change${u.changesCount === 1 ? "" : "s"}`), u.emptyCount > 0 && R.push(`${u.emptyCount} empty`), u.duplicateCount > 0 && R.push(`${u.duplicateCount} duplicate${u.duplicateCount === 1 ? "" : "s"}`);
+		let B = R.join(" | "), V = u.command ? `Command: ${u.command}` : "";
 		this.statusBarElement.innerHTML = `
-      <span class="status-bar-left">${M}</span>
-      ${N ? `<span class="status-bar-command">${N}</span>` : ""}
-    `, this.callbacks.onStatusUpdate && this.callbacks.onStatusUpdate(r);
+      <span class="status-bar-left">${B}</span>
+      ${V ? `<span class="status-bar-command">${V}</span>` : ""}
+    `, this.callbacks.onStatusUpdate && this.callbacks.onStatusUpdate(u);
 	}
-	getColumnDisplayName(r) {
-		return r === "row-number" ? "#" : r === "key" ? "Key" : r === "context" ? "Context" : r.startsWith("values.") ? r.replace("values.", "").toUpperCase() : r;
+	getColumnDisplayName(u) {
+		return u === "row-number" ? "#" : u === "key" ? "Key" : u === "context" ? "Context" : u.startsWith("values.") ? u.replace("values.", "").toUpperCase() : u;
 	}
 	destroy() {
 		this.statusBarElement && this.statusBarElement.parentElement && (this.statusBarElement.parentElement.removeChild(this.statusBarElement), this.statusBarElement = null);
@@ -2670,153 +1794,153 @@ var QuickSearchUI = class {
 	translations = [];
 	languages = [];
 	callbacks;
-	constructor(r) {
-		this.translations = r.translations, this.languages = r.languages, this.callbacks = r;
+	constructor(u) {
+		this.translations = u.translations, this.languages = u.languages, this.callbacks = u;
 	}
-	open(r = "find") {
+	open(u = "find") {
 		if (this.overlay) {
-			this.setMode(r);
+			this.setMode(u);
 			return;
 		}
-		this.createUI(), this.setMode(r), this.attach();
+		this.createUI(), this.setMode(u), this.attach();
 	}
 	close() {
 		this.overlay && (this.overlay.remove(), this.overlay = null, this.container = null), this.detach(), this.callbacks.onClose && this.callbacks.onClose();
 	}
-	setMode(r) {
+	setMode(u) {
 		if (!this.container) return;
-		let j = this.container.querySelector(".find-replace-replace-section");
-		if (j && (j.style.display = r === "replace" ? "block" : "none"), r === "replace") {
-			let r = this.container.querySelector(".find-replace-replace-input");
-			r && setTimeout(() => r.focus(), 0);
+		let R = this.container.querySelector(".find-replace-replace-section");
+		if (R && (R.style.display = u === "replace" ? "block" : "none"), u === "replace") {
+			let u = this.container.querySelector(".find-replace-replace-input");
+			u && setTimeout(() => u.focus(), 0);
 		}
 	}
 	createUI() {
 		this.overlay = document.createElement("div"), this.overlay.className = "find-replace-overlay", this.overlay.style.cssText = "\n      position: fixed;\n      top: 0;\n      left: 0;\n      right: 0;\n      background: rgba(0, 0, 0, 0.3);\n      z-index: 10000;\n      display: flex;\n      justify-content: center;\n      padding-top: 20px;\n    ", this.container = document.createElement("div"), this.container.className = "find-replace-container", this.container.style.cssText = "\n      background: white;\n      border-radius: 8px;\n      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n      padding: 16px;\n      padding-top: 48px;\n      min-width: 500px;\n      max-width: 600px;\n      position: relative;\n    ";
-		let r = document.createElement("div");
-		r.className = "find-replace-find-section", r.style.cssText = "\n      display: flex;\n      gap: 8px;\n      align-items: center;\n      margin-bottom: 12px;\n    ";
-		let j = document.createElement("input");
-		j.type = "text", j.className = "find-replace-find-input", j.placeholder = "Find", j.style.cssText = "\n      flex: 1;\n      padding: 8px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      font-size: 14px;\n    ", j.value = this.state.searchQuery, j.addEventListener("input", (r) => {
-			this.state.searchQuery = r.target.value, this.performSearch();
-		}), j.addEventListener("keydown", (r) => {
-			r.key === "Escape" ? this.close() : r.key === "Enter" && !r.shiftKey ? (r.preventDefault(), this.goToNextMatch()) : r.key === "Enter" && r.shiftKey && (r.preventDefault(), this.goToPrevMatch());
+		let u = document.createElement("div");
+		u.className = "find-replace-find-section", u.style.cssText = "\n      display: flex;\n      gap: 8px;\n      align-items: center;\n      margin-bottom: 12px;\n    ";
+		let R = document.createElement("input");
+		R.type = "text", R.className = "find-replace-find-input", R.placeholder = "Find", R.style.cssText = "\n      flex: 1;\n      padding: 8px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      font-size: 14px;\n    ", R.value = this.state.searchQuery, R.addEventListener("input", (u) => {
+			this.state.searchQuery = u.target.value, this.performSearch();
+		}), R.addEventListener("keydown", (u) => {
+			u.key === "Escape" ? this.close() : u.key === "Enter" && !u.shiftKey ? (u.preventDefault(), this.goToNextMatch()) : u.key === "Enter" && u.shiftKey && (u.preventDefault(), this.goToPrevMatch());
 		});
-		let M = document.createElement("div");
-		M.style.cssText = "display: flex; gap: 4px;";
-		let N = this.createButton("↑", "Previous", () => {
+		let B = document.createElement("div");
+		B.style.cssText = "display: flex; gap: 4px;";
+		let V = this.createButton("↑", "Previous", () => {
 			this.goToPrevMatch();
-		}), P = this.createButton("↓", "Next", () => {
+		}), H = this.createButton("↓", "Next", () => {
 			this.goToNextMatch();
 		});
-		M.appendChild(N), M.appendChild(P), r.appendChild(j), r.appendChild(M);
-		let F = document.createElement("div");
-		F.className = "find-replace-replace-section", F.style.cssText = "\n      display: none;\n      display: flex;\n      gap: 8px;\n      align-items: center;\n      margin-bottom: 12px;\n    ";
-		let I = document.createElement("input");
-		I.type = "text", I.className = "find-replace-replace-input", I.placeholder = "Replace", I.style.cssText = "\n      flex: 1;\n      padding: 8px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      font-size: 14px;\n    ", I.value = this.state.replaceQuery, I.addEventListener("input", (r) => {
-			let j = r.target.value;
-			this.state.replaceQuery = j;
-		}), I.addEventListener("keydown", (r) => {
-			r.key === "Escape" ? this.close() : r.key === "Enter" && !r.shiftKey ? (r.preventDefault(), this.replaceCurrent()) : r.key === "Enter" && r.shiftKey && (r.preventDefault(), this.replaceAll());
+		B.appendChild(V), B.appendChild(H), u.appendChild(R), u.appendChild(B);
+		let U = document.createElement("div");
+		U.className = "find-replace-replace-section", U.style.cssText = "\n      display: none;\n      display: flex;\n      gap: 8px;\n      align-items: center;\n      margin-bottom: 12px;\n    ";
+		let W = document.createElement("input");
+		W.type = "text", W.className = "find-replace-replace-input", W.placeholder = "Replace", W.style.cssText = "\n      flex: 1;\n      padding: 8px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      font-size: 14px;\n    ", W.value = this.state.replaceQuery, W.addEventListener("input", (u) => {
+			let R = u.target.value;
+			this.state.replaceQuery = R;
+		}), W.addEventListener("keydown", (u) => {
+			u.key === "Escape" ? this.close() : u.key === "Enter" && !u.shiftKey ? (u.preventDefault(), this.replaceCurrent()) : u.key === "Enter" && u.shiftKey && (u.preventDefault(), this.replaceAll());
 		});
-		let L = document.createElement("div");
-		L.style.cssText = "display: flex; gap: 4px;";
-		let R = this.createButton("Replace", "Replace current", () => {
+		let G = document.createElement("div");
+		G.style.cssText = "display: flex; gap: 4px;";
+		let K = this.createButton("Replace", "Replace current", () => {
 			this.replaceCurrent();
-		}), B = this.createButton("Replace All", "Replace all", () => {
+		}), q = this.createButton("Replace All", "Replace all", () => {
 			this.replaceAll();
 		});
-		L.appendChild(R), L.appendChild(B), F.appendChild(I), F.appendChild(L);
-		let V = document.createElement("div");
-		V.style.cssText = "\n      display: flex;\n      gap: 16px;\n      align-items: center;\n      margin-bottom: 12px;\n      font-size: 12px;\n    ";
-		let H = this.createCheckbox("Aa", "Match case", this.state.isCaseSensitive, (r) => {
-			this.state.isCaseSensitive = r, this.performSearch();
-		}), U = this.createCheckbox("Ab", "Match whole word", this.state.isWholeWord, (r) => {
-			this.state.isWholeWord = r, this.performSearch();
-		}), W = this.createCheckbox(".*", "Use regular expression", this.state.isRegex, (r) => {
-			this.state.isRegex = r, this.performSearch();
+		G.appendChild(K), G.appendChild(q), U.appendChild(W), U.appendChild(G);
+		let J = document.createElement("div");
+		J.style.cssText = "\n      display: flex;\n      gap: 16px;\n      align-items: center;\n      margin-bottom: 12px;\n      font-size: 12px;\n    ";
+		let Y = this.createCheckbox("Aa", "Match case", this.state.isCaseSensitive, (u) => {
+			this.state.isCaseSensitive = u, this.performSearch();
+		}), X = this.createCheckbox("Ab", "Match whole word", this.state.isWholeWord, (u) => {
+			this.state.isWholeWord = u, this.performSearch();
+		}), Z = this.createCheckbox(".*", "Use regular expression", this.state.isRegex, (u) => {
+			this.state.isRegex = u, this.performSearch();
 		});
-		V.appendChild(H), V.appendChild(U), V.appendChild(W);
-		let G = document.createElement("div");
-		G.className = "find-replace-result", G.style.cssText = "\n      font-size: 12px;\n      color: #666;\n      min-height: 20px;\n    ";
-		let K = document.createElement("button");
-		K.textContent = "×", K.className = "find-replace-close-button", K.style.cssText = "\n      position: absolute;\n      top: 8px;\n      right: 8px;\n      background: none;\n      border: none;\n      font-size: 24px;\n      cursor: pointer;\n      color: #666;\n      width: 32px;\n      height: 32px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 10;\n      pointer-events: auto;\n    ", K.addEventListener("click", (r) => {
-			r.stopPropagation(), this.close();
-		}), this.container.style.position = "relative", this.container.appendChild(K), this.container.appendChild(r), this.container.appendChild(F), this.container.appendChild(V), this.container.appendChild(G), this.overlay.appendChild(this.container), document.body.appendChild(this.overlay), this.overlay.addEventListener("click", (r) => {
-			r.target === this.overlay && this.close();
-		}), setTimeout(() => j.focus(), 0);
+		J.appendChild(Y), J.appendChild(X), J.appendChild(Z);
+		let Q = document.createElement("div");
+		Q.className = "find-replace-result", Q.style.cssText = "\n      font-size: 12px;\n      color: #666;\n      min-height: 20px;\n    ";
+		let $ = document.createElement("button");
+		$.textContent = "×", $.className = "find-replace-close-button", $.style.cssText = "\n      position: absolute;\n      top: 8px;\n      right: 8px;\n      background: none;\n      border: none;\n      font-size: 24px;\n      cursor: pointer;\n      color: #666;\n      width: 32px;\n      height: 32px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 10;\n      pointer-events: auto;\n    ", $.addEventListener("click", (u) => {
+			u.stopPropagation(), this.close();
+		}), this.container.style.position = "relative", this.container.appendChild($), this.container.appendChild(u), this.container.appendChild(U), this.container.appendChild(J), this.container.appendChild(Q), this.overlay.appendChild(this.container), document.body.appendChild(this.overlay), this.overlay.addEventListener("click", (u) => {
+			u.target === this.overlay && this.close();
+		}), setTimeout(() => R.focus(), 0);
 	}
-	createButton(r, j, M) {
-		let N = document.createElement("button");
-		return N.textContent = r, N.title = j, N.style.cssText = "\n      padding: 6px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      background: white;\n      cursor: pointer;\n      font-size: 12px;\n    ", N.addEventListener("click", M), N;
+	createButton(u, R, B) {
+		let V = document.createElement("button");
+		return V.textContent = u, V.title = R, V.style.cssText = "\n      padding: 6px 12px;\n      border: 1px solid #ddd;\n      border-radius: 4px;\n      background: white;\n      cursor: pointer;\n      font-size: 12px;\n    ", V.addEventListener("click", B), V;
 	}
-	createCheckbox(r, j, M, N) {
-		let P = document.createElement("label");
-		P.style.cssText = "display: flex; align-items: center; gap: 4px; cursor: pointer;", P.title = j;
-		let F = document.createElement("input");
-		F.type = "checkbox", F.checked = M, F.style.cssText = "cursor: pointer;", F.addEventListener("change", (r) => {
-			N(r.target.checked);
+	createCheckbox(u, R, B, V) {
+		let H = document.createElement("label");
+		H.style.cssText = "display: flex; align-items: center; gap: 4px; cursor: pointer;", H.title = R;
+		let U = document.createElement("input");
+		U.type = "checkbox", U.checked = B, U.style.cssText = "cursor: pointer;", U.addEventListener("change", (u) => {
+			V(u.target.checked);
 		});
-		let I = document.createElement("span");
-		return I.textContent = r, P.appendChild(F), P.appendChild(I), P;
+		let W = document.createElement("span");
+		return W.textContent = u, H.appendChild(U), H.appendChild(W), H;
 	}
 	performSearch() {
 		if (!this.state.searchQuery.trim()) {
 			this.state.matches = [], this.state.currentMatchIndex = -1, this.updateResult(), this.callbacks.onFind && this.callbacks.onFind([]);
 			return;
 		}
-		let r = [], j = this.buildSearchPattern(this.state.searchQuery);
-		this.translations.forEach((M, N) => {
+		let u = [], R = this.buildSearchPattern(this.state.searchQuery);
+		this.translations.forEach((B, V) => {
 			[
 				"key",
 				"context",
-				...this.languages.map((r) => `values.${r}`)
-			].forEach((P) => {
-				let F = this.getCellValue(M, P);
-				F && this.findMatchesInText(F, j).forEach((j) => {
-					r.push({
-						rowIndex: N,
-						columnId: P,
-						matchedText: F,
-						matchIndex: j.index,
-						matchLength: j.length
+				...this.languages.map((u) => `values.${u}`)
+			].forEach((H) => {
+				let U = this.getCellValue(B, H);
+				U && this.findMatchesInText(U, R).forEach((R) => {
+					u.push({
+						rowIndex: V,
+						columnId: H,
+						matchedText: U,
+						matchIndex: R.index,
+						matchLength: R.length
 					});
 				});
 			});
-		}), this.state.matches = r, this.state.currentMatchIndex = r.length > 0 ? 0 : -1, this.updateResult(), this.callbacks.onFind && this.callbacks.onFind(r);
+		}), this.state.matches = u, this.state.currentMatchIndex = u.length > 0 ? 0 : -1, this.updateResult(), this.callbacks.onFind && this.callbacks.onFind(u);
 	}
-	buildSearchPattern(r) {
-		let j = r;
+	buildSearchPattern(u) {
+		let R = u;
 		if (this.state.isRegex) try {
-			return new RegExp(j, this.state.isCaseSensitive ? "g" : "gi");
+			return new RegExp(R, this.state.isCaseSensitive ? "g" : "gi");
 		} catch {
-			j = this.escapeRegex(r);
+			R = this.escapeRegex(u);
 		}
-		else j = this.escapeRegex(r);
-		return this.state.isWholeWord && (j = `\\b${j}\\b`), new RegExp(j, this.state.isCaseSensitive ? "g" : "gi");
+		else R = this.escapeRegex(u);
+		return this.state.isWholeWord && (R = `\\b${R}\\b`), new RegExp(R, this.state.isCaseSensitive ? "g" : "gi");
 	}
-	escapeRegex(r) {
-		return r.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	escapeRegex(u) {
+		return u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 	}
-	findMatchesInText(r, j) {
-		let M = [], N;
-		for (j.lastIndex = 0; (N = j.exec(r)) !== null;) M.push({
-			index: N.index,
-			length: N[0].length
-		}), N.index === j.lastIndex && j.lastIndex++;
-		return M;
+	findMatchesInText(u, R) {
+		let B = [], V;
+		for (R.lastIndex = 0; (V = R.exec(u)) !== null;) B.push({
+			index: V.index,
+			length: V[0].length
+		}), V.index === R.lastIndex && R.lastIndex++;
+		return B;
 	}
-	getCellValue(r, j) {
-		if (j === "key") return r.key;
-		if (j === "context") return r.context || null;
-		if (j.startsWith("values.")) {
-			let M = j.replace("values.", "");
-			return r.values[M] || null;
+	getCellValue(u, R) {
+		if (R === "key") return u.key;
+		if (R === "context") return u.context || null;
+		if (R.startsWith("values.")) {
+			let B = R.replace("values.", "");
+			return u.values[B] || null;
 		}
 		return null;
 	}
 	updateResult() {
-		let r = this.container?.querySelector(".find-replace-result");
-		r && (this.state.matches.length === 0 ? r.textContent = this.state.searchQuery ? "No matches found" : "" : r.textContent = `${this.state.currentMatchIndex + 1} of ${this.state.matches.length} matches`);
+		let u = this.container?.querySelector(".find-replace-result");
+		u && (this.state.matches.length === 0 ? u.textContent = this.state.searchQuery ? "No matches found" : "" : u.textContent = `${this.state.currentMatchIndex + 1} of ${this.state.matches.length} matches`);
 	}
 	goToNextMatch() {
 		this.state.matches.length !== 0 && (this.state.currentMatchIndex = (this.state.currentMatchIndex + 1) % this.state.matches.length, this.updateResult(), this.navigateToMatch(this.state.matches[this.state.currentMatchIndex]));
@@ -2824,24 +1948,24 @@ var QuickSearchUI = class {
 	goToPrevMatch() {
 		this.state.matches.length !== 0 && (this.state.currentMatchIndex = this.state.currentMatchIndex <= 0 ? this.state.matches.length - 1 : this.state.currentMatchIndex - 1, this.updateResult(), this.navigateToMatch(this.state.matches[this.state.currentMatchIndex]));
 	}
-	navigateToMatch(r) {
-		this.callbacks.onFind && this.callbacks.onFind([r]);
+	navigateToMatch(u) {
+		this.callbacks.onFind && this.callbacks.onFind([u]);
 	}
 	replaceCurrent() {
 		if (this.state.currentMatchIndex < 0 || this.state.currentMatchIndex >= this.state.matches.length) return;
-		let r = this.container?.querySelector(".find-replace-replace-input"), j = r ? r.value : this.state.replaceQuery, M = this.state.matches[this.state.currentMatchIndex];
-		this.callbacks.onReplace && this.callbacks.onReplace(M, j), this.performSearch();
+		let u = this.container?.querySelector(".find-replace-replace-input"), R = u ? u.value : this.state.replaceQuery, B = this.state.matches[this.state.currentMatchIndex];
+		this.callbacks.onReplace && this.callbacks.onReplace(B, R), this.performSearch();
 	}
 	replaceAll() {
 		if (this.state.matches.length === 0) return;
-		let r = this.container?.querySelector(".find-replace-replace-input"), j = r ? r.value : this.state.replaceQuery;
-		this.callbacks.onReplaceAll && this.callbacks.onReplaceAll(this.state.matches, j), this.performSearch();
+		let u = this.container?.querySelector(".find-replace-replace-input"), R = u ? u.value : this.state.replaceQuery;
+		this.callbacks.onReplaceAll && this.callbacks.onReplaceAll(this.state.matches, R), this.performSearch();
 	}
 	attach() {
-		let r = (r) => {
-			r.key === "Escape" && this.overlay && this.close();
+		let u = (u) => {
+			u.key === "Escape" && this.overlay && this.close();
 		};
-		document.addEventListener("keydown", r), this.overlay.__escapeHandler = r;
+		document.addEventListener("keydown", u), this.overlay.__escapeHandler = u;
 	}
 	detach() {
 		this.overlay && this.overlay.__escapeHandler && document.removeEventListener("keydown", this.overlay.__escapeHandler);
@@ -2854,104 +1978,104 @@ var QuickSearchUI = class {
 	}
 }, FilterManager = class {
 	options;
-	constructor(r) {
-		this.options = r;
+	constructor(u) {
+		this.options = u;
 	}
-	filterEffect(r, M) {
-		let N = this;
-		return Effect.gen(function* (P) {
-			switch (M.type) {
-				case "search": return yield* P(N.applySearchFilterEffect(r, M.keyword || ""));
-				case "empty": return yield* P(N.applyEmptyFilterEffect(r));
-				case "changed": return yield* P(N.applyChangedFilterEffect(r));
-				case "duplicate": return yield* P(N.applyDuplicateFilterEffect(r));
-				default: return yield* P(Effect.succeed([...r]));
+	filterEffect(u, B) {
+		let V = this;
+		return Effect.gen(function* (H) {
+			switch (B.type) {
+				case "search": return yield* H(V.applySearchFilterEffect(u, B.keyword || ""));
+				case "empty": return yield* H(V.applyEmptyFilterEffect(u));
+				case "changed": return yield* H(V.applyChangedFilterEffect(u));
+				case "duplicate": return yield* H(V.applyDuplicateFilterEffect(u));
+				default: return yield* H(Effect.succeed([...u]));
 			}
 		});
 	}
-	filter(r, M) {
-		let N = this.filterEffect(r, M);
-		return Effect.runSync(Effect.match(N, {
-			onFailure: (j) => (logger.warn("Filter failed, returning original translations", j), [...r]),
-			onSuccess: (r) => r
+	filter(u, B) {
+		let V = this.filterEffect(u, B);
+		return Effect.runSync(Effect.match(V, {
+			onFailure: (R) => (logger.warn("Filter failed, returning original translations", R), [...u]),
+			onSuccess: (u) => u
 		}));
 	}
-	applySearchFilterEffect(r, M) {
-		let N = this;
-		return Effect.gen(function* (P) {
-			let F = M.toLowerCase().trim();
-			if (!F) return yield* P(Effect.succeed([...r]));
-			let I = r.filter((r) => r.key.toLowerCase().includes(F) || r.context?.toLowerCase().includes(F) ? !0 : N.options.languages.some((j) => (r.values[j] || "").toLowerCase().includes(F)));
-			return yield* P(Effect.succeed(I));
+	applySearchFilterEffect(u, B) {
+		let V = this;
+		return Effect.gen(function* (H) {
+			let U = B.toLowerCase().trim();
+			if (!U) return yield* H(Effect.succeed([...u]));
+			let W = u.filter((u) => u.key.toLowerCase().includes(U) || u.context?.toLowerCase().includes(U) ? !0 : V.options.languages.some((R) => (u.values[R] || "").toLowerCase().includes(U)));
+			return yield* H(Effect.succeed(W));
 		});
 	}
-	applySearchFilter(r, M) {
-		let N = this.applySearchFilterEffect(r, M);
-		return Effect.runSync(Effect.match(N, {
-			onFailure: () => [...r],
-			onSuccess: (r) => r
+	applySearchFilter(u, B) {
+		let V = this.applySearchFilterEffect(u, B);
+		return Effect.runSync(Effect.match(V, {
+			onFailure: () => [...u],
+			onSuccess: (u) => u
 		}));
 	}
-	applyEmptyFilterEffect(r) {
-		let M = this;
-		return Effect.gen(function* (N) {
-			let P = r.filter((r) => M.options.languages.some((j) => (r.values[j] || "").trim() === ""));
-			return yield* N(Effect.succeed(P));
+	applyEmptyFilterEffect(u) {
+		let B = this;
+		return Effect.gen(function* (V) {
+			let H = u.filter((u) => B.options.languages.some((R) => (u.values[R] || "").trim() === ""));
+			return yield* V(Effect.succeed(H));
 		});
 	}
-	applyEmptyFilter(r) {
-		let M = this.applyEmptyFilterEffect(r);
-		return Effect.runSync(Effect.match(M, {
-			onFailure: () => [...r],
-			onSuccess: (r) => r
+	applyEmptyFilter(u) {
+		let B = this.applyEmptyFilterEffect(u);
+		return Effect.runSync(Effect.match(B, {
+			onFailure: () => [...u],
+			onSuccess: (u) => u
 		}));
 	}
-	applyChangedFilterEffect(r) {
-		let M = this;
-		return Effect.gen(function* (N) {
-			let P = [];
-			for (let j of r) {
-				if (M.options.changeTracker.hasChange(j.id, "key")) {
-					P.push(j);
+	applyChangedFilterEffect(u) {
+		let B = this;
+		return Effect.gen(function* (V) {
+			let H = [];
+			for (let R of u) {
+				if (B.options.changeTracker.hasChange(R.id, "key")) {
+					H.push(R);
 					continue;
 				}
-				if (M.options.changeTracker.hasChange(j.id, "context")) {
-					P.push(j);
+				if (B.options.changeTracker.hasChange(R.id, "context")) {
+					H.push(R);
 					continue;
 				}
-				let r = !1;
-				for (let N of M.options.languages) if (M.options.changeTracker.hasChange(j.id, `values.${N}`)) {
-					r = !0;
+				let u = !1;
+				for (let V of B.options.languages) if (B.options.changeTracker.hasChange(R.id, `values.${V}`)) {
+					u = !0;
 					break;
 				}
-				r && P.push(j);
+				u && H.push(R);
 			}
-			return yield* N(Effect.succeed(P));
+			return yield* V(Effect.succeed(H));
 		});
 	}
-	applyChangedFilter(r) {
-		let M = this.applyChangedFilterEffect(r);
-		return Effect.runSync(Effect.match(M, {
-			onFailure: () => [...r],
-			onSuccess: (r) => r
+	applyChangedFilter(u) {
+		let B = this.applyChangedFilterEffect(u);
+		return Effect.runSync(Effect.match(B, {
+			onFailure: () => [...u],
+			onSuccess: (u) => u
 		}));
 	}
-	applyDuplicateFilterEffect(r) {
-		return Effect.gen(function* (M) {
-			let N = /* @__PURE__ */ new Map();
-			r.forEach((r) => {
-				let j = N.get(r.key) || 0;
-				N.set(r.key, j + 1);
+	applyDuplicateFilterEffect(u) {
+		return Effect.gen(function* (B) {
+			let V = /* @__PURE__ */ new Map();
+			u.forEach((u) => {
+				let R = V.get(u.key) || 0;
+				V.set(u.key, R + 1);
 			});
-			let P = r.filter((r) => (N.get(r.key) || 0) > 1);
-			return yield* M(Effect.succeed(P));
+			let H = u.filter((u) => (V.get(u.key) || 0) > 1);
+			return yield* B(Effect.succeed(H));
 		});
 	}
-	applyDuplicateFilter(r) {
-		let M = this.applyDuplicateFilterEffect(r);
-		return Effect.runSync(Effect.match(M, {
-			onFailure: () => [...r],
-			onSuccess: (r) => r
+	applyDuplicateFilter(u) {
+		let B = this.applyDuplicateFilterEffect(u);
+		return Effect.runSync(Effect.match(B, {
+			onFailure: () => [...u],
+			onSuccess: (u) => u
 		}));
 	}
 }, VimCommandTracker = class {
@@ -2959,53 +2083,53 @@ var QuickSearchUI = class {
 	commandType = "motion";
 	autoClearTimer = null;
 	options;
-	constructor(r = {}) {
+	constructor(u = {}) {
 		this.options = {
-			maxSequenceLength: r.maxSequenceLength ?? 20,
-			autoClearDelay: r.autoClearDelay ?? 1e3,
-			onCommandUpdate: r.onCommandUpdate ?? (() => {})
+			maxSequenceLength: u.maxSequenceLength ?? 20,
+			autoClearDelay: u.autoClearDelay ?? 1e3,
+			onCommandUpdate: u.onCommandUpdate ?? (() => {})
 		};
 	}
-	addKeyEffect(r) {
-		let M = this;
-		return Effect.gen(function* (N) {
-			if (M.currentSequence.length >= M.options.maxSequenceLength) return yield* N(Effect.fail(new VimCommandTrackerError({
-				message: `Maximum sequence length (${M.options.maxSequenceLength}) exceeded`,
+	addKeyEffect(u) {
+		let B = this;
+		return Effect.gen(function* (V) {
+			if (B.currentSequence.length >= B.options.maxSequenceLength) return yield* V(Effect.fail(new VimCommandTrackerError({
+				message: `Maximum sequence length (${B.options.maxSequenceLength}) exceeded`,
 				code: "MAX_SEQUENCE_LENGTH_EXCEEDED"
 			})));
-			M.currentSequence += r, M.updateCommandType();
-			let P = M.createCommand();
-			return M.options.onCommandUpdate(P), M.resetAutoClearTimer(), P;
+			B.currentSequence += u, B.updateCommandType();
+			let H = B.createCommand();
+			return B.options.onCommandUpdate(H), B.resetAutoClearTimer(), H;
 		});
 	}
-	addKey(r) {
-		let M = Effect.runSync(Effect.either(this.addKeyEffect(r)));
-		if (M._tag === "Left") {
-			let r = M.left;
-			return r instanceof VimCommandTrackerError || logger.error("VimCommandTracker: Unexpected error in addKey", r), null;
+	addKey(u) {
+		let B = Effect.runSync(Effect.either(this.addKeyEffect(u)));
+		if (B._tag === "Left") {
+			let u = B.left;
+			return u instanceof VimCommandTrackerError || logger.error("VimCommandTracker: Unexpected error in addKey", u), null;
 		}
-		return M.right;
+		return B.right;
 	}
 	completeCommandEffect() {
-		let r = this;
-		return Effect.gen(function* (M) {
-			if (!r.currentSequence) return yield* M(Effect.fail(new VimCommandTrackerError({
+		let u = this;
+		return Effect.gen(function* (B) {
+			if (!u.currentSequence) return yield* B(Effect.fail(new VimCommandTrackerError({
 				message: "No command sequence to complete",
 				code: "INVALID_KEY_SEQUENCE"
 			})));
-			let N = r.createCommand();
-			return N.type = "complete", r.options.onCommandUpdate(N), r.clear(), N;
+			let V = u.createCommand();
+			return V.type = "complete", u.options.onCommandUpdate(V), u.clear(), V;
 		});
 	}
 	completeCommand() {
 		return Effect.runSync(Effect.match(this.completeCommandEffect(), {
-			onFailure: (r) => {
-				throw r instanceof VimCommandTrackerError ? r : (logger.error("VimCommandTracker: Unexpected error in completeCommand", r), new VimCommandTrackerError({
+			onFailure: (u) => {
+				throw u instanceof VimCommandTrackerError ? u : (logger.error("VimCommandTracker: Unexpected error in completeCommand", u), new VimCommandTrackerError({
 					message: "Failed to complete command",
 					code: "INVALID_KEY_SEQUENCE"
 				}));
 			},
-			onSuccess: (r) => r
+			onSuccess: (u) => u
 		}));
 	}
 	cancelCommandEffect() {
@@ -3027,7 +2151,7 @@ var QuickSearchUI = class {
 			this.commandType = "motion";
 			return;
 		}
-		let r = this.currentSequence[this.currentSequence.length - 1];
+		let u = this.currentSequence[this.currentSequence.length - 1];
 		if (/^\d+$/.test(this.currentSequence)) {
 			this.commandType = "number";
 			return;
@@ -3036,7 +2160,7 @@ var QuickSearchUI = class {
 			"d",
 			"y",
 			"c"
-		].includes(r)) {
+		].includes(u)) {
 			this.commandType = "operator";
 			return;
 		}
@@ -3044,7 +2168,7 @@ var QuickSearchUI = class {
 			"w",
 			"b",
 			"e"
-		].includes(r) && this.currentSequence.length > 1) {
+		].includes(u) && this.currentSequence.length > 1) {
 			this.commandType = "text-object";
 			return;
 		}
@@ -3058,8 +2182,8 @@ var QuickSearchUI = class {
 		};
 	}
 	getCommandDescription() {
-		let r = this.currentSequence;
-		if (r) return /^\d+$/.test(r) ? `Repeat ${r} times` : {
+		let u = this.currentSequence;
+		if (u) return /^\d+$/.test(u) ? `Repeat ${u} times` : {
 			h: "Move left",
 			j: "Move down",
 			k: "Move up",
@@ -3076,7 +2200,7 @@ var QuickSearchUI = class {
 			dw: "Delete word",
 			ciw: "Change inner word",
 			diw: "Delete inner word"
-		}[r] || void 0;
+		}[u] || void 0;
 	}
 	resetAutoClearTimer() {
 		this.autoClearTimer !== null && clearTimeout(this.autoClearTimer), this.autoClearTimer = window.setTimeout(() => {
@@ -3091,29 +2215,29 @@ var QuickSearchUI = class {
 	history = [];
 	historyIndex = -1;
 	isVisible = !1;
-	constructor(r) {
-		this.container = r.container, this.options = {
-			container: r.container,
-			onExecute: r.onExecute ?? (() => {}),
-			onCancel: r.onCancel ?? (() => {}),
-			maxHistorySize: r.maxHistorySize ?? 50,
-			placeholder: r.placeholder ?? "Enter command..."
+	constructor(u) {
+		this.container = u.container, this.options = {
+			container: u.container,
+			onExecute: u.onExecute ?? (() => {}),
+			onCancel: u.onCancel ?? (() => {}),
+			maxHistorySize: u.maxHistorySize ?? 50,
+			placeholder: u.placeholder ?? "Enter command..."
 		}, this.loadHistory();
 	}
-	showEffect(r) {
+	showEffect(u) {
 		return Effect.sync(() => {
-			this.isVisible ||= (this.historyIndex = -1, this.loadHistory(), this.createUI(), this.input && (this.input.value = r || "", requestAnimationFrame(() => {
+			this.isVisible ||= (this.historyIndex = -1, this.loadHistory(), this.createUI(), this.input && (this.input.value = u || "", requestAnimationFrame(() => {
 				if (this.input) {
-					let j = r || "";
-					this.input.value !== j && (logger.warn(`CommandLine: Input value was reset during show! Expected: "${j}", Got: "${this.input.value}"`), this.input.value = j), this.input.focus(), this.input.select();
+					let R = u || "";
+					this.input.value !== R && (logger.warn(`CommandLine: Input value was reset during show! Expected: "${R}", Got: "${this.input.value}"`), this.input.value = R), this.input.focus(), this.input.select();
 				}
 			})), !0);
-		}).pipe(Effect.catchAll((r) => (logger.error("CommandLine: Failed to show", r), Effect.fail(r))));
+		}).pipe(Effect.catchAll((u) => (logger.error("CommandLine: Failed to show", u), Effect.fail(u))));
 	}
-	show(r) {
-		Effect.runSync(Effect.match(this.showEffect(r), {
-			onFailure: (r) => {
-				logger.error("CommandLine: Failed to show", r);
+	show(u) {
+		Effect.runSync(Effect.match(this.showEffect(u), {
+			onFailure: (u) => {
+				logger.error("CommandLine: Failed to show", u);
 			},
 			onSuccess: () => {}
 		}));
@@ -3131,91 +2255,91 @@ var QuickSearchUI = class {
 	}
 	createUI() {
 		this.overlay = document.createElement("div"), this.overlay.className = "command-line-overlay", this.overlay.setAttribute("role", "dialog"), this.overlay.setAttribute("aria-label", "Command Line");
-		let r = document.createElement("div");
-		r.className = "command-line", this.input = document.createElement("input"), this.input.type = "text", this.input.className = "command-line-input", this.input.setAttribute("placeholder", this.options.placeholder), this.input.setAttribute("aria-label", "Command input"), this.input.setAttribute("autocomplete", "off"), this.input.setAttribute("spellcheck", "false"), this.attachInputListeners(), r.appendChild(this.input), this.overlay.appendChild(r), this.container.appendChild(this.overlay);
+		let u = document.createElement("div");
+		u.className = "command-line", this.input = document.createElement("input"), this.input.type = "text", this.input.className = "command-line-input", this.input.setAttribute("placeholder", this.options.placeholder), this.input.setAttribute("aria-label", "Command input"), this.input.setAttribute("autocomplete", "off"), this.input.setAttribute("spellcheck", "false"), this.attachInputListeners(), u.appendChild(this.input), this.overlay.appendChild(u), this.container.appendChild(this.overlay);
 	}
 	attachInputListeners() {
 		if (!this.input) {
 			logger.warn("CommandLine: Cannot attach listeners - input is null");
 			return;
 		}
-		this.input.addEventListener("keydown", (r) => {
-			r.key === "Enter" ? (r.preventDefault(), r.stopPropagation(), this.executeCommand().catch((r) => {
-				logger.error("CommandLine: executeCommand error (outer catch)", r), this.hide();
-			})) : r.key === "Escape" ? (r.preventDefault(), r.stopPropagation(), this.cancel()) : r.key === "ArrowUp" ? (r.preventDefault(), r.stopPropagation(), this.navigateHistory(-1), this.input && requestAnimationFrame(() => {
+		this.input.addEventListener("keydown", (u) => {
+			u.key === "Enter" ? (u.preventDefault(), u.stopPropagation(), this.executeCommand().catch((u) => {
+				logger.error("CommandLine: executeCommand error (outer catch)", u), this.hide();
+			})) : u.key === "Escape" ? (u.preventDefault(), u.stopPropagation(), this.cancel()) : u.key === "ArrowUp" ? (u.preventDefault(), u.stopPropagation(), this.navigateHistory(-1), this.input && requestAnimationFrame(() => {
 				this.input && this.input.focus();
-			})) : r.key === "ArrowDown" && (r.preventDefault(), r.stopPropagation(), this.navigateHistory(1), this.input && requestAnimationFrame(() => {
+			})) : u.key === "ArrowDown" && (u.preventDefault(), u.stopPropagation(), this.navigateHistory(1), this.input && requestAnimationFrame(() => {
 				this.input && this.input.focus();
 			}));
-		}), this.overlay && this.overlay.addEventListener("click", (r) => {
-			r.target === this.overlay && this.cancel();
+		}), this.overlay && this.overlay.addEventListener("click", (u) => {
+			u.target === this.overlay && this.cancel();
 		});
 	}
 	executeCommandEffect() {
-		let r = this;
-		return Effect.gen(function* (M) {
-			if (!r.input) return yield* M(Effect.fail(new CommandLineError({
+		let u = this;
+		return Effect.gen(function* (B) {
+			if (!u.input) return yield* B(Effect.fail(new CommandLineError({
 				message: "Input element not found",
 				code: "INVALID_COMMAND"
 			})));
-			let N = r.input.value.trim();
-			if (!N) {
-				r.hide();
+			let V = u.input.value.trim();
+			if (!V) {
+				u.hide();
 				return;
 			}
-			r.addToHistory(N);
+			u.addToHistory(V);
 			try {
-				let P = r.options.onExecute(N);
-				if (P instanceof Promise) {
-					let N = null, F = new Promise((r, j) => {
-						N = window.setTimeout(() => {
-							j(/* @__PURE__ */ Error("Command execution timeout (5s)"));
+				let H = u.options.onExecute(V);
+				if (H instanceof Promise) {
+					let V = null, U = new Promise((u, R) => {
+						V = window.setTimeout(() => {
+							R(/* @__PURE__ */ Error("Command execution timeout (5s)"));
 						}, 5e3);
 					});
 					try {
-						yield* M(Effect.promise(() => Promise.race([P.finally(() => {
-							N !== null && (window.clearTimeout(N), N = null);
-						}), F])));
-					} catch (P) {
-						return N !== null && (window.clearTimeout(N), N = null), logger.error("CommandLine: Command execution timeout or error", P), r.hide(), yield* M(Effect.fail(new CommandLineError({
-							message: `Command execution failed: ${P instanceof Error ? P.message : String(P)}`,
+						yield* B(Effect.promise(() => Promise.race([H.finally(() => {
+							V !== null && (window.clearTimeout(V), V = null);
+						}), U])));
+					} catch (H) {
+						return V !== null && (window.clearTimeout(V), V = null), logger.error("CommandLine: Command execution timeout or error", H), u.hide(), yield* B(Effect.fail(new CommandLineError({
+							message: `Command execution failed: ${H instanceof Error ? H.message : String(H)}`,
 							code: "COMMAND_EXECUTION_FAILED"
 						})));
 					}
 				}
-			} catch (N) {
-				return logger.error("CommandLine: Command execution failed", N), r.hide(), yield* M(Effect.fail(new CommandLineError({
-					message: `Command execution failed: ${N instanceof Error ? N.message : String(N)}`,
+			} catch (V) {
+				return logger.error("CommandLine: Command execution failed", V), u.hide(), yield* B(Effect.fail(new CommandLineError({
+					message: `Command execution failed: ${V instanceof Error ? V.message : String(V)}`,
 					code: "COMMAND_EXECUTION_FAILED"
 				})));
 			}
-			r.hide();
-		}).pipe(Effect.catchAll((M) => (logger.error("CommandLine: Failed to execute command", M), r.hide(), Effect.fail(M))));
+			u.hide();
+		}).pipe(Effect.catchAll((B) => (logger.error("CommandLine: Failed to execute command", B), u.hide(), Effect.fail(B))));
 	}
 	async executeCommand() {
-		let r = null;
+		let u = null;
 		try {
-			let M = new Promise((j, M) => {
-				r = window.setTimeout(() => {
-					M(/* @__PURE__ */ Error("Command execution timeout (5s)"));
+			let B = new Promise((R, B) => {
+				u = window.setTimeout(() => {
+					B(/* @__PURE__ */ Error("Command execution timeout (5s)"));
 				}, 5e3);
 			});
 			await Promise.race([Effect.runPromise(this.executeCommandEffect()).finally(() => {
-				r !== null && (window.clearTimeout(r), r = null);
-			}), M]);
-		} catch (j) {
-			r !== null && (window.clearTimeout(r), r = null), logger.error("CommandLine: executeCommand failed", j), this.hide();
+				u !== null && (window.clearTimeout(u), u = null);
+			}), B]);
+		} catch (R) {
+			u !== null && (window.clearTimeout(u), u = null), logger.error("CommandLine: executeCommand failed", R), this.hide();
 		}
 	}
 	cancel() {
 		this.options.onCancel(), this.hide();
 	}
-	navigateHistory(r) {
+	navigateHistory(u) {
 		if (this.input && (this.loadHistory(), this.history.length !== 0)) {
-			if (this.historyIndex === -1) if (r < 0) if (this.history.length > 0) this.historyIndex = 0;
+			if (this.historyIndex === -1) if (u < 0) if (this.history.length > 0) this.historyIndex = 0;
 			else return;
 			else return;
-			else this.historyIndex -= r;
+			else this.historyIndex -= u;
 			if (this.historyIndex < 0) {
 				this.historyIndex = -1, this.input.value = "";
 				return;
@@ -3224,16 +2348,16 @@ var QuickSearchUI = class {
 				return;
 			}
 			if (this.historyIndex >= 0 && this.historyIndex < this.history.length) {
-				let r = this.history[this.historyIndex];
-				r && typeof r == "string" ? this.input ? (this.input.value = r, requestAnimationFrame(() => {
-					this.input && (this.input.value !== r && (logger.warn(`CommandLine: Input value was reset in Firefox! Expected: "${r}", Got: "${this.input.value}"`), this.input.value = r), this.input.focus(), this.input.setSelectionRange(0, this.input.value.length));
+				let u = this.history[this.historyIndex];
+				u && typeof u == "string" ? this.input ? (this.input.value = u, requestAnimationFrame(() => {
+					this.input && (this.input.value !== u && (logger.warn(`CommandLine: Input value was reset in Firefox! Expected: "${u}", Got: "${this.input.value}"`), this.input.value = u), this.input.focus(), this.input.setSelectionRange(0, this.input.value.length));
 				})) : logger.warn("CommandLine: Input element is null when setting history value") : this.input && (this.input.value = "");
 			} else this.input && (this.input.value = "");
 		}
 	}
-	addToHistory(r) {
-		let j = this.history.indexOf(r);
-		j !== -1 && this.history.splice(j, 1), this.history.unshift(r), this.history.length > this.options.maxHistorySize && (this.history = this.history.slice(0, this.options.maxHistorySize)), this.saveHistory();
+	addToHistory(u) {
+		let R = this.history.indexOf(u);
+		R !== -1 && this.history.splice(R, 1), this.history.unshift(u), this.history.length > this.options.maxHistorySize && (this.history = this.history.slice(0, this.options.maxHistorySize)), this.saveHistory();
 	}
 	getHistory() {
 		return [...this.history];
@@ -3243,21 +2367,21 @@ var QuickSearchUI = class {
 	}
 	saveHistory() {
 		try {
-			let r = JSON.stringify(this.history);
-			localStorage.setItem("commandLineHistory", r);
-		} catch (r) {
-			logger.error("Failed to save command line history", r);
+			let u = JSON.stringify(this.history);
+			localStorage.setItem("commandLineHistory", u);
+		} catch (u) {
+			logger.error("Failed to save command line history", u);
 		}
 	}
 	loadHistory() {
 		try {
-			let r = localStorage.getItem("commandLineHistory");
-			if (r) {
-				let j = JSON.parse(r);
-				Array.isArray(j) ? this.history = j : (logger.warn("CommandLine: Invalid history format in localStorage", j), this.history = []);
+			let u = localStorage.getItem("commandLineHistory");
+			if (u) {
+				let R = JSON.parse(u);
+				Array.isArray(R) ? this.history = R : (logger.warn("CommandLine: Invalid history format in localStorage", R), this.history = []);
 			} else this.history = [];
-		} catch (r) {
-			logger.error("Failed to load command line history", r), this.history = [];
+		} catch (u) {
+			logger.error("Failed to load command line history", u), this.history = [];
 		}
 	}
 	destroy() {
@@ -3305,74 +2429,74 @@ var QuickSearchUI = class {
 	vimCommandTracker = null;
 	commandLine = null;
 	vimKeyboardHandler = null;
-	constructor(r) {
-		this.container = r.container, this.options = r, this.columnWidths = r.columnWidths || /* @__PURE__ */ new Map(), this.rowHeight = r.rowHeight || 40, this.headerHeight = r.headerHeight || 40, this.editableColumns = new Set(["key", "context"]), r.languages.forEach((r) => {
-			this.editableColumns.add(`values.${r}`);
-		}), this.columnMinWidths.set("key", 100), this.columnMinWidths.set("context", 100), r.languages.forEach((r) => {
-			this.columnMinWidths.set(`values.${r}`, 80);
-		}), this.originalTranslations = [...r.translations], this.currentTranslations = [...r.translations], this.changeTracker.initializeOriginalData(r.translations, r.languages), this.filterManager = new FilterManager({
-			translations: r.translations,
-			languages: r.languages,
+	constructor(u) {
+		this.container = u.container, this.options = u, this.columnWidths = u.columnWidths || /* @__PURE__ */ new Map(), this.rowHeight = u.rowHeight || 40, this.headerHeight = u.headerHeight || 40, this.editableColumns = new Set(["key", "context"]), u.languages.forEach((u) => {
+			this.editableColumns.add(`values.${u}`);
+		}), this.columnMinWidths.set("key", 100), this.columnMinWidths.set("context", 100), u.languages.forEach((u) => {
+			this.columnMinWidths.set(`values.${u}`, 80);
+		}), this.originalTranslations = [...u.translations], this.currentTranslations = [...u.translations], this.changeTracker.initializeOriginalData(u.translations, u.languages), this.filterManager = new FilterManager({
+			translations: u.translations,
+			languages: u.languages,
 			changeTracker: this.changeTracker
-		}), this.cellEditor = new CellEditor(r.translations, this.changeTracker, this.undoRedoManager, {
-			onCellChange: (j, M, N) => {
-				let P = this.currentTranslations.findIndex((r) => r.id === j);
-				if (P !== -1) {
-					let r = this.currentTranslations[P], F = toMutableTranslation(r);
-					if (M === "key") F.key = N;
-					else if (M === "context") F.context = N;
-					else if (M.startsWith("values.")) {
-						let r = M.replace("values.", "");
-						F.values[r] = N;
+		}), this.cellEditor = new CellEditor(u.translations, this.changeTracker, this.undoRedoManager, {
+			onCellChange: (R, B, V) => {
+				let H = this.currentTranslations.findIndex((u) => u.id === R);
+				if (H !== -1) {
+					let u = this.currentTranslations[H], U = toMutableTranslation(u);
+					if (B === "key") U.key = V;
+					else if (B === "context") U.context = V;
+					else if (B.startsWith("values.")) {
+						let u = B.replace("values.", "");
+						U.values[u] = V;
 					}
-					this.currentTranslations[P] = F;
-					let I = this.originalTranslations.findIndex((r) => r.id === j);
-					if (I !== -1) {
-						let r = this.originalTranslations[I], j = toMutableTranslation(r);
-						if (M === "key") j.key = N;
-						else if (M === "context") j.context = N;
-						else if (M.startsWith("values.")) {
-							let r = M.replace("values.", "");
-							j.values[r] = N;
+					this.currentTranslations[H] = U;
+					let W = this.originalTranslations.findIndex((u) => u.id === R);
+					if (W !== -1) {
+						let u = this.originalTranslations[W], R = toMutableTranslation(u);
+						if (B === "key") R.key = V;
+						else if (B === "context") R.context = V;
+						else if (B.startsWith("values.")) {
+							let u = B.replace("values.", "");
+							R.values[u] = V;
 						}
-						let P = [...this.originalTranslations];
-						P[I] = j, this.originalTranslations = P;
+						let H = [...this.originalTranslations];
+						H[W] = R, this.originalTranslations = H;
 					}
 				}
-				this.updateCellStyle(j, M), this.updateStatusBar(), r.onCellChange && r.onCellChange(j, M, N);
+				this.updateCellStyle(R, B), this.updateStatusBar(), u.onCellChange && u.onCellChange(R, B, V);
 			},
 			onEditStateChange: () => {
 				this.updateStatusBar();
 			},
-			onEditFinished: (r, j, M) => {
-				let N = this.currentTranslations.length - 1, P = r;
-				if (M === "down") if (r < N) P = r + 1;
+			onEditFinished: (u, R, B) => {
+				let V = this.currentTranslations.length - 1, H = u;
+				if (B === "down") if (u < V) H = u + 1;
 				else {
-					this.focusCell(r, j);
+					this.focusCell(u, R);
 					return;
 				}
-				else if (r > 0) P = r - 1;
+				else if (u > 0) H = u - 1;
 				else {
-					this.focusCell(r, j);
+					this.focusCell(u, R);
 					return;
 				}
-				this.focusCell(P, j), requestAnimationFrame(() => {
-					this.startEditingFromKeyboard(P, j);
+				this.focusCell(H, R), requestAnimationFrame(() => {
+					this.startEditingFromKeyboard(H, R);
 				});
 			},
-			updateCellStyle: (r, j) => {
-				this.updateCellStyle(r, j);
+			updateCellStyle: (u, R) => {
+				this.updateCellStyle(u, R);
 			},
-			updateCellContent: (r, j, M, N) => {
-				let P = r.getAttribute("data-row-index"), F = P ? parseInt(P, 10) : 0;
-				this.gridRenderer.updateCellContent(r, j, M, N, F);
+			updateCellContent: (u, R, B, V) => {
+				let H = u.getAttribute("data-row-index"), U = H ? parseInt(H, 10) : 0;
+				this.gridRenderer.updateCellContent(u, R, B, V, U);
 			}
 		}), this.commandRegistry = new CommandRegistry({ onCommandExecuted: () => {} }), this.registerDefaultCommands(), this.quickSearch = new QuickSearch({
-			translations: r.translations,
-			languages: r.languages
+			translations: u.translations,
+			languages: u.languages
 		}), this.quickSearchUI = new QuickSearchUI(this.container, {
-			onSearch: (r) => {
-				this.handleQuickSearch(r);
+			onSearch: (u) => {
+				this.handleQuickSearch(u);
 			},
 			onClose: () => {
 				this.closeQuickSearch();
@@ -3387,42 +2511,42 @@ var QuickSearchUI = class {
 			onCommandExecute: () => {},
 			onClose: () => {
 				if (this.bodyElement) {
-					let r = this.focusManager.getFocusedCell();
-					r && this.focusCell(r.rowIndex, r.columnId);
+					let u = this.focusManager.getFocusedCell();
+					u && this.focusCell(u.rowIndex, u.columnId);
 				}
 			},
-			onFindMatches: (r) => this.findMatches(r),
-			onGotoMatch: (r) => {
-				this.gotoToMatch(r);
-				let j = this.commandPalette.getFuzzyFindResults(), M = this.commandPalette.getFuzzyFindQuery(), N = j.map((r) => ({
-					rowIndex: r.rowIndex,
-					translation: r.translation,
-					score: r.score,
-					matchedFields: r.matchedFields
-				})), P = N.findIndex((j) => j.rowIndex === r.rowIndex);
+			onFindMatches: (u) => this.findMatches(u),
+			onGotoMatch: (u) => {
+				this.gotoToMatch(u);
+				let R = this.commandPalette.getFuzzyFindResults(), B = this.commandPalette.getFuzzyFindQuery(), V = R.map((u) => ({
+					rowIndex: u.rowIndex,
+					translation: u.translation,
+					score: u.score,
+					matchedFields: u.matchedFields
+				})), H = V.findIndex((R) => R.rowIndex === u.rowIndex);
 				this.currentGotoMatches = {
-					keyword: M,
-					matches: N,
-					currentIndex: P === -1 ? 0 : P
+					keyword: B,
+					matches: V,
+					currentIndex: H === -1 ? 0 : H
 				};
 			}
 		}), this.keyboardHandlerModule = new KeyboardHandler(this.modifierKeyTracker, this.focusManager, {
 			onUndo: () => this.handleUndo(),
 			onRedo: () => this.handleRedo(),
-			onStartEditing: (r, j) => {
-				this.startEditingFromKeyboard(r, j);
+			onStartEditing: (u, R) => {
+				this.startEditingFromKeyboard(u, R);
 			},
 			getAllColumns: () => [
 				"key",
 				"context",
-				...r.languages.map((r) => `values.${r}`)
+				...u.languages.map((u) => `values.${u}`)
 			],
-			getMaxRowIndex: () => r.translations.length - 1,
-			focusCell: (r, j) => {
-				this.focusCell(r, j);
+			getMaxRowIndex: () => u.translations.length - 1,
+			focusCell: (u, R) => {
+				this.focusCell(u, R);
 			},
-			onOpenCommandPalette: (r) => {
-				this.commandPalette.open(r);
+			onOpenCommandPalette: (u) => {
+				this.commandPalette.open(u);
 			},
 			onOpenQuickSearch: () => {
 				this.openQuickSearch();
@@ -3434,7 +2558,7 @@ var QuickSearchUI = class {
 				this.goToPrevQuickSearchMatch();
 			},
 			isQuickSearchMode: () => this.quickSearchUI?.isSearchMode() || !1,
-			isEditableColumn: (r) => this.editableColumns.has(r),
+			isEditableColumn: (u) => this.editableColumns.has(u),
 			isReadOnly: () => this.options.readOnly || !1,
 			onOpenFind: () => {
 				this.openFindReplace("find");
@@ -3445,56 +2569,56 @@ var QuickSearchUI = class {
 		}), this.columnWidthCalculator = new ColumnWidthCalculator({
 			columnWidths: this.columnWidths,
 			columnMinWidths: this.columnMinWidths,
-			languages: r.languages
+			languages: u.languages
 		}), this.columnResizer = new ColumnResizer({
 			columnWidths: this.columnWidths,
 			columnMinWidths: this.columnMinWidths,
-			languages: r.languages,
+			languages: u.languages,
 			callbacks: {
-				onResize: (r, j) => {
-					this.applyColumnWidth(r, j);
+				onResize: (u, R) => {
+					this.applyColumnWidth(u, R);
 				},
 				onResizeEnd: () => {
 					this.rowVirtualizer && this.bodyElement && this.renderVirtualRows();
 				}
 			}
 		}), this.gridRenderer = new GridRenderer({
-			languages: r.languages,
-			readOnly: r.readOnly,
+			languages: u.languages,
+			readOnly: u.readOnly,
 			editableColumns: this.editableColumns,
 			callbacks: {
-				onCellDblClick: (r, j, M) => {
-					this.startEditing(r, j, M);
+				onCellDblClick: (u, R, B) => {
+					this.startEditing(u, R, B);
 				},
-				onCellFocus: (r, j) => {
-					this.focusManager.focusCell(r, j), this.updateStatusBar();
+				onCellFocus: (u, R) => {
+					this.focusManager.focusCell(u, R), this.updateStatusBar();
 				},
-				updateCellStyle: (r, j, M) => {
-					this.updateCellStyle(r, j, M);
+				updateCellStyle: (u, R, B) => {
+					this.updateCellStyle(u, R, B);
 				}
 			}
 		}), this.findReplace = new FindReplace({
-			translations: r.translations,
-			languages: r.languages,
-			onFind: (r) => {
-				if (r.length > 0) {
-					let j = r[0];
-					this.gotoToFindMatch(j);
+			translations: u.translations,
+			languages: u.languages,
+			onFind: (u) => {
+				if (u.length > 0) {
+					let R = u[0];
+					this.gotoToFindMatch(R);
 				}
 			},
-			onReplace: (r, j) => {
-				this.replaceFindMatch(r, j);
+			onReplace: (u, R) => {
+				this.replaceFindMatch(u, R);
 			},
-			onReplaceAll: (r, j) => {
-				this.replaceAllFindMatches(r, j);
+			onReplaceAll: (u, R) => {
+				this.replaceAllFindMatches(u, R);
 			},
 			onClose: () => {}
-		}), this.vimCommandTracker = new VimCommandTracker({ onCommandUpdate: (r) => {
+		}), this.vimCommandTracker = new VimCommandTracker({ onCommandUpdate: (u) => {
 			this.updateStatusBar();
 		} }), this.commandLine = new CommandLine({
 			container: this.container,
-			onExecute: async (r) => {
-				await this.executeCommandLineCommand(r);
+			onExecute: async (u) => {
+				await this.executeCommandLineCommand(u);
 			},
 			onCancel: () => {}
 		});
@@ -3514,12 +2638,12 @@ var QuickSearchUI = class {
 			logger.error("VirtualTableDiv: scrollElement or bodyElement is null");
 			return;
 		}
-		let r = (() => {
+		let u = (() => {
 			if (this.scrollElement) {
-				let r = this.scrollElement.getBoundingClientRect();
-				if (r.width > 0 && r.height > 0) return {
-					width: r.width,
-					height: r.height
+				let u = this.scrollElement.getBoundingClientRect();
+				if (u.width > 0 && u.height > 0) return {
+					width: u.width,
+					height: u.height
 				};
 			}
 			return {
@@ -3534,7 +2658,7 @@ var QuickSearchUI = class {
 			scrollToFn: elementScroll,
 			observeElementRect,
 			observeElementOffset,
-			initialRect: r,
+			initialRect: u,
 			onChange: () => {
 				this.renderScheduled || (this.renderScheduled = !0, requestAnimationFrame(() => {
 					this.renderScheduled = !1, this.renderVirtualRows();
@@ -3546,280 +2670,280 @@ var QuickSearchUI = class {
 	}
 	renderVirtualRows() {
 		if (!this.rowVirtualizer || !this.bodyElement) return;
-		let r = null, j = this.cellEditor.getEditingCell();
-		if (j) {
-			let M = this.bodyElement.querySelector(`[data-row-index="${j.rowIndex}"]`);
-			if (M) {
-				let N = M.querySelector(`[data-column-id="${j.columnId}"]`);
-				if (N) {
-					let M = N.querySelector("input");
-					M && (r = {
-						rowId: j.rowId,
-						columnId: j.columnId,
-						value: M.value
+		let u = null, R = this.cellEditor.getEditingCell();
+		if (R) {
+			let B = this.bodyElement.querySelector(`[data-row-index="${R.rowIndex}"]`);
+			if (B) {
+				let V = B.querySelector(`[data-column-id="${R.columnId}"]`);
+				if (V) {
+					let B = V.querySelector("input");
+					B && (u = {
+						rowId: R.rowId,
+						columnId: R.columnId,
+						value: B.value
 					});
 				}
 			}
 		}
 		this.bodyElement.innerHTML = "";
-		let M = this.rowVirtualizer.getVirtualItems(), N = this.rowVirtualizer.getTotalSize();
-		this.bodyElement.style.height = `${N}px`;
-		let P, F = this.getContainerWidth();
-		if (this.columnResizer.isResizingActive()) P = this.columnWidthCalculator.calculateColumnWidths(F);
-		else if (this.columnWidths.size > 0) P = this.columnWidthCalculator.calculateColumnWidths(F);
+		let B = this.rowVirtualizer.getVirtualItems(), V = this.rowVirtualizer.getTotalSize();
+		this.bodyElement.style.height = `${V}px`;
+		let H, U = this.getContainerWidth();
+		if (this.columnResizer.isResizingActive()) H = this.columnWidthCalculator.calculateColumnWidths(U);
+		else if (this.columnWidths.size > 0) H = this.columnWidthCalculator.calculateColumnWidths(U);
 		else {
-			let r = this.getColumnWidthsFromHeader();
-			if (r) {
-				let j = r.rowNumber + r.key + r.context + r.languages.slice(0, -1).reduce((r, j) => r + j, 0), M = this.columnMinWidths.get(`values.${this.options.languages[this.options.languages.length - 1]}`) || 80, N = Math.max(M, F - j);
-				P = {
-					rowNumber: r.rowNumber,
-					key: r.key,
-					context: r.context,
-					languages: [...r.languages.slice(0, -1), N]
+			let u = this.getColumnWidthsFromHeader();
+			if (u) {
+				let R = u.rowNumber + u.key + u.context + u.languages.slice(0, -1).reduce((u, R) => u + R, 0), B = this.columnMinWidths.get(`values.${this.options.languages[this.options.languages.length - 1]}`) || 80, V = Math.max(B, U - R);
+				H = {
+					rowNumber: u.rowNumber,
+					key: u.key,
+					context: u.context,
+					languages: [...u.languages.slice(0, -1), V]
 				};
-			} else P = this.columnWidthCalculator.calculateColumnWidths(F);
+			} else H = this.columnWidthCalculator.calculateColumnWidths(U);
 		}
-		M.forEach((j) => {
-			let M = this.getFilteredTranslations()[j.index];
-			if (!M) return;
-			let N = this.gridRenderer.createRow(M, j.index, P), I = F;
-			if (N.style.position = "absolute", N.style.top = `${j.start}px`, N.style.left = "0", N.style.width = `${I}px`, N.style.minWidth = `${I}px`, N.style.maxWidth = `${I}px`, N.style.height = `${j.size}px`, N.setAttribute("data-index", j.index.toString()), this.bodyElement.appendChild(N), this.applyQuickSearchHighlight(N, j.index), r && M.id === r.rowId) {
-				let M = N.querySelector(`[data-column-id="${r.columnId}"]`);
-				M && requestAnimationFrame(() => {
-					this.startEditing(j.index, r.columnId, M);
-					let N = M.querySelector("input");
-					N && (N.value = r.value, N.focus(), N.select());
+		B.forEach((R) => {
+			let B = this.getFilteredTranslations()[R.index];
+			if (!B) return;
+			let V = this.gridRenderer.createRow(B, R.index, H), W = U;
+			if (V.style.position = "absolute", V.style.top = `${R.start}px`, V.style.left = "0", V.style.width = `${W}px`, V.style.minWidth = `${W}px`, V.style.maxWidth = `${W}px`, V.style.height = `${R.size}px`, V.setAttribute("data-index", R.index.toString()), this.bodyElement.appendChild(V), this.applyQuickSearchHighlight(V, R.index), u && B.id === u.rowId) {
+				let B = V.querySelector(`[data-column-id="${u.columnId}"]`);
+				B && requestAnimationFrame(() => {
+					this.startEditing(R.index, u.columnId, B);
+					let V = B.querySelector("input");
+					V && (V.value = u.value, V.focus(), V.select());
 				});
 			}
-			this.rowVirtualizer.measureElement(N);
+			this.rowVirtualizer.measureElement(V);
 		});
 	}
 	renderHeader() {
 		if (!this.headerElement) return;
-		let r = document.createElement("div");
-		r.className = "virtual-grid-header-row", r.setAttribute("role", "row");
-		let j = this.getContainerWidth(), M;
-		this.columnWidths.size > 0 ? M = this.columnWidthCalculator.calculateColumnWidths(j) : (M = this.columnWidthCalculator.calculateColumnWidths(j), this.columnWidths.set("row-number", M.rowNumber), this.columnWidths.set("key", M.key), this.columnWidths.set("context", M.context), this.options.languages.slice(0, -1).forEach((r, j) => {
-			let N = M.languages[j];
-			this.columnWidths.set(`values.${r}`, N);
+		let u = document.createElement("div");
+		u.className = "virtual-grid-header-row", u.setAttribute("role", "row");
+		let R = this.getContainerWidth(), B;
+		this.columnWidths.size > 0 ? B = this.columnWidthCalculator.calculateColumnWidths(R) : (B = this.columnWidthCalculator.calculateColumnWidths(R), this.columnWidths.set("row-number", B.rowNumber), this.columnWidths.set("key", B.key), this.columnWidths.set("context", B.context), this.options.languages.slice(0, -1).forEach((u, R) => {
+			let V = B.languages[R];
+			this.columnWidths.set(`values.${u}`, V);
 		}));
-		let N = j;
-		r.style.width = `${N}px`, r.style.minWidth = `${N}px`, r.style.maxWidth = `${N}px`;
-		let P = this.gridRenderer.createHeaderCell("", M.rowNumber, 0, 15, "row-number");
-		P.classList.add("row-number-header"), r.appendChild(P);
-		let F = this.gridRenderer.createHeaderCell("Key", M.key, M.rowNumber, 10, "key");
-		this.columnResizer.addResizeHandle(F, "key"), r.appendChild(F);
-		let I = this.gridRenderer.createHeaderCell("Context", M.context, M.rowNumber + M.key, 10, "context");
-		this.columnResizer.addResizeHandle(I, "context"), r.appendChild(I), this.options.languages.forEach((j, N) => {
-			let P = M.languages[N], F = `values.${j}`, I = M.rowNumber + M.key + M.context, L = this.gridRenderer.createHeaderCell(j.toUpperCase(), P, I, 0, F);
-			this.columnResizer.addResizeHandle(L, F), r.appendChild(L);
-		}), this.headerElement.appendChild(r);
+		let V = R;
+		u.style.width = `${V}px`, u.style.minWidth = `${V}px`, u.style.maxWidth = `${V}px`;
+		let H = this.gridRenderer.createHeaderCell("", B.rowNumber, 0, 15, "row-number");
+		H.classList.add("row-number-header"), u.appendChild(H);
+		let U = this.gridRenderer.createHeaderCell("Key", B.key, B.rowNumber, 10, "key");
+		this.columnResizer.addResizeHandle(U, "key"), u.appendChild(U);
+		let W = this.gridRenderer.createHeaderCell("Context", B.context, B.rowNumber + B.key, 10, "context");
+		this.columnResizer.addResizeHandle(W, "context"), u.appendChild(W), this.options.languages.forEach((R, V) => {
+			let H = B.languages[V], U = `values.${R}`, W = B.rowNumber + B.key + B.context, G = this.gridRenderer.createHeaderCell(R.toUpperCase(), H, W, 0, U);
+			this.columnResizer.addResizeHandle(G, U), u.appendChild(G);
+		}), this.headerElement.appendChild(u);
 	}
-	applyColumnWidth(r, j) {
-		let M = this.getContainerWidth(), { columnWidths: N, totalWidth: P } = this.columnWidthCalculator.applyColumnWidth(r, j, M);
+	applyColumnWidth(u, R) {
+		let B = this.getContainerWidth(), { columnWidths: V, totalWidth: H } = this.columnWidthCalculator.applyColumnWidth(u, R, B);
 		if (this.headerElement) {
-			let r = this.headerElement.querySelector(".virtual-grid-header-row");
-			r && (r.style.width = `${P}px`, r.style.minWidth = `${P}px`, r.style.maxWidth = `${P}px`);
-			let j = this.headerElement.querySelector("[data-column-id=\"row-number\"]");
-			j && (j.style.width = `${N.rowNumber}px`, j.style.minWidth = `${N.rowNumber}px`, j.style.maxWidth = `${N.rowNumber}px`);
-			let M = this.headerElement.querySelector("[data-column-id=\"key\"]");
-			M && (M.style.width = `${N.key}px`, M.style.minWidth = `${N.key}px`, M.style.maxWidth = `${N.key}px`, M.style.left = `${N.rowNumber}px`);
-			let F = this.headerElement.querySelector("[data-column-id=\"context\"]");
-			F && (F.style.width = `${N.context}px`, F.style.minWidth = `${N.context}px`, F.style.maxWidth = `${N.context}px`, F.style.left = `${N.rowNumber + N.key}px`), this.options.languages.forEach((r, j) => {
-				let M = this.headerElement.querySelector(`[data-column-id="values.${r}"]`);
-				if (M) {
-					let r = N.languages[j];
-					M.style.width = `${r}px`, M.style.minWidth = `${r}px`, M.style.maxWidth = `${r}px`;
-					let P = N.rowNumber + N.key + N.context;
-					M.style.left = `${P}px`;
+			let u = this.headerElement.querySelector(".virtual-grid-header-row");
+			u && (u.style.width = `${H}px`, u.style.minWidth = `${H}px`, u.style.maxWidth = `${H}px`);
+			let R = this.headerElement.querySelector("[data-column-id=\"row-number\"]");
+			R && (R.style.width = `${V.rowNumber}px`, R.style.minWidth = `${V.rowNumber}px`, R.style.maxWidth = `${V.rowNumber}px`);
+			let B = this.headerElement.querySelector("[data-column-id=\"key\"]");
+			B && (B.style.width = `${V.key}px`, B.style.minWidth = `${V.key}px`, B.style.maxWidth = `${V.key}px`, B.style.left = `${V.rowNumber}px`);
+			let U = this.headerElement.querySelector("[data-column-id=\"context\"]");
+			U && (U.style.width = `${V.context}px`, U.style.minWidth = `${V.context}px`, U.style.maxWidth = `${V.context}px`, U.style.left = `${V.rowNumber + V.key}px`), this.options.languages.forEach((u, R) => {
+				let B = this.headerElement.querySelector(`[data-column-id="values.${u}"]`);
+				if (B) {
+					let u = V.languages[R];
+					B.style.width = `${u}px`, B.style.minWidth = `${u}px`, B.style.maxWidth = `${u}px`;
+					let H = V.rowNumber + V.key + V.context;
+					B.style.left = `${H}px`;
 				}
 			});
 		}
-		this.bodyElement && (this.bodyElement.querySelectorAll(".virtual-grid-row").forEach((r) => {
-			let j = r;
-			j.style.width = `${P}px`, j.style.minWidth = `${P}px`, j.style.maxWidth = `${P}px`;
-		}), this.bodyElement.querySelectorAll("[data-column-id=\"row-number\"]").forEach((r) => {
-			let j = r;
-			j.style.width = `${N.rowNumber}px`, j.style.minWidth = `${N.rowNumber}px`, j.style.maxWidth = `${N.rowNumber}px`;
-		}), this.bodyElement.querySelectorAll("[data-column-id=\"key\"]").forEach((r) => {
-			let j = r;
-			j.style.width = `${N.key}px`, j.style.minWidth = `${N.key}px`, j.style.maxWidth = `${N.key}px`, j.style.left = `${N.rowNumber}px`;
-		}), this.bodyElement.querySelectorAll("[data-column-id=\"context\"]").forEach((r) => {
-			let j = r;
-			j.style.width = `${N.context}px`, j.style.minWidth = `${N.context}px`, j.style.maxWidth = `${N.context}px`, j.style.left = `${N.rowNumber + N.key}px`;
-		}), this.options.languages.forEach((r, j) => {
-			let M = this.bodyElement.querySelectorAll(`[data-column-id="values.${r}"]`), P = N.languages[j], F = N.rowNumber + N.key + N.context;
-			M.forEach((r) => {
-				let j = r;
-				j.style.width = `${P}px`, j.style.minWidth = `${P}px`, j.style.maxWidth = `${P}px`, j.style.left = `${F}px`;
+		this.bodyElement && (this.bodyElement.querySelectorAll(".virtual-grid-row").forEach((u) => {
+			let R = u;
+			R.style.width = `${H}px`, R.style.minWidth = `${H}px`, R.style.maxWidth = `${H}px`;
+		}), this.bodyElement.querySelectorAll("[data-column-id=\"row-number\"]").forEach((u) => {
+			let R = u;
+			R.style.width = `${V.rowNumber}px`, R.style.minWidth = `${V.rowNumber}px`, R.style.maxWidth = `${V.rowNumber}px`;
+		}), this.bodyElement.querySelectorAll("[data-column-id=\"key\"]").forEach((u) => {
+			let R = u;
+			R.style.width = `${V.key}px`, R.style.minWidth = `${V.key}px`, R.style.maxWidth = `${V.key}px`, R.style.left = `${V.rowNumber}px`;
+		}), this.bodyElement.querySelectorAll("[data-column-id=\"context\"]").forEach((u) => {
+			let R = u;
+			R.style.width = `${V.context}px`, R.style.minWidth = `${V.context}px`, R.style.maxWidth = `${V.context}px`, R.style.left = `${V.rowNumber + V.key}px`;
+		}), this.options.languages.forEach((u, R) => {
+			let B = this.bodyElement.querySelectorAll(`[data-column-id="values.${u}"]`), H = V.languages[R], U = V.rowNumber + V.key + V.context;
+			B.forEach((u) => {
+				let R = u;
+				R.style.width = `${H}px`, R.style.minWidth = `${H}px`, R.style.maxWidth = `${H}px`, R.style.left = `${U}px`;
 			});
 		}));
 	}
 	getColumnWidthsFromHeader() {
 		if (!this.headerElement) return null;
-		let r = this.headerElement.querySelector(".virtual-grid-header-row");
-		if (!r) return null;
-		let j = r.querySelectorAll(".virtual-grid-header-cell"), M = {
+		let u = this.headerElement.querySelector(".virtual-grid-header-row");
+		if (!u) return null;
+		let R = u.querySelectorAll(".virtual-grid-header-cell"), B = {
 			rowNumber: 0,
 			key: 0,
 			context: 0,
 			languages: []
 		};
-		return j.forEach((r) => {
-			let j = r.getAttribute("data-column-id"), N = r.offsetWidth || r.getBoundingClientRect().width;
-			j === "row-number" ? M.rowNumber = N : j === "key" ? M.key = N : j === "context" ? M.context = N : j && j.startsWith("values.") && M.languages.push(N);
-		}), M.rowNumber > 0 && M.key > 0 && M.context > 0 && M.languages.length === this.options.languages.length ? M : null;
+		return R.forEach((u) => {
+			let R = u.getAttribute("data-column-id"), V = u.offsetWidth || u.getBoundingClientRect().width;
+			R === "row-number" ? B.rowNumber = V : R === "key" ? B.key = V : R === "context" ? B.context = V : R && R.startsWith("values.") && B.languages.push(V);
+		}), B.rowNumber > 0 && B.key > 0 && B.context > 0 && B.languages.length === this.options.languages.length ? B : null;
 	}
-	startEditing(r, j, M) {
+	startEditing(u, R, B) {
 		if (this.options.readOnly) return;
-		let N = M.getAttribute("data-row-id");
-		N && (this.cellEditor.startEditing(r, j, N, M), this.updateStatusBar());
+		let V = B.getAttribute("data-row-id");
+		V && (this.cellEditor.startEditing(u, R, V, B), this.updateStatusBar());
 	}
-	startEditingFromKeyboard(r, j) {
-		if (!this.bodyElement || !this.editableColumns.has(j) || this.options.readOnly) return;
-		let M = this.bodyElement.querySelector(`[data-row-index="${r}"][data-column-id="${j}"]`);
-		M && this.startEditing(r, j, M);
+	startEditingFromKeyboard(u, R) {
+		if (!this.bodyElement || !this.editableColumns.has(R) || this.options.readOnly) return;
+		let B = this.bodyElement.querySelector(`[data-row-index="${u}"][data-column-id="${R}"]`);
+		B && this.startEditing(u, R, B);
 	}
 	stopEditing() {
 		this.cellEditor.stopEditing(this.bodyElement || void 0), this.updateStatusBar();
 	}
-	updateCellStyle(r, j, M) {
+	updateCellStyle(u, R, B) {
 		if (!this.bodyElement) return;
-		let N = M || this.bodyElement.querySelector(`[data-row-id="${r}"][data-column-id="${j}"]`);
-		if (!N) return;
-		let P = `${r}-${j}`;
-		if (this.changeTracker.getChangesMap().has(P) ? N.classList.add("cell-dirty") : N.classList.remove("cell-dirty"), j.startsWith("values.")) {
-			let M = this.currentTranslations.find((j) => j.id === r);
-			if (M) {
-				let r = j.replace("values.", ""), P = M.values[r] || "";
-				!P || typeof P == "string" && P.trim() === "" ? N.classList.add("cell-empty") : N.classList.remove("cell-empty");
+		let V = B || this.bodyElement.querySelector(`[data-row-id="${u}"][data-column-id="${R}"]`);
+		if (!V) return;
+		let H = `${u}-${R}`;
+		if (this.changeTracker.getChangesMap().has(H) ? V.classList.add("cell-dirty") : V.classList.remove("cell-dirty"), R.startsWith("values.")) {
+			let B = this.currentTranslations.find((R) => R.id === u);
+			if (B) {
+				let u = R.replace("values.", ""), H = B.values[u] || "";
+				!H || typeof H == "string" && H.trim() === "" ? V.classList.add("cell-empty") : V.classList.remove("cell-empty");
 			}
 		}
 	}
 	attachKeyboardListeners() {
 		this.modifierKeyTracker.attach(), this.keyboardHandlerModule.attach(), this.vimKeyboardHandler = this.handleVimKeyboardEvent.bind(this), document.addEventListener("keydown", this.vimKeyboardHandler);
 	}
-	handleVimKeyboardEvent(r) {
+	handleVimKeyboardEvent(u) {
 		if (this.commandLine?.getVisible() || this.cellEditor.getEditingCell() !== null || this.quickSearchUI?.isSearchMode() || this.commandPalette.isPaletteOpen() || document.querySelector(".find-replace-overlay")) return;
-		let j = r.target;
-		if (!(j.tagName === "INPUT" || j.tagName === "TEXTAREA" || j.isContentEditable) && !(r.ctrlKey || r.metaKey || r.altKey)) {
-			if (r.key === ":" || r.code === "Semicolon") {
-				r.preventDefault(), r.stopPropagation(), this.commandLine && (this.vimCommandTracker && (this.vimCommandTracker.clear(), this.updateStatusBar()), this.commandLine.show());
+		let R = u.target;
+		if (!(R.tagName === "INPUT" || R.tagName === "TEXTAREA" || R.isContentEditable) && !(u.ctrlKey || u.metaKey || u.altKey)) {
+			if (u.key === ":" || u.code === "Semicolon") {
+				u.preventDefault(), u.stopPropagation(), this.commandLine && (this.vimCommandTracker && (this.vimCommandTracker.clear(), this.updateStatusBar()), this.commandLine.show());
 				return;
 			}
-			if (r.key === "Escape") {
+			if (u.key === "Escape") {
 				if (this.commandLine?.getVisible()) {
-					r.preventDefault(), r.stopPropagation(), this.commandLine.hide();
+					u.preventDefault(), u.stopPropagation(), this.commandLine.hide();
 					return;
 				}
 				this.vimCommandTracker && (this.vimCommandTracker.cancelCommand(), this.updateStatusBar());
 				return;
 			}
-			r.key.length === 1 && !r.shiftKey && !r.ctrlKey && !r.metaKey && !r.altKey && this.vimCommandTracker && (this.vimCommandTracker.addKey(r.key), this.updateStatusBar());
+			u.key.length === 1 && !u.shiftKey && !u.ctrlKey && !u.metaKey && !u.altKey && this.vimCommandTracker && (this.vimCommandTracker.addKey(u.key), this.updateStatusBar());
 		}
 	}
-	focusCell(r, j) {
+	focusCell(u, R) {
 		if (!this.bodyElement) return;
-		this.focusManager.focusCell(r, j), this.updateStatusBar();
-		let M = this.bodyElement.querySelector(`[data-row-index="${r}"][data-column-id="${j}"]`);
-		if (!M && this.rowVirtualizer) {
-			this.rowVirtualizer.scrollToIndex(r, {
+		this.focusManager.focusCell(u, R), this.updateStatusBar();
+		let B = this.bodyElement.querySelector(`[data-row-index="${u}"][data-column-id="${R}"]`);
+		if (!B && this.rowVirtualizer) {
+			this.rowVirtualizer.scrollToIndex(u, {
 				align: "start",
 				behavior: "auto"
 			}), this.renderScheduled === !1 && this.renderVirtualRows();
-			let N = (P = 0) => {
-				if (!(P > 20)) {
-					if (M = this.bodyElement.querySelector(`[data-row-index="${r}"][data-column-id="${j}"]`), M) {
-						M.focus(), M.dispatchEvent(new FocusEvent("focus", { bubbles: !0 }));
+			let V = (H = 0) => {
+				if (!(H > 20)) {
+					if (B = this.bodyElement.querySelector(`[data-row-index="${u}"][data-column-id="${R}"]`), B) {
+						B.focus(), B.dispatchEvent(new FocusEvent("focus", { bubbles: !0 }));
 						return;
 					}
 					requestAnimationFrame(() => {
-						N(P + 1);
+						V(H + 1);
 					});
 				}
 			};
-			N(0);
-		} else M && (M.focus(), M.dispatchEvent(new FocusEvent("focus", { bubbles: !0 })));
+			V(0);
+		} else B && (B.focus(), B.dispatchEvent(new FocusEvent("focus", { bubbles: !0 })));
 	}
 	handleUndo() {
 		if (!this.undoRedoManager.canUndo()) return;
-		let r = this.undoRedoManager.undo();
-		r && (this.applyUndoRedoAction(r), this.updateStatusBar());
+		let u = this.undoRedoManager.undo();
+		u && (this.applyUndoRedoAction(u), this.updateStatusBar());
 	}
 	handleRedo() {
 		if (!this.undoRedoManager.canRedo()) return;
-		let r = this.undoRedoManager.redo();
-		r && (this.applyUndoRedoAction(r), this.updateStatusBar());
+		let u = this.undoRedoManager.redo();
+		u && (this.applyUndoRedoAction(u), this.updateStatusBar());
 	}
-	applyUndoRedoAction(r) {
-		if (r.type !== "cell-change") {
-			logger.warn("VirtualTableDiv: Invalid action type", r.type);
+	applyUndoRedoAction(u) {
+		if (u.type !== "cell-change") {
+			logger.warn("VirtualTableDiv: Invalid action type", u.type);
 			return;
 		}
 		this.cellEditor.isEditing() && this.stopEditing();
-		let j = this.currentTranslations.findIndex((j) => j.id === r.rowId);
-		if (j === -1) {
-			logger.error("VirtualTableDiv: Translation not found", r.rowId);
+		let R = this.currentTranslations.findIndex((R) => R.id === u.rowId);
+		if (R === -1) {
+			logger.error("VirtualTableDiv: Translation not found", u.rowId);
 			return;
 		}
-		let M = this.currentTranslations[j], N = toMutableTranslation(M);
-		if (r.columnId === "key") N.key = r.newValue;
-		else if (r.columnId === "context") N.context = r.newValue;
-		else if (r.columnId.startsWith("values.")) {
-			let j = r.columnId.replace("values.", "");
-			N.values[j] = r.newValue;
+		let B = this.currentTranslations[R], V = toMutableTranslation(B);
+		if (u.columnId === "key") V.key = u.newValue;
+		else if (u.columnId === "context") V.context = u.newValue;
+		else if (u.columnId.startsWith("values.")) {
+			let R = u.columnId.replace("values.", "");
+			V.values[R] = u.newValue;
 		} else {
-			logger.error("VirtualTableDiv: Invalid columnId", r.columnId);
+			logger.error("VirtualTableDiv: Invalid columnId", u.columnId);
 			return;
 		}
-		let P = this.originalTranslations.findIndex((j) => j.id === r.rowId);
-		if (P !== -1) {
-			let j = this.originalTranslations[P], M = toMutableTranslation(j);
-			if (r.columnId === "key") M.key = r.newValue;
-			else if (r.columnId === "context") M.context = r.newValue;
-			else if (r.columnId.startsWith("values.")) {
-				let j = r.columnId.replace("values.", "");
-				M.values[j] = r.newValue;
+		let H = this.originalTranslations.findIndex((R) => R.id === u.rowId);
+		if (H !== -1) {
+			let R = this.originalTranslations[H], B = toMutableTranslation(R);
+			if (u.columnId === "key") B.key = u.newValue;
+			else if (u.columnId === "context") B.context = u.newValue;
+			else if (u.columnId.startsWith("values.")) {
+				let R = u.columnId.replace("values.", "");
+				B.values[R] = u.newValue;
 			}
-			let N = [...this.originalTranslations];
-			N[P] = M, this.originalTranslations = N;
+			let V = [...this.originalTranslations];
+			V[H] = B, this.originalTranslations = V;
 		}
-		this.currentTranslations[j] = N;
-		let F = this.bodyElement?.querySelector(`[data-row-id="${r.rowId}"][data-column-id="${r.columnId}"]`);
-		if (F) {
-			let j = F.getAttribute("data-row-index"), M = j ? parseInt(j, 10) : 0;
-			this.gridRenderer.updateCellContent(F, r.rowId, r.columnId, r.newValue, M);
-		} else this.updateCellStyle(r.rowId, r.columnId);
-		let I = this.changeTracker.getOriginalValue(r.rowId, r.columnId), L = getLangFromColumnId(r.columnId), R = getTranslationKey(this.currentTranslations, r.rowId, r.columnId, r.newValue);
-		this.changeTracker.trackChange(r.rowId, r.columnId, L, I, r.newValue, R, () => {
-			this.updateCellStyle(r.rowId, r.columnId);
-		}), this.options.onCellChange && this.options.onCellChange(r.rowId, r.columnId, r.newValue), this.rowVirtualizer && this.bodyElement && this.renderVirtualRows();
+		this.currentTranslations[R] = V;
+		let U = this.bodyElement?.querySelector(`[data-row-id="${u.rowId}"][data-column-id="${u.columnId}"]`);
+		if (U) {
+			let R = U.getAttribute("data-row-index"), B = R ? parseInt(R, 10) : 0;
+			this.gridRenderer.updateCellContent(U, u.rowId, u.columnId, u.newValue, B);
+		} else this.updateCellStyle(u.rowId, u.columnId);
+		let W = this.changeTracker.getOriginalValue(u.rowId, u.columnId), G = getLangFromColumnId(u.columnId), K = getTranslationKey(this.currentTranslations, u.rowId, u.columnId, u.newValue);
+		this.changeTracker.trackChange(u.rowId, u.columnId, G, W, u.newValue, K, () => {
+			this.updateCellStyle(u.rowId, u.columnId);
+		}), this.options.onCellChange && this.options.onCellChange(u.rowId, u.columnId, u.newValue), this.rowVirtualizer && this.bodyElement && this.renderVirtualRows();
 	}
 	getContainerWidth() {
 		return this.container && this.container.clientWidth > 0 ? this.container.clientWidth : typeof window < "u" ? window.innerWidth : 1e3;
 	}
-	setReadOnly(r) {
+	setReadOnly(u) {
 		this.options = {
 			...this.options,
-			readOnly: r
+			readOnly: u
 		}, this.gridRenderer = new GridRenderer({
 			languages: this.options.languages,
-			readOnly: r,
+			readOnly: u,
 			editableColumns: this.editableColumns,
 			callbacks: {
-				onCellDblClick: (r, j, M) => {
-					this.startEditing(r, j, M);
+				onCellDblClick: (u, R, B) => {
+					this.startEditing(u, R, B);
 				},
-				onCellFocus: (r, j) => {
-					this.focusManager.focusCell(r, j);
+				onCellFocus: (u, R) => {
+					this.focusManager.focusCell(u, R);
 				},
-				updateCellStyle: (r, j, M) => {
-					this.updateCellStyle(r, j, M);
+				updateCellStyle: (u, R, B) => {
+					this.updateCellStyle(u, R, B);
 				}
 			}
-		}), this.gridElement && (r ? this.gridElement.classList.add("readonly") : this.gridElement.classList.remove("readonly")), this.bodyElement && this.bodyElement.querySelectorAll(".virtual-grid-cell").forEach((j) => {
-			let M = j.getAttribute("data-column-id"), N = M && this.editableColumns.has(M);
-			r ? j.setAttribute("tabindex", "-1") : j.setAttribute("tabindex", N ? "0" : "-1");
+		}), this.gridElement && (u ? this.gridElement.classList.add("readonly") : this.gridElement.classList.remove("readonly")), this.bodyElement && this.bodyElement.querySelectorAll(".virtual-grid-cell").forEach((R) => {
+			let B = R.getAttribute("data-column-id"), V = B && this.editableColumns.has(B);
+			u ? R.setAttribute("tabindex", "-1") : R.setAttribute("tabindex", V ? "0" : "-1");
 		}), this.bodyElement && this.rowVirtualizer && this.renderVirtualRows();
 	}
 	getChanges() {
@@ -3840,19 +2964,19 @@ var QuickSearchUI = class {
 			],
 			category: "navigation",
 			description: "Navigate to a specific row number, or use 'top'/'bottom'",
-			execute: (r) => {
-				if (r && r.length > 0) {
-					let j = r[0].toLowerCase();
-					if (j === "top" || j === "first" || j === "1") {
+			execute: (u) => {
+				if (u && u.length > 0) {
+					let R = u[0].toLowerCase();
+					if (R === "top" || R === "first" || R === "1") {
 						this.gotoTop();
 						return;
 					}
-					if (j === "bottom" || j === "last") {
+					if (R === "bottom" || R === "last") {
 						this.gotoBottom();
 						return;
 					}
-					let M = parseInt(r[0], 10);
-					!isNaN(M) && M > 0 && this.gotoRow(M - 1);
+					let B = parseInt(u[0], 10);
+					!isNaN(B) && B > 0 && this.gotoRow(B - 1);
 				}
 			}
 		}), this.commandRegistry.registerCommand({
@@ -3894,10 +3018,10 @@ var QuickSearchUI = class {
 			],
 			category: "filter",
 			description: "Search for keywords in translations",
-			execute: (r) => {
-				if (r && r.length > 0) {
-					let j = r.join(" ");
-					this.searchKeyword(j);
+			execute: (u) => {
+				if (u && u.length > 0) {
+					let R = u.join(" ");
+					this.searchKeyword(R);
 				}
 			}
 		}), this.commandRegistry.registerCommand({
@@ -3989,8 +3113,8 @@ var QuickSearchUI = class {
 			category: "edit",
 			description: "Toggle read-only mode",
 			execute: () => {
-				let r = !this.options.readOnly;
-				this.setReadOnly(r);
+				let u = !this.options.readOnly;
+				this.setReadOnly(u);
 			}
 		}), this.commandRegistry.registerCommand({
 			id: "help",
@@ -4008,101 +3132,101 @@ var QuickSearchUI = class {
 			}
 		});
 	}
-	gotoRow(r) {
-		let j = this.getFilteredTranslations();
-		if (r < 0 || r >= j.length) return;
-		this.rowVirtualizer && this.rowVirtualizer.scrollToIndex(r, {
+	gotoRow(u) {
+		let R = this.getFilteredTranslations();
+		if (u < 0 || u >= R.length) return;
+		this.rowVirtualizer && this.rowVirtualizer.scrollToIndex(u, {
 			align: "start",
 			behavior: "smooth"
 		});
-		let M = [
+		let B = [
 			"key",
 			"context",
-			...this.options.languages.map((r) => `values.${r}`)
-		].find((r) => this.editableColumns.has(r));
-		M && setTimeout(() => {
-			this.focusCell(r, M);
+			...this.options.languages.map((u) => `values.${u}`)
+		].find((u) => this.editableColumns.has(u));
+		B && setTimeout(() => {
+			this.focusCell(u, B);
 		}, 300);
 	}
 	gotoTop() {
 		this.gotoRow(0);
 	}
 	gotoBottom() {
-		let r = this.getFilteredTranslations();
-		if (r.length > 0) {
-			let j = r.length - 1;
-			this.rowVirtualizer && this.rowVirtualizer.scrollToIndex(j, {
+		let u = this.getFilteredTranslations();
+		if (u.length > 0) {
+			let R = u.length - 1;
+			this.rowVirtualizer && this.rowVirtualizer.scrollToIndex(R, {
 				align: "end",
 				behavior: "smooth"
 			});
-			let M = [
+			let B = [
 				"key",
 				"context",
-				...this.options.languages.map((r) => `values.${r}`)
-			].find((r) => this.editableColumns.has(r));
-			M && setTimeout(() => {
-				this.focusCell(j, M);
+				...this.options.languages.map((u) => `values.${u}`)
+			].find((u) => this.editableColumns.has(u));
+			B && setTimeout(() => {
+				this.focusCell(R, B);
 			}, 300);
 		}
 	}
-	findMatches(r) {
+	findMatches(u) {
 		return new TextSearchMatcher({
 			translations: this.getFilteredTranslations(),
 			languages: this.options.languages
-		}).findMatches(r);
+		}).findMatches(u);
 	}
-	gotoToMatch(r) {
-		if (this.gotoRow(r.rowIndex), this.currentGotoMatches) {
-			let j = this.currentGotoMatches.matches.findIndex((j) => j.rowIndex === r.rowIndex);
-			j !== -1 && (this.currentGotoMatches.currentIndex = j);
+	gotoToMatch(u) {
+		if (this.gotoRow(u.rowIndex), this.currentGotoMatches) {
+			let R = this.currentGotoMatches.matches.findIndex((R) => R.rowIndex === u.rowIndex);
+			R !== -1 && (this.currentGotoMatches.currentIndex = R);
 		}
 	}
 	gotoToNextMatch() {
 		if (!this.currentGotoMatches || this.currentGotoMatches.matches.length === 0) return;
-		let { matches: r, currentIndex: j } = this.currentGotoMatches, M = (j + 1) % r.length, N = r[M];
-		this.currentGotoMatches.currentIndex = M, this.gotoRow(N.rowIndex);
+		let { matches: u, currentIndex: R } = this.currentGotoMatches, B = (R + 1) % u.length, V = u[B];
+		this.currentGotoMatches.currentIndex = B, this.gotoRow(V.rowIndex);
 	}
 	gotoToPrevMatch() {
 		if (!this.currentGotoMatches || this.currentGotoMatches.matches.length === 0) return;
-		let { matches: r, currentIndex: j } = this.currentGotoMatches, M = j === 0 ? r.length - 1 : j - 1, N = r[M];
-		this.currentGotoMatches.currentIndex = M, this.gotoRow(N.rowIndex);
+		let { matches: u, currentIndex: R } = this.currentGotoMatches, B = R === 0 ? u.length - 1 : R - 1, V = u[B];
+		this.currentGotoMatches.currentIndex = B, this.gotoRow(V.rowIndex);
 	}
-	openFindReplace(r) {
-		this.findReplace && this.findReplace.open(r);
+	openFindReplace(u) {
+		this.findReplace && this.findReplace.open(u);
 	}
-	gotoToFindMatch(r) {
-		this.gotoRow(r.rowIndex), this.focusCell(r.rowIndex, r.columnId);
+	gotoToFindMatch(u) {
+		this.gotoRow(u.rowIndex), this.focusCell(u.rowIndex, u.columnId);
 	}
-	replaceFindMatch(r, j) {
-		let M = this.getFilteredTranslations();
-		if (r.rowIndex < 0 || r.rowIndex >= M.length) return;
-		let N = M[r.rowIndex], P = null;
-		if (r.columnId === "key") P = N.key;
-		else if (r.columnId === "context") P = N.context || null;
-		else if (r.columnId.startsWith("values.")) {
-			let j = r.columnId.replace("values.", "");
-			P = N.values[j] || null;
+	replaceFindMatch(u, R) {
+		let B = this.getFilteredTranslations();
+		if (u.rowIndex < 0 || u.rowIndex >= B.length) return;
+		let V = B[u.rowIndex], H = null;
+		if (u.columnId === "key") H = V.key;
+		else if (u.columnId === "context") H = V.context || null;
+		else if (u.columnId.startsWith("values.")) {
+			let R = u.columnId.replace("values.", "");
+			H = V.values[R] || null;
 		}
-		if (P === null) return;
-		let F = P.substring(0, r.matchIndex), I = P.substring(r.matchIndex + r.matchLength), L = F + j + I;
-		if (r.columnId !== "key") {
+		if (H === null) return;
+		let U = H.substring(0, u.matchIndex), W = H.substring(u.matchIndex + u.matchLength), G = U + R + W;
+		if (u.columnId !== "key") {
 			{
-				let j = r.columnId, M = "";
-				if (j === "context") M = N.context || "";
-				else if (j.startsWith("values.")) {
-					let r = j.replace("values.", "");
-					M = N.values[r] || "";
+				let R = u.columnId, B = "";
+				if (R === "context") B = V.context || "";
+				else if (R.startsWith("values.")) {
+					let u = R.replace("values.", "");
+					B = V.values[u] || "";
 				}
-				this.cellEditor.applyCellChange(N.id, j, M, L).catch((r) => {
-					logger.error("Failed to apply cell change:", r);
+				this.cellEditor.applyCellChange(V.id, R, B, G).catch((u) => {
+					logger.error("Failed to apply cell change:", u);
 				});
 			}
 			this.updateStatusBar(), this.renderVirtualRows();
 		}
 	}
-	replaceAllFindMatches(r, j) {
-		[...r].sort((r, j) => r.rowIndex === j.rowIndex ? j.matchIndex - r.matchIndex : j.rowIndex - r.rowIndex).forEach((r) => {
-			this.replaceFindMatch(r, j);
+	replaceAllFindMatches(u, R) {
+		[...u].sort((u, R) => u.rowIndex === R.rowIndex ? R.matchIndex - u.matchIndex : R.rowIndex - u.rowIndex).forEach((u) => {
+			this.replaceFindMatch(u, R);
 		});
 	}
 	getCurrentMatchInfo() {
@@ -4120,8 +3244,8 @@ var QuickSearchUI = class {
 	applyFilter() {
 		this.currentTranslations = [...this.getFilteredTranslations()], this.rowVirtualizer && this.initVirtualScrolling(), this.headerElement && (this.headerElement.innerHTML = "", this.renderHeader()), this.renderVirtualRows(), this.updateStatusBar();
 	}
-	searchKeyword(r) {
-		this.currentSearchKeyword = r, this.currentFilter = r.trim() ? "search" : "none", this.applyFilter();
+	searchKeyword(u) {
+		this.currentSearchKeyword = u, this.currentFilter = u.trim() ? "search" : "none", this.applyFilter();
 	}
 	filterEmpty() {
 		this.currentFilter = "empty", this.currentSearchKeyword = "", this.applyFilter();
@@ -4136,42 +3260,42 @@ var QuickSearchUI = class {
 		this.currentFilter = "none", this.currentSearchKeyword = "", this.currentTranslations = [...this.originalTranslations], this.applyFilter();
 	}
 	showHelp() {
-		let r = document.querySelector(".help-modal-overlay");
-		if (r && r.remove(), !document.querySelector("link[href*=\"help-modal.css\"]")) {
-			let r = document.createElement("link");
-			r.rel = "stylesheet", r.href = new URL("data:text/css;base64,LyoqCiAqIEhlbHAgTW9kYWwg7Iqk7YOA7J28CiAqIFZTIENvZGUg7Iqk7YOA7J287J2YIOuPhOybgOunkCDrqqjri6wKICovCgouaGVscC1tb2RhbC1vdmVybGF5IHsKICBwb3NpdGlvbjogZml4ZWQ7CiAgdG9wOiAwOwogIGxlZnQ6IDA7CiAgcmlnaHQ6IDA7CiAgYm90dG9tOiAwOwogIGJhY2tncm91bmQtY29sb3I6IHJnYmEoMCwgMCwgMCwgMC40KTsKICB6LWluZGV4OiAxMDAxOyAvKiBDb21tYW5kIFBhbGV0dGXrs7Tri6Qg7JyE7JeQIO2RnOyLnCAqLwogIGRpc3BsYXk6IGZsZXg7CiAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsKICBhbmltYXRpb246IGZhZGVJbiAwLjE1cyBlYXNlLW91dDsKfQoKQGtleWZyYW1lcyBmYWRlSW4gewogIGZyb20gewogICAgb3BhY2l0eTogMDsKICB9CiAgdG8gewogICAgb3BhY2l0eTogMTsKICB9Cn0KCi5oZWxwLW1vZGFsIHsKICB3aWR0aDogOTAlOwogIG1heC13aWR0aDogNzAwcHg7CiAgbWF4LWhlaWdodDogODB2aDsKICBiYWNrZ3JvdW5kLWNvbG9yOiAjZmZmOwogIGJvcmRlci1yYWRpdXM6IDhweDsKICBib3gtc2hhZG93OiAwIDhweCAzMnB4IHJnYmEoMCwgMCwgMCwgMC4yKTsKICBkaXNwbGF5OiBmbGV4OwogIGZsZXgtZGlyZWN0aW9uOiBjb2x1bW47CiAgYW5pbWF0aW9uOiBzbGlkZURvd24gMC4xNXMgZWFzZS1vdXQ7CiAgb3ZlcmZsb3c6IGhpZGRlbjsKfQoKQGtleWZyYW1lcyBzbGlkZURvd24gewogIGZyb20gewogICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKC0yMHB4KTsKICAgIG9wYWNpdHk6IDA7CiAgfQogIHRvIHsKICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgwKTsKICAgIG9wYWNpdHk6IDE7CiAgfQp9CgouaGVscC1tb2RhbC1oZWFkZXIgewogIHBhZGRpbmc6IDIwcHggMjRweDsKICBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2UyZThmMDsKICBkaXNwbGF5OiBmbGV4OwogIGp1c3RpZnktY29udGVudDogc3BhY2UtYmV0d2VlbjsKICBhbGlnbi1pdGVtczogY2VudGVyOwogIGJhY2tncm91bmQtY29sb3I6ICNmOGZhZmM7Cn0KCi5oZWxwLW1vZGFsLXRpdGxlIHsKICBmb250LXNpemU6IDIwcHg7CiAgZm9udC13ZWlnaHQ6IDYwMDsKICBjb2xvcjogIzFlMjkzYjsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLWNsb3NlIHsKICBiYWNrZ3JvdW5kOiBub25lOwogIGJvcmRlcjogbm9uZTsKICBmb250LXNpemU6IDI0cHg7CiAgY29sb3I6ICM2NDc0OGI7CiAgY3Vyc29yOiBwb2ludGVyOwogIHBhZGRpbmc6IDA7CiAgd2lkdGg6IDMycHg7CiAgaGVpZ2h0OiAzMnB4OwogIGRpc3BsYXk6IGZsZXg7CiAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsKICBib3JkZXItcmFkaXVzOiA0cHg7CiAgdHJhbnNpdGlvbjogYmFja2dyb3VuZC1jb2xvciAwLjFzOwp9CgouaGVscC1tb2RhbC1jbG9zZTpob3ZlciB7CiAgYmFja2dyb3VuZC1jb2xvcjogI2UyZThmMDsKICBjb2xvcjogIzFlMjkzYjsKfQoKLmhlbHAtbW9kYWwtY29udGVudCB7CiAgZmxleDogMTsKICBvdmVyZmxvdy15OiBhdXRvOwogIHBhZGRpbmc6IDI0cHg7Cn0KCi5oZWxwLW1vZGFsLXNlY3Rpb24gewogIG1hcmdpbi1ib3R0b206IDMycHg7Cn0KCi5oZWxwLW1vZGFsLXNlY3Rpb246bGFzdC1jaGlsZCB7CiAgbWFyZ2luLWJvdHRvbTogMDsKfQoKLmhlbHAtbW9kYWwtc2VjdGlvbi10aXRsZSB7CiAgZm9udC1zaXplOiAxNnB4OwogIGZvbnQtd2VpZ2h0OiA2MDA7CiAgY29sb3I6ICMxZTI5M2I7CiAgbWFyZ2luOiAwIDAgMTZweCAwOwogIHBhZGRpbmctYm90dG9tOiA4cHg7CiAgYm9yZGVyLWJvdHRvbTogMnB4IHNvbGlkICNlMmU4ZjA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWxpc3QgewogIGxpc3Qtc3R5bGU6IG5vbmU7CiAgcGFkZGluZzogMDsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWl0ZW0gewogIGRpc3BsYXk6IGZsZXg7CiAganVzdGlmeS1jb250ZW50OiBzcGFjZS1iZXR3ZWVuOwogIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgcGFkZGluZzogMTJweCAwOwogIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjZjFmNWY5Owp9CgouaGVscC1tb2RhbC1zaG9ydGN1dC1pdGVtOmxhc3QtY2hpbGQgewogIGJvcmRlci1ib3R0b206IG5vbmU7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWRlc2NyaXB0aW9uIHsKICBmb250LXNpemU6IDE0cHg7CiAgY29sb3I6ICM0NzU1Njk7CiAgZmxleDogMTsKfQoKLmhlbHAtbW9kYWwtc2hvcnRjdXQta2V5cyB7CiAgZGlzcGxheTogZmxleDsKICBnYXA6IDRweDsKICBhbGlnbi1pdGVtczogY2VudGVyOwp9CgouaGVscC1tb2RhbC1zaG9ydGN1dC1rZXkgewogIHBhZGRpbmc6IDRweCA4cHg7CiAgYmFja2dyb3VuZC1jb2xvcjogI2YxZjVmOTsKICBib3JkZXI6IDFweCBzb2xpZCAjZTJlOGYwOwogIGJvcmRlci1yYWRpdXM6IDRweDsKICBmb250LXNpemU6IDEycHg7CiAgZm9udC1mYW1pbHk6IHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZjsKICBjb2xvcjogIzFlMjkzYjsKICBib3gtc2hhZG93OiAwIDFweCAycHggcmdiYSgwLCAwLCAwLCAwLjEpOwogIGZvbnQtd2VpZ2h0OiA1MDA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWtleS1zZXBhcmF0b3IgewogIGNvbG9yOiAjOTRhM2I4OwogIGZvbnQtc2l6ZTogMTJweDsKICBtYXJnaW46IDAgMnB4Owp9CgouaGVscC1tb2RhbC1jb21tYW5kLWxpc3QgewogIGxpc3Qtc3R5bGU6IG5vbmU7CiAgcGFkZGluZzogMDsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLWNvbW1hbmQtaXRlbSB7CiAgcGFkZGluZzogMTJweCAwOwogIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjZjFmNWY5Owp9CgouaGVscC1tb2RhbC1jb21tYW5kLWl0ZW06bGFzdC1jaGlsZCB7CiAgYm9yZGVyLWJvdHRvbTogbm9uZTsKfQoKLmhlbHAtbW9kYWwtY29tbWFuZC1uYW1lIHsKICBmb250LXNpemU6IDE0cHg7CiAgZm9udC13ZWlnaHQ6IDUwMDsKICBjb2xvcjogIzFlMjkzYjsKICBtYXJnaW4tYm90dG9tOiA0cHg7CiAgZm9udC1mYW1pbHk6IG1vbm9zcGFjZTsKICBiYWNrZ3JvdW5kLWNvbG9yOiAjZjFmNWY5OwogIHBhZGRpbmc6IDJweCA2cHg7CiAgYm9yZGVyLXJhZGl1czogNHB4OwogIGRpc3BsYXk6IGlubGluZS1ibG9jazsKfQoKLmhlbHAtbW9kYWwtY29tbWFuZC1kZXNjcmlwdGlvbiB7CiAgZm9udC1zaXplOiAxM3B4OwogIGNvbG9yOiAjNjQ3NDhiOwogIG1hcmdpbi10b3A6IDRweDsKfQoKLyog7Iqk7YGs66Gk67CUIOyKpO2DgOydvCAqLwouaGVscC1tb2RhbC1jb250ZW50Ojotd2Via2l0LXNjcm9sbGJhciB7CiAgd2lkdGg6IDhweDsKfQoKLmhlbHAtbW9kYWwtY29udGVudDo6LXdlYmtpdC1zY3JvbGxiYXItdHJhY2sgewogIGJhY2tncm91bmQ6ICNmMWY1Zjk7Cn0KCi5oZWxwLW1vZGFsLWNvbnRlbnQ6Oi13ZWJraXQtc2Nyb2xsYmFyLXRodW1iIHsKICBiYWNrZ3JvdW5kOiAjY2JkNWUxOwogIGJvcmRlci1yYWRpdXM6IDRweDsKfQoKLmhlbHAtbW9kYWwtY29udGVudDo6LXdlYmtpdC1zY3JvbGxiYXItdGh1bWI6aG92ZXIgewogIGJhY2tncm91bmQ6ICM5NGEzYjg7Cn0KCgoKCg==", "" + import.meta.url).href, document.head.appendChild(r);
+		let u = document.querySelector(".help-modal-overlay");
+		if (u && u.remove(), !document.querySelector("link[href*=\"help-modal.css\"]")) {
+			let u = document.createElement("link");
+			u.rel = "stylesheet", u.href = new URL("data:text/css;base64,LyoqCiAqIEhlbHAgTW9kYWwg7Iqk7YOA7J28CiAqIFZTIENvZGUg7Iqk7YOA7J287J2YIOuPhOybgOunkCDrqqjri6wKICovCgouaGVscC1tb2RhbC1vdmVybGF5IHsKICBwb3NpdGlvbjogZml4ZWQ7CiAgdG9wOiAwOwogIGxlZnQ6IDA7CiAgcmlnaHQ6IDA7CiAgYm90dG9tOiAwOwogIGJhY2tncm91bmQtY29sb3I6IHJnYmEoMCwgMCwgMCwgMC40KTsKICB6LWluZGV4OiAxMDAxOyAvKiBDb21tYW5kIFBhbGV0dGXrs7Tri6Qg7JyE7JeQIO2RnOyLnCAqLwogIGRpc3BsYXk6IGZsZXg7CiAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsKICBhbmltYXRpb246IGZhZGVJbiAwLjE1cyBlYXNlLW91dDsKfQoKQGtleWZyYW1lcyBmYWRlSW4gewogIGZyb20gewogICAgb3BhY2l0eTogMDsKICB9CiAgdG8gewogICAgb3BhY2l0eTogMTsKICB9Cn0KCi5oZWxwLW1vZGFsIHsKICB3aWR0aDogOTAlOwogIG1heC13aWR0aDogNzAwcHg7CiAgbWF4LWhlaWdodDogODB2aDsKICBiYWNrZ3JvdW5kLWNvbG9yOiAjZmZmOwogIGJvcmRlci1yYWRpdXM6IDhweDsKICBib3gtc2hhZG93OiAwIDhweCAzMnB4IHJnYmEoMCwgMCwgMCwgMC4yKTsKICBkaXNwbGF5OiBmbGV4OwogIGZsZXgtZGlyZWN0aW9uOiBjb2x1bW47CiAgYW5pbWF0aW9uOiBzbGlkZURvd24gMC4xNXMgZWFzZS1vdXQ7CiAgb3ZlcmZsb3c6IGhpZGRlbjsKfQoKQGtleWZyYW1lcyBzbGlkZURvd24gewogIGZyb20gewogICAgdHJhbnNmb3JtOiB0cmFuc2xhdGVZKC0yMHB4KTsKICAgIG9wYWNpdHk6IDA7CiAgfQogIHRvIHsKICAgIHRyYW5zZm9ybTogdHJhbnNsYXRlWSgwKTsKICAgIG9wYWNpdHk6IDE7CiAgfQp9CgouaGVscC1tb2RhbC1oZWFkZXIgewogIHBhZGRpbmc6IDIwcHggMjRweDsKICBib3JkZXItYm90dG9tOiAxcHggc29saWQgI2UyZThmMDsKICBkaXNwbGF5OiBmbGV4OwogIGp1c3RpZnktY29udGVudDogc3BhY2UtYmV0d2VlbjsKICBhbGlnbi1pdGVtczogY2VudGVyOwogIGJhY2tncm91bmQtY29sb3I6ICNmOGZhZmM7Cn0KCi5oZWxwLW1vZGFsLXRpdGxlIHsKICBmb250LXNpemU6IDIwcHg7CiAgZm9udC13ZWlnaHQ6IDYwMDsKICBjb2xvcjogIzFlMjkzYjsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLWNsb3NlIHsKICBiYWNrZ3JvdW5kOiBub25lOwogIGJvcmRlcjogbm9uZTsKICBmb250LXNpemU6IDI0cHg7CiAgY29sb3I6ICM2NDc0OGI7CiAgY3Vyc29yOiBwb2ludGVyOwogIHBhZGRpbmc6IDA7CiAgd2lkdGg6IDMycHg7CiAgaGVpZ2h0OiAzMnB4OwogIGRpc3BsYXk6IGZsZXg7CiAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6IGNlbnRlcjsKICBib3JkZXItcmFkaXVzOiA0cHg7CiAgdHJhbnNpdGlvbjogYmFja2dyb3VuZC1jb2xvciAwLjFzOwp9CgouaGVscC1tb2RhbC1jbG9zZTpob3ZlciB7CiAgYmFja2dyb3VuZC1jb2xvcjogI2UyZThmMDsKICBjb2xvcjogIzFlMjkzYjsKfQoKLmhlbHAtbW9kYWwtY29udGVudCB7CiAgZmxleDogMTsKICBvdmVyZmxvdy15OiBhdXRvOwogIHBhZGRpbmc6IDI0cHg7Cn0KCi5oZWxwLW1vZGFsLXNlY3Rpb24gewogIG1hcmdpbi1ib3R0b206IDMycHg7Cn0KCi5oZWxwLW1vZGFsLXNlY3Rpb246bGFzdC1jaGlsZCB7CiAgbWFyZ2luLWJvdHRvbTogMDsKfQoKLmhlbHAtbW9kYWwtc2VjdGlvbi10aXRsZSB7CiAgZm9udC1zaXplOiAxNnB4OwogIGZvbnQtd2VpZ2h0OiA2MDA7CiAgY29sb3I6ICMxZTI5M2I7CiAgbWFyZ2luOiAwIDAgMTZweCAwOwogIHBhZGRpbmctYm90dG9tOiA4cHg7CiAgYm9yZGVyLWJvdHRvbTogMnB4IHNvbGlkICNlMmU4ZjA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWxpc3QgewogIGxpc3Qtc3R5bGU6IG5vbmU7CiAgcGFkZGluZzogMDsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWl0ZW0gewogIGRpc3BsYXk6IGZsZXg7CiAganVzdGlmeS1jb250ZW50OiBzcGFjZS1iZXR3ZWVuOwogIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgcGFkZGluZzogMTJweCAwOwogIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjZjFmNWY5Owp9CgouaGVscC1tb2RhbC1zaG9ydGN1dC1pdGVtOmxhc3QtY2hpbGQgewogIGJvcmRlci1ib3R0b206IG5vbmU7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWRlc2NyaXB0aW9uIHsKICBmb250LXNpemU6IDE0cHg7CiAgY29sb3I6ICM0NzU1Njk7CiAgZmxleDogMTsKfQoKLmhlbHAtbW9kYWwtc2hvcnRjdXQta2V5cyB7CiAgZGlzcGxheTogZmxleDsKICBnYXA6IDRweDsKICBhbGlnbi1pdGVtczogY2VudGVyOwp9CgouaGVscC1tb2RhbC1zaG9ydGN1dC1rZXkgewogIHBhZGRpbmc6IDRweCA4cHg7CiAgYmFja2dyb3VuZC1jb2xvcjogI2YxZjVmOTsKICBib3JkZXI6IDFweCBzb2xpZCAjZTJlOGYwOwogIGJvcmRlci1yYWRpdXM6IDRweDsKICBmb250LXNpemU6IDEycHg7CiAgZm9udC1mYW1pbHk6IHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZjsKICBjb2xvcjogIzFlMjkzYjsKICBib3gtc2hhZG93OiAwIDFweCAycHggcmdiYSgwLCAwLCAwLCAwLjEpOwogIGZvbnQtd2VpZ2h0OiA1MDA7Cn0KCi5oZWxwLW1vZGFsLXNob3J0Y3V0LWtleS1zZXBhcmF0b3IgewogIGNvbG9yOiAjOTRhM2I4OwogIGZvbnQtc2l6ZTogMTJweDsKICBtYXJnaW46IDAgMnB4Owp9CgouaGVscC1tb2RhbC1jb21tYW5kLWxpc3QgewogIGxpc3Qtc3R5bGU6IG5vbmU7CiAgcGFkZGluZzogMDsKICBtYXJnaW46IDA7Cn0KCi5oZWxwLW1vZGFsLWNvbW1hbmQtaXRlbSB7CiAgcGFkZGluZzogMTJweCAwOwogIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCAjZjFmNWY5Owp9CgouaGVscC1tb2RhbC1jb21tYW5kLWl0ZW06bGFzdC1jaGlsZCB7CiAgYm9yZGVyLWJvdHRvbTogbm9uZTsKfQoKLmhlbHAtbW9kYWwtY29tbWFuZC1uYW1lIHsKICBmb250LXNpemU6IDE0cHg7CiAgZm9udC13ZWlnaHQ6IDUwMDsKICBjb2xvcjogIzFlMjkzYjsKICBtYXJnaW4tYm90dG9tOiA0cHg7CiAgZm9udC1mYW1pbHk6IG1vbm9zcGFjZTsKICBiYWNrZ3JvdW5kLWNvbG9yOiAjZjFmNWY5OwogIHBhZGRpbmc6IDJweCA2cHg7CiAgYm9yZGVyLXJhZGl1czogNHB4OwogIGRpc3BsYXk6IGlubGluZS1ibG9jazsKfQoKLmhlbHAtbW9kYWwtY29tbWFuZC1kZXNjcmlwdGlvbiB7CiAgZm9udC1zaXplOiAxM3B4OwogIGNvbG9yOiAjNjQ3NDhiOwogIG1hcmdpbi10b3A6IDRweDsKfQoKLyog7Iqk7YGs66Gk67CUIOyKpO2DgOydvCAqLwouaGVscC1tb2RhbC1jb250ZW50Ojotd2Via2l0LXNjcm9sbGJhciB7CiAgd2lkdGg6IDhweDsKfQoKLmhlbHAtbW9kYWwtY29udGVudDo6LXdlYmtpdC1zY3JvbGxiYXItdHJhY2sgewogIGJhY2tncm91bmQ6ICNmMWY1Zjk7Cn0KCi5oZWxwLW1vZGFsLWNvbnRlbnQ6Oi13ZWJraXQtc2Nyb2xsYmFyLXRodW1iIHsKICBiYWNrZ3JvdW5kOiAjY2JkNWUxOwogIGJvcmRlci1yYWRpdXM6IDRweDsKfQoKLmhlbHAtbW9kYWwtY29udGVudDo6LXdlYmtpdC1zY3JvbGxiYXItdGh1bWI6aG92ZXIgewogIGJhY2tncm91bmQ6ICM5NGEzYjg7Cn0KCgoKCg==", "" + import.meta.url).href, document.head.appendChild(u);
 		}
-		let j = document.createElement("div");
-		j.className = "help-modal-overlay", j.setAttribute("role", "dialog"), j.setAttribute("aria-label", "Keyboard Shortcuts Help"), j.setAttribute("aria-modal", "true");
-		let M = document.createElement("div");
-		M.className = "help-modal";
-		let N = document.createElement("div");
-		N.className = "help-modal-header";
-		let P = document.createElement("h2");
-		P.className = "help-modal-title", P.textContent = "Keyboard Shortcuts";
-		let F = document.createElement("button");
-		F.className = "help-modal-close", F.innerHTML = "×", F.setAttribute("aria-label", "Close"), F.onclick = () => j.remove(), N.appendChild(P), N.appendChild(F);
-		let I = document.createElement("div");
-		I.className = "help-modal-content";
-		let L = document.createElement("div");
-		L.className = "help-modal-section";
-		let R = document.createElement("h3");
-		R.className = "help-modal-section-title", R.textContent = "Keyboard Shortcuts", L.appendChild(R);
-		let B = document.createElement("ul");
-		B.className = "help-modal-shortcut-list";
-		let V = navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "Cmd" : "Ctrl";
+		let R = document.createElement("div");
+		R.className = "help-modal-overlay", R.setAttribute("role", "dialog"), R.setAttribute("aria-label", "Keyboard Shortcuts Help"), R.setAttribute("aria-modal", "true");
+		let B = document.createElement("div");
+		B.className = "help-modal";
+		let V = document.createElement("div");
+		V.className = "help-modal-header";
+		let H = document.createElement("h2");
+		H.className = "help-modal-title", H.textContent = "Keyboard Shortcuts";
+		let U = document.createElement("button");
+		U.className = "help-modal-close", U.innerHTML = "×", U.setAttribute("aria-label", "Close"), U.onclick = () => R.remove(), V.appendChild(H), V.appendChild(U);
+		let W = document.createElement("div");
+		W.className = "help-modal-content";
+		let G = document.createElement("div");
+		G.className = "help-modal-section";
+		let K = document.createElement("h3");
+		K.className = "help-modal-section-title", K.textContent = "Keyboard Shortcuts", G.appendChild(K);
+		let q = document.createElement("ul");
+		q.className = "help-modal-shortcut-list";
+		let J = navigator.platform.toUpperCase().indexOf("MAC") >= 0 ? "Cmd" : "Ctrl";
 		[
 			{
 				description: "Open Command Palette",
-				keys: [V, "K"]
+				keys: [J, "K"]
 			},
 			{
 				description: "Undo",
-				keys: [V, "Z"]
+				keys: [J, "Z"]
 			},
 			{
 				description: "Redo",
-				keys: [V, "Y"]
+				keys: [J, "Y"]
 			},
 			{
 				description: "Navigate to next cell",
@@ -4189,27 +3313,27 @@ var QuickSearchUI = class {
 				description: "Edit cell",
 				keys: ["Double", "Click"]
 			}
-		].forEach((r) => {
-			let j = document.createElement("li");
-			j.className = "help-modal-shortcut-item";
-			let M = document.createElement("span");
-			M.className = "help-modal-shortcut-description", M.textContent = r.description;
-			let N = document.createElement("div");
-			N.className = "help-modal-shortcut-keys", r.keys.forEach((r, j) => {
-				if (j > 0) {
-					let r = document.createElement("span");
-					r.className = "help-modal-shortcut-key-separator", r.textContent = "+", N.appendChild(r);
+		].forEach((u) => {
+			let R = document.createElement("li");
+			R.className = "help-modal-shortcut-item";
+			let B = document.createElement("span");
+			B.className = "help-modal-shortcut-description", B.textContent = u.description;
+			let V = document.createElement("div");
+			V.className = "help-modal-shortcut-keys", u.keys.forEach((u, R) => {
+				if (R > 0) {
+					let u = document.createElement("span");
+					u.className = "help-modal-shortcut-key-separator", u.textContent = "+", V.appendChild(u);
 				}
-				let M = document.createElement("kbd");
-				M.className = "help-modal-shortcut-key", M.textContent = r, N.appendChild(M);
-			}), j.appendChild(M), j.appendChild(N), B.appendChild(j);
-		}), L.appendChild(B), I.appendChild(L);
-		let H = document.createElement("div");
-		H.className = "help-modal-section";
-		let U = document.createElement("h3");
-		U.className = "help-modal-section-title", U.textContent = "Available Commands", H.appendChild(U);
-		let W = document.createElement("ul");
-		W.className = "help-modal-command-list", [
+				let B = document.createElement("kbd");
+				B.className = "help-modal-shortcut-key", B.textContent = u, V.appendChild(B);
+			}), R.appendChild(B), R.appendChild(V), q.appendChild(R);
+		}), G.appendChild(q), W.appendChild(G);
+		let Y = document.createElement("div");
+		Y.className = "help-modal-section";
+		let X = document.createElement("h3");
+		X.className = "help-modal-section-title", X.textContent = "Available Commands", Y.appendChild(X);
+		let Z = document.createElement("ul");
+		Z.className = "help-modal-command-list", [
 			{
 				name: "goto <number>",
 				description: "Navigate to a specific row number"
@@ -4258,31 +3382,31 @@ var QuickSearchUI = class {
 				name: "help",
 				description: "Show this help dialog"
 			}
-		].forEach((r) => {
-			let j = document.createElement("li");
-			j.className = "help-modal-command-item";
-			let M = document.createElement("div");
-			M.className = "help-modal-command-name", M.textContent = r.name;
-			let N = document.createElement("div");
-			N.className = "help-modal-command-description", N.textContent = r.description, j.appendChild(M), j.appendChild(N), W.appendChild(j);
-		}), H.appendChild(W), I.appendChild(H), M.appendChild(N), M.appendChild(I), j.appendChild(M), document.body.appendChild(j), j.addEventListener("click", (r) => {
-			r.target === j && j.remove();
+		].forEach((u) => {
+			let R = document.createElement("li");
+			R.className = "help-modal-command-item";
+			let B = document.createElement("div");
+			B.className = "help-modal-command-name", B.textContent = u.name;
+			let V = document.createElement("div");
+			V.className = "help-modal-command-description", V.textContent = u.description, R.appendChild(B), R.appendChild(V), Z.appendChild(R);
+		}), Y.appendChild(Z), W.appendChild(Y), B.appendChild(V), B.appendChild(W), R.appendChild(B), document.body.appendChild(R), R.addEventListener("click", (u) => {
+			u.target === R && R.remove();
 		});
-		let G = (r) => {
-			r.key === "Escape" && (j.remove(), document.removeEventListener("keydown", G));
+		let Q = (u) => {
+			u.key === "Escape" && (R.remove(), document.removeEventListener("keydown", Q));
 		};
-		document.addEventListener("keydown", G);
-		let K = new MutationObserver(() => {
-			document.body.contains(j) || (document.removeEventListener("keydown", G), K.disconnect());
+		document.addEventListener("keydown", Q);
+		let $ = new MutationObserver(() => {
+			document.body.contains(R) || (document.removeEventListener("keydown", Q), $.disconnect());
 		});
-		K.observe(document.body, {
+		$.observe(document.body, {
 			childList: !0,
 			subtree: !0
 		});
 	}
 	clearChanges() {
-		this.changeTracker.clearChanges((r, j) => {
-			this.updateCellStyle(r, j);
+		this.changeTracker.clearChanges((u, R) => {
+			this.updateCellStyle(u, R);
 		});
 	}
 	openQuickSearch() {
@@ -4291,57 +3415,57 @@ var QuickSearchUI = class {
 	closeQuickSearch() {
 		this.quickSearchUI && this.quickSearchUI.close(), this.currentQuickSearchMatches = [], this.currentQuickSearchIndex = -1, this.bodyElement && this.renderVirtualRows();
 	}
-	handleQuickSearch(r) {
+	handleQuickSearch(u) {
 		if (!this.quickSearch || !this.quickSearchUI) return;
-		let j = parseSearchQuery(r);
-		if (!j) {
+		let R = parseSearchQuery(u);
+		if (!R) {
 			this.currentQuickSearchMatches = [], this.currentQuickSearchIndex = -1, this.quickSearchUI.updateStatus(0, 0), this.bodyElement && this.renderVirtualRows();
 			return;
 		}
-		let M = this.quickSearch.findMatches(j);
-		this.currentQuickSearchMatches = M, this.currentQuickSearchIndex = M.length > 0 ? 0 : -1, M.length > 0 ? (this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, M.length), this.goToQuickSearchMatch(M[0])) : this.quickSearchUI.updateStatus(0, 0), this.bodyElement && this.renderVirtualRows();
+		let B = this.quickSearch.findMatches(R);
+		this.currentQuickSearchMatches = B, this.currentQuickSearchIndex = B.length > 0 ? 0 : -1, B.length > 0 ? (this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, B.length), this.goToQuickSearchMatch(B[0])) : this.quickSearchUI.updateStatus(0, 0), this.bodyElement && this.renderVirtualRows();
 	}
 	goToNextQuickSearchMatch() {
 		if (this.currentQuickSearchMatches.length === 0) return;
 		(this.currentQuickSearchIndex < 0 || this.currentQuickSearchIndex >= this.currentQuickSearchMatches.length) && (this.currentQuickSearchIndex = 0), this.currentQuickSearchIndex = (this.currentQuickSearchIndex + 1) % this.currentQuickSearchMatches.length;
-		let r = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
-		this.goToQuickSearchMatch(r), this.quickSearchUI && this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, this.currentQuickSearchMatches.length);
+		let u = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
+		this.goToQuickSearchMatch(u), this.quickSearchUI && this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, this.currentQuickSearchMatches.length);
 	}
 	goToPrevQuickSearchMatch() {
 		if (this.currentQuickSearchMatches.length === 0) return;
 		this.currentQuickSearchIndex = this.currentQuickSearchIndex <= 0 ? this.currentQuickSearchMatches.length - 1 : this.currentQuickSearchIndex - 1;
-		let r = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
-		this.goToQuickSearchMatch(r), this.quickSearchUI && this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, this.currentQuickSearchMatches.length);
+		let u = this.currentQuickSearchMatches[this.currentQuickSearchIndex];
+		this.goToQuickSearchMatch(u), this.quickSearchUI && this.quickSearchUI.updateStatus(this.currentQuickSearchIndex, this.currentQuickSearchMatches.length);
 	}
-	goToQuickSearchMatch(r) {
-		if (this.rowVirtualizer && this.scrollElement) if (this.rowVirtualizer.getVirtualItems().find((j) => j.index === r.rowIndex) && this.bodyElement) {
-			let j = this.bodyElement.querySelector(`[data-index="${r.rowIndex}"]`);
-			j && j.scrollIntoView({
+	goToQuickSearchMatch(u) {
+		if (this.rowVirtualizer && this.scrollElement) if (this.rowVirtualizer.getVirtualItems().find((R) => R.index === u.rowIndex) && this.bodyElement) {
+			let R = this.bodyElement.querySelector(`[data-index="${u.rowIndex}"]`);
+			R && R.scrollIntoView({
 				behavior: "auto",
 				block: "center"
 			});
 		} else {
-			let j = r.rowIndex * this.rowHeight;
-			this.scrollElement.scrollTop = j - this.scrollElement.clientHeight / 2;
+			let R = u.rowIndex * this.rowHeight;
+			this.scrollElement.scrollTop = R - this.scrollElement.clientHeight / 2;
 		}
 		requestAnimationFrame(() => {
-			this.focusCell(r.rowIndex, r.columnId), this.bodyElement && this.renderVirtualRows();
+			this.focusCell(u.rowIndex, u.columnId), this.bodyElement && this.renderVirtualRows();
 		});
 	}
-	applyQuickSearchHighlight(r, j) {
-		this.currentQuickSearchMatches.length !== 0 && (r.querySelectorAll(".virtual-grid-cell").forEach((r) => {
-			r.classList.remove("quick-search-matched", "quick-search-current-match");
-			let j = r.querySelector(".virtual-grid-cell-content");
-			if (j) {
-				let r = j.getAttribute("data-original-text");
-				r !== null && (j.textContent = r, j.removeAttribute("data-original-text"));
+	applyQuickSearchHighlight(u, R) {
+		this.currentQuickSearchMatches.length !== 0 && (u.querySelectorAll(".virtual-grid-cell").forEach((u) => {
+			u.classList.remove("quick-search-matched", "quick-search-current-match");
+			let R = u.querySelector(".virtual-grid-cell-content");
+			if (R) {
+				let u = R.getAttribute("data-original-text");
+				u !== null && (R.textContent = u, R.removeAttribute("data-original-text"));
 			}
-		}), this.currentQuickSearchMatches.forEach((M) => {
-			if (M.rowIndex !== j) return;
-			let N = r.querySelector(`[data-column-id="${M.columnId}"]`);
-			if (!N) return;
-			let P = N.querySelector(".virtual-grid-cell-content");
-			P && (P.getAttribute("data-original-text") || P.setAttribute("data-original-text", M.matchedText), P.innerHTML = QuickSearch.highlightText(M.matchedText, M.matchIndices), N.classList.add("quick-search-matched"), this.currentQuickSearchIndex >= 0 && this.currentQuickSearchIndex < this.currentQuickSearchMatches.length && this.currentQuickSearchMatches[this.currentQuickSearchIndex].rowIndex === j && this.currentQuickSearchMatches[this.currentQuickSearchIndex].columnId === M.columnId && N.classList.add("quick-search-current-match"));
+		}), this.currentQuickSearchMatches.forEach((B) => {
+			if (B.rowIndex !== R) return;
+			let V = u.querySelector(`[data-column-id="${B.columnId}"]`);
+			if (!V) return;
+			let H = V.querySelector(".virtual-grid-cell-content");
+			H && (H.getAttribute("data-original-text") || H.setAttribute("data-original-text", B.matchedText), H.innerHTML = QuickSearch.highlightText(B.matchedText, B.matchIndices), V.classList.add("quick-search-matched"), this.currentQuickSearchIndex >= 0 && this.currentQuickSearchIndex < this.currentQuickSearchMatches.length && this.currentQuickSearchMatches[this.currentQuickSearchIndex].rowIndex === R && this.currentQuickSearchMatches[this.currentQuickSearchIndex].columnId === B.columnId && V.classList.add("quick-search-current-match"));
 		}));
 	}
 	destroy() {
@@ -4350,67 +3474,67 @@ var QuickSearchUI = class {
 	initStatusBar() {
 		this.statusBar = new StatusBar(this.container, { onStatusUpdate: () => {} }), this.statusBar.create(), this.updateStatusBar();
 	}
-	async executeCommandLineCommand(r) {
-		let j = r.trim();
-		if (!j) return;
-		let M = j.split(/\s+/), N = M[0].toLowerCase(), P = M.slice(1);
-		if ((N === "goto" || N === "go") && P.length > 0) {
-			let r = P[0].toLowerCase();
-			if (r === "top" || r === "first" || r === "1") {
+	async executeCommandLineCommand(u) {
+		let R = u.trim();
+		if (!R) return;
+		let B = R.split(/\s+/), V = B[0].toLowerCase(), H = B.slice(1);
+		if ((V === "goto" || V === "go") && H.length > 0) {
+			let u = H[0].toLowerCase();
+			if (u === "top" || u === "first" || u === "1") {
 				this.gotoTop();
 				return;
 			}
-			if (r === "bottom" || r === "last") {
+			if (u === "bottom" || u === "last") {
 				this.gotoBottom();
 				return;
 			}
-			let j = parseInt(P[0], 10);
-			if (!isNaN(j) && j > 0) {
-				this.gotoRow(j - 1);
+			let R = parseInt(H[0], 10);
+			if (!isNaN(R) && R > 0) {
+				this.gotoRow(R - 1);
 				return;
 			}
 		}
-		let F = this.commandRegistry.getCommands("all").find((r) => {
-			let j = r.id.toLowerCase(), M = r.label.toLowerCase();
-			return j === N || M.includes(N) || r.keywords?.some((r) => r.toLowerCase() === N);
+		let U = this.commandRegistry.getCommands("all").find((u) => {
+			let R = u.id.toLowerCase(), B = u.label.toLowerCase();
+			return R === V || B.includes(V) || u.keywords?.some((u) => u.toLowerCase() === V);
 		});
-		F ? F.execute(P) : logger.warn(`CommandLine: Unknown command: ${N}`);
+		U ? U.execute(H) : logger.warn(`CommandLine: Unknown command: ${V}`);
 	}
 	updateStatusBar() {
 		if (!this.statusBar) return;
-		let r = this.cellEditor.getEditingCell() === null ? "Normal" : "Editing", j = this.focusManager.getFocusedCell(), M = this.getFilteredTranslations().length, N = j && typeof j.rowIndex == "number" ? j.rowIndex : null;
-		M > 0 ? N === null ? N = 0 : N >= M && (N = M - 1) : N = 0;
-		let P = j ? j.columnId : null, F = this.changeTracker.getChanges().length, I = this.countEmptyTranslations(), L = this.countDuplicateKeys(), R = this.vimCommandTracker?.getCurrentCommand(), B = R ? R.sequence : null;
+		let u = this.cellEditor.getEditingCell() === null ? "Normal" : "Editing", R = this.focusManager.getFocusedCell(), B = this.getFilteredTranslations().length, V = R && typeof R.rowIndex == "number" ? R.rowIndex : null;
+		B > 0 ? V === null ? V = 0 : V >= B && (V = B - 1) : V = 0;
+		let H = R ? R.columnId : null, U = this.changeTracker.getChanges().length, W = this.countEmptyTranslations(), G = this.countDuplicateKeys(), K = this.vimCommandTracker?.getCurrentCommand(), q = K ? K.sequence : null;
 		this.statusBar.update({
-			mode: r,
-			rowIndex: N,
-			totalRows: M,
-			columnId: P,
-			changesCount: F,
-			emptyCount: I,
-			duplicateCount: L,
-			command: B
+			mode: u,
+			rowIndex: V,
+			totalRows: B,
+			columnId: H,
+			changesCount: U,
+			emptyCount: W,
+			duplicateCount: G,
+			command: q
 		});
 	}
 	countEmptyTranslations() {
-		let r = this.getFilteredTranslations(), j = 0;
-		return r.forEach((r) => {
-			this.options.languages.forEach((M) => {
-				let N = r.values[M] || "";
-				(!N || typeof N == "string" && N.trim() === "") && j++;
+		let u = this.getFilteredTranslations(), R = 0;
+		return u.forEach((u) => {
+			this.options.languages.forEach((B) => {
+				let V = u.values[B] || "";
+				(!V || typeof V == "string" && V.trim() === "") && R++;
 			});
-		}), j;
+		}), R;
 	}
 	countDuplicateKeys() {
-		let r = this.getFilteredTranslations(), j = /* @__PURE__ */ new Map();
-		r.forEach((r) => {
-			let M = r.key.trim();
-			M && j.set(M, (j.get(M) || 0) + 1);
+		let u = this.getFilteredTranslations(), R = /* @__PURE__ */ new Map();
+		u.forEach((u) => {
+			let B = u.key.trim();
+			B && R.set(B, (R.get(B) || 0) + 1);
 		});
-		let M = 0;
-		return j.forEach((r) => {
-			r > 1 && (M += r - 1);
-		}), M;
+		let B = 0;
+		return R.forEach((u) => {
+			u > 1 && (B += u - 1);
+		}), B;
 	}
 };
 export { ChangeTracker, VirtualTableDiv };

@@ -161,7 +161,14 @@ test.describe("Vim UI", () => {
       await expect(commandLine).not.toBeVisible({ timeout: 1000 });
     });
 
-    test("CommandLine 히스토리 탐색 (ArrowUp/ArrowDown)", async ({ page }) => {
+    // WebKit에서 가상 스크롤링이 느릴 수 있으므로 타임아웃 증가
+    test("CommandLine 히스토리 탐색 (ArrowUp/ArrowDown)", async ({
+      page,
+    }, testInfo) => {
+      // WebKit에서 더 긴 타임아웃 설정
+      if (testInfo.project.name === "webkit") {
+        test.setTimeout(60000);
+      }
       // 콘솔 로그 캡처
       const consoleLogs: string[] = [];
       page.on("console", (msg) => {
@@ -170,10 +177,23 @@ test.describe("Vim UI", () => {
         console.log(`[Browser Console] ${msg.type()}: ${text}`);
       });
 
+      // 헬퍼 함수: 셀이 렌더링되고 클릭 가능할 때까지 대기
+      const waitForCellAndClick = async () => {
+        // 그리드 컨테이너가 존재하는지 먼저 확인
+        await page.waitForSelector(".virtual-grid", { timeout: 5000 });
+        // 셀이 렌더링될 때까지 대기 (최대 10초)
+        await page.waitForFunction(
+          () => document.querySelectorAll(".virtual-grid-cell").length > 0,
+          { timeout: 10000 },
+        );
+        const cell = page.locator(".virtual-grid-cell").first();
+        await expect(cell).toBeVisible({ timeout: 5000 });
+        await cell.click();
+        await page.waitForTimeout(200);
+      };
+
       // 첫 번째 셀 클릭
-      const firstCell = page.locator(".virtual-grid-cell").first();
-      await firstCell.click();
-      await page.waitForTimeout(200);
+      await waitForCellAndClick();
 
       // 첫 번째 명령어 실행
       await page.keyboard.press(":");
@@ -183,17 +203,9 @@ test.describe("Vim UI", () => {
       await input.fill("goto 10");
       await page.keyboard.press("Enter");
 
-      // 스크롤 및 렌더링 완료 대기
+      // 스크롤 완료 대기 후 셀 클릭
       await page.waitForTimeout(500);
-
-      // 그리드 셀이 렌더링될 때까지 대기
-      await page.waitForSelector(".virtual-grid-cell", { timeout: 5000 });
-
-      // 스크롤 후 셀에 다시 포커스 설정 (WebKit에서 스크롤 후 포커스가 사라질 수 있음)
-      const cellAfterFirst = page.locator(".virtual-grid-cell").first();
-      await expect(cellAfterFirst).toBeVisible({ timeout: 5000 });
-      await cellAfterFirst.click();
-      await page.waitForTimeout(200);
+      await waitForCellAndClick();
 
       // 두 번째 명령어 실행
       await page.keyboard.press(":");
@@ -203,24 +215,13 @@ test.describe("Vim UI", () => {
       await input.fill("goto 20");
       await page.keyboard.press("Enter");
 
-      // 스크롤 및 렌더링 완료 대기
+      // 스크롤 완료 대기 후 셀 클릭
       await page.waitForTimeout(500);
-
-      // 그리드 셀이 렌더링될 때까지 대기
-      await page.waitForSelector(".virtual-grid-cell", { timeout: 5000 });
+      await waitForCellAndClick();
 
       // 세 번째 CommandLine 열기
-      // WebKit에서 키보드 입력이 제대로 처리되도록 셀에 포커스 확인
-      // 셀이 존재하는지 먼저 확인
-      const currentCell = page.locator(".virtual-grid-cell").first();
-      await expect(currentCell).toBeVisible({ timeout: 5000 });
-
-      // 클릭으로 포커스 설정 (focus()보다 안정적)
-      await currentCell.click();
-      await page.waitForTimeout(200);
-
       await page.keyboard.press(":");
-      await page.waitForTimeout(300); // WebKit에서 더 긴 대기 시간
+      await page.waitForTimeout(300);
       input = page.locator(".command-line-input");
 
       // input이 표시되고 포커스가 설정될 때까지 대기

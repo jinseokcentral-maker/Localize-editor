@@ -38,7 +38,8 @@ export declare class GridRenderer {
     createCell(rowId: string, columnId: string, value: string, rowIndex: number, editable: boolean, width: number, left: number, zIndex: number): HTMLElement;
     /**
      * 셀 내용 업데이트
+     * DOM 조작을 최소화하여 성능 최적화
      */
-    updateCellContent(cell: HTMLElement, rowId: string, columnId: string, value: string, rowIndex: number): void;
+    updateCellContent(cell: HTMLElement, rowId: string, columnId: string, value: string, _rowIndex: number): void;
 }
 //# sourceMappingURL=grid-renderer.d.ts.map
