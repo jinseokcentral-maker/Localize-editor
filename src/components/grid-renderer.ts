@@ -14,6 +14,12 @@ export interface ColumnWidths {
 }
 
 export interface GridRendererCallbacks {
+  onCellClick?: (
+    rowIndex: number,
+    columnId: string,
+    cell: HTMLElement,
+    event: MouseEvent,
+  ) => void;
   onCellDblClick?: (
     rowIndex: number,
     columnId: string,
@@ -195,6 +201,13 @@ export class GridRenderer {
       this.options.callbacks.updateCellStyle(rowId, columnId, cell);
     }
 
+    // 클릭 이벤트 (선택 처리)
+    cell.addEventListener("click", (e) => {
+      if (this.options.callbacks.onCellClick) {
+        this.options.callbacks.onCellClick(rowIndex, columnId, cell, e);
+      }
+    });
+
     // 더블클릭으로 편집 시작
     // 읽기 전용 모드에서는 모든 셀 편집 불가
     if (editable && !this.options.readOnly) {
@@ -233,6 +246,12 @@ export class GridRenderer {
     value: string,
     _rowIndex: number,
   ): void {
+    // 편집 중인 input이 있으면 먼저 제거
+    const existingInput = cell.querySelector(".virtual-grid-cell-input");
+    if (existingInput) {
+      existingInput.remove();
+    }
+
     // 기존 content 요소 재사용 (DOM 생성 최소화)
     let cellContent = cell.querySelector(
       ".virtual-grid-cell-content",

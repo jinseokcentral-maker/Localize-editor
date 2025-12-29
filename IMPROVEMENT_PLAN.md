@@ -82,18 +82,32 @@
 
 ---
 
-## Phase 3: 성능 최적화 (우선순위: 중간)
+## Phase 3: 성능 최적화 ✅ 완료 (2025-12-29)
 
-### 3.1 번들 크기 최적화
-- [ ] 번들 분석 (rollup-plugin-visualizer)
-- [ ] Tree-shaking 효과 검증
-- [ ] 불필요한 의존성 제거
-- [ ] 코드 스플리팅 검토
+### 3.1 번들 크기 최적화 ✅
+- [x] 번들 분석 (rollup-plugin-visualizer)
+- [x] Tree-shaking 효과 검증
+- [x] 불필요한 의존성 제거 (fuse.js → peerDependencies)
+- [x] 코드 스플리팅 검토 (현재 단일 번들 유지)
 
-### 3.2 렌더링 성능
-- [ ] 불필요한 리렌더링 감지 및 제거
-- [ ] requestAnimationFrame 활용 최적화
-- [ ] 대용량 데이터 성능 벤치마크
+#### 최적화 결과:
+| 파일 | 이전 | 이후 | 감소량 |
+|------|------|------|--------|
+| ESM | 171KB (gzip 41KB) | 145KB (gzip 33KB) | -26KB (-8KB gzip) |
+| CJS | 137KB (gzip 36KB) | 119KB (gzip 30KB) | -18KB (-6KB gzip) |
+
+### 3.2 렌더링 성능 ✅
+- [x] 불필요한 리렌더링 감지 및 제거
+- [x] requestAnimationFrame 활용 최적화 (이미 적용됨)
+- [x] DOM 조작 최소화 (updateCellContent 개선)
+
+#### 적용된 최적화:
+| 항목 | 설명 |
+|------|------|
+| DOM 요소 재사용 | updateCellContent에서 기존 요소 재사용 |
+| 이벤트 리스너 유지 | innerHTML 대신 textContent 직접 수정 |
+| 메모이제이션 | memo 함수로 불필요한 재계산 방지 |
+| Binary Search | O(log n) 인덱스 검색 |
 
 ---
 
@@ -115,13 +129,23 @@
 
 ---
 
-## Phase 5: 기능 확장 (우선순위: 낮음)
+## Phase 5: 기능 확장 ✅ 진행 중 (2025-12-29)
 
 ### 5.1 추가 기능 검토
-- [ ] 다중 셀 선택 (Shift+Click)
+- [x] 다중 셀 선택 (Shift+Click, Ctrl/Cmd+Click, Shift+Arrow)
+- [x] Vim 모드 검증 (VimCommandTracker, CommandLine, StatusBar)
 - [ ] 복사/붙여넣기 개선
-- [ ] CSV/JSON 내보내기
+- [ ] CSV/JSON 내보내기 (외부 처리)
 - [ ] 자동 저장
+
+#### 다중 셀 선택 구현:
+| 기능 | 설명 |
+|------|------|
+| 단일 클릭 | 셀 선택 |
+| Ctrl/Cmd+Click | 개별 셀 추가/제거 |
+| Shift+Click | 범위 선택 |
+| Shift+Arrow | 범위 확장 |
+| SelectionManager | 선택 상태 관리 클래스 |
 
 ### 5.2 플러그인 시스템
 - [ ] 플러그인 아키텍처 설계
@@ -159,10 +183,14 @@
 ## 현재 상태
 
 - **시작일**: 2025-12-29
-- **현재 Phase**: Phase 2 진행 중
+- **현재 Phase**: Phase 5 진행 중
 - **완료된 항목**: 
   - 1.1 메모리 누수 점검 및 수정 ✅
   - 1.2 테스트 커버리지 확대 ✅
   - 2.1 에러 처리 일관성 ✅
   - 2.3 코드 정리 ✅
-- **테스트 현황**: 365개 단위 테스트, 440개 E2E 테스트 통과, 커버리지 56%
+  - 3.1 번들 크기 최적화 ✅
+  - 3.2 렌더링 성능 ✅
+  - 5.1 다중 셀 선택 ✅
+  - 5.1 Vim 모드 검증 ✅
+- **테스트 현황**: 384개 단위 테스트, 464개 E2E 테스트 통과

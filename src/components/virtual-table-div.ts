@@ -37,6 +37,7 @@ import { logger } from "@/utils/logger";
 import { FilterManager, type FilterType } from "./filter-manager";
 import { VimCommandTracker } from "./vim-command-tracker";
 import { CommandLine } from "./command-line";
+import { SelectionManager } from "./selection-manager";
 import "@/styles/virtual-table-div.css";
 import "@/styles/quick-search.css";
 import "@/styles/status-bar.css";
@@ -75,6 +76,7 @@ export class VirtualTableDiv {
   // 모듈화된 컴포넌트들
   private modifierKeyTracker = new ModifierKeyTracker();
   private focusManager = new FocusManager();
+  private selectionManager: SelectionManager;
   private cellEditor: CellEditor;
   private keyboardHandlerModule: KeyboardHandler;
   private columnResizer: ColumnResizer;
@@ -154,6 +156,20 @@ export class VirtualTableDiv {
       translations: options.translations,
       languages: options.languages,
       changeTracker: this.changeTracker,
+    });
+
+    // SelectionManager 초기화
+    const allColumns = [
+      "key",
+      "context",
+      ...options.languages.map((lang) => `values.${lang}`),
+    ];
+    this.selectionManager = new SelectionManager({
+      columns: allColumns,
+      onSelectionChange: () => {
+        this.updateSelectionStyles();
+        this.updateStatusBar();
+      },
     });
 
     // CellEditor 초기화
@@ -389,6 +405,9 @@ export class VirtualTableDiv {
         onOpenReplace: () => {
           this.openFindReplace("replace");
         },
+        onExtendSelection: (rowIndex, columnId) => {
+          this.selectionManager.extendSelection(rowIndex, columnId);
+        },
       },
     );
 
@@ -423,6 +442,9 @@ export class VirtualTableDiv {
       readOnly: options.readOnly,
       editableColumns: this.editableColumns,
       callbacks: {
+        onCellClick: (rowIndex, columnId, _cell, event) => {
+          this.handleCellClick(rowIndex, columnId, event);
+        },
         onCellDblClick: (rowIndex, columnId, cell) => {
           this.startEditing(rowIndex, columnId, cell);
         },
@@ -1324,6 +1346,85 @@ export class VirtualTableDiv {
       // 포커스 이벤트가 발생하도록 강제
       cell.dispatchEvent(new FocusEvent("focus", { bubbles: true }));
     }
+  }
+
+  /**
+   * 셀 클릭 처리 (다중 선택 지원)
+   */
+  private handleCellClick(
+    rowIndex: number,
+    columnId: string,
+    event: MouseEvent,
+  ): void {
+    const isCtrlOrCmd = event.ctrlKey || event.metaKey;
+    const isShift = event.shiftKey;
+
+    if (isShift) {
+      // Shift+Click: 범위 선택
+      this.selectionManager.selectRange(rowIndex, columnId);
+    } else if (isCtrlOrCmd) {
+      // Ctrl/Cmd+Click: 토글 선택
+      this.selectionManager.toggleCell(rowIndex, columnId);
+    } else {
+      // 일반 클릭: 단일 선택
+      this.selectionManager.selectCell(rowIndex, columnId);
+    }
+
+    // 포커스 업데이트
+    this.focusManager.focusCell(rowIndex, columnId);
+  }
+
+  /**
+   * 선택 스타일 업데이트
+   */
+  private updateSelectionStyles(): void {
+    if (!this.bodyElement) return;
+
+    // 모든 셀에서 선택 클래스 제거
+    const allCells = this.bodyElement.querySelectorAll(".virtual-grid-cell");
+    allCells.forEach((cell) => {
+      cell.classList.remove("cell-selected");
+    });
+
+    // 선택된 셀에 클래스 추가
+    const selectedCells = this.selectionManager.getSelectedCells();
+    for (const selected of selectedCells) {
+      const cell = this.bodyElement.querySelector(
+        `[data-row-index="${selected.rowIndex}"][data-column-id="${selected.columnId}"]`,
+      );
+      if (cell) {
+        cell.classList.add("cell-selected");
+      }
+    }
+  }
+
+  /**
+   * 선택된 셀의 값 가져오기
+   */
+  getSelectedValues(): { rowIndex: number; columnId: string; value: string }[] {
+    const selectedCells = this.selectionManager.getSelectedCells();
+    return selectedCells.map((cell) => {
+      const translation = this.currentTranslations[cell.rowIndex];
+      let value = "";
+      if (translation) {
+        if (cell.columnId === "key") {
+          value = translation.key;
+        } else if (cell.columnId === "context") {
+          value = translation.context || "";
+        } else if (cell.columnId.startsWith("values.")) {
+          const lang = cell.columnId.replace("values.", "");
+          value = translation.values[lang] || "";
+        }
+      }
+      return { ...cell, value };
+    });
+  }
+
+  /**
+   * 선택된 셀 수 가져오기
+   */
+  getSelectionCount(): number {
+    return this.selectionManager.getSelectionCount();
   }
 
   /**

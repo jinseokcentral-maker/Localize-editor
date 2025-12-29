@@ -11,6 +11,7 @@ export interface ColumnWidths {
     languages: number[];
 }
 export interface GridRendererCallbacks {
+    onCellClick?: (rowIndex: number, columnId: string, cell: HTMLElement, event: MouseEvent) => void;
     onCellDblClick?: (rowIndex: number, columnId: string, cell: HTMLElement) => void;
     onCellFocus?: (rowIndex: number, columnId: string) => void;
     updateCellStyle?: (rowId: string, columnId: string, cell?: HTMLElement) => void;

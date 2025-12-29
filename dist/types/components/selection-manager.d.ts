@@ -1,0 +1,116 @@
+/**
+ * 셀 선택 관리 모듈
+ *
+ * 다중 셀 선택을 지원하는 선택 관리자
+ * - 단일 셀 선택
+ * - Shift+Click으로 범위 선택
+ * - Ctrl/Cmd+Click으로 개별 셀 추가/제거
+ * - Shift+Arrow로 범위 확장
+ */
+export interface SelectedCell {
+    rowIndex: number;
+    columnId: string;
+}
+export interface SelectionRange {
+    startRow: number;
+    endRow: number;
+    startColumnId: string;
+    endColumnId: string;
+}
+export interface SelectionManagerOptions {
+    columns: string[];
+    onSelectionChange?: (selection: SelectedCell[]) => void;
+}
+export declare class SelectionManager {
+    private selectedCells;
+    private anchorCell;
+    private focusCell;
+    private columns;
+    private onSelectionChange?;
+    constructor(options: SelectionManagerOptions);
+    /**
+     * 컬럼 목록 업데이트
+     */
+    setColumns(columns: string[]): void;
+    /**
+     * 셀 키 생성
+     */
+    private getCellKey;
+    /**
+     * 단일 셀 선택 (기존 선택 해제)
+     */
+    selectCell(rowIndex: number, columnId: string): void;
+    /**
+     * 셀 추가 (Ctrl/Cmd+Click)
+     */
+    toggleCell(rowIndex: number, columnId: string): void;
+    /**
+     * 범위 선택 (Shift+Click)
+     */
+    selectRange(rowIndex: number, columnId: string): void;
+    /**
+     * 화살표 키로 범위 확장 (Shift+Arrow)
+     */
+    extendSelection(rowIndex: number, columnId: string): void;
+    /**
+     * 전체 행 선택
+     */
+    selectRow(rowIndex: number): void;
+    /**
+     * 행 범위 선택 (Shift+Click on row number)
+     */
+    selectRowRange(fromRow: number, toRow: number): void;
+    /**
+     * 전체 컬럼 선택
+     */
+    selectColumn(columnId: string, maxRow: number): void;
+    /**
+     * 선택 해제
+     */
+    clearSelection(): void;
+    /**
+     * 모든 선택 해제 및 앵커 리셋
+     */
+    resetSelection(): void;
+    /**
+     * 셀 추가 (내부 헬퍼)
+     */
+    private addCell;
+    /**
+     * 셀이 선택되었는지 확인
+     */
+    isSelected(rowIndex: number, columnId: string): boolean;
+    /**
+     * 선택된 셀 목록 가져오기
+     */
+    getSelectedCells(): SelectedCell[];
+    /**
+     * 선택된 셀 수 가져오기
+     */
+    getSelectionCount(): number;
+    /**
+     * 앵커 셀 가져오기
+     */
+    getAnchorCell(): SelectedCell | null;
+    /**
+     * 포커스 셀 가져오기
+     */
+    getFocusCell(): SelectedCell | null;
+    /**
+     * 선택 범위 가져오기 (사각형 범위일 때만)
+     */
+    getSelectionRange(): SelectionRange | null;
+    /**
+     * 컬럼 인덱스 가져오기
+     */
+    private getColumnIndex;
+    /**
+     * 선택 변경 알림
+     */
+    private notifyChange;
+    /**
+     * 선택된 셀들의 값 복사용 텍스트 생성 (TSV 형식)
+     */
+    getSelectionAsText(getValue: (rowIndex: number, columnId: string) => string): string;
+}
+//# sourceMappingURL=selection-manager.d.ts.map

@@ -1,6 +1,6 @@
 /**
  * 키보드 핸들러 모듈
- * 
+ *
  * VirtualTableDiv의 키보드 이벤트를 처리합니다.
  * - Undo/Redo (Cmd+Z, Cmd+Y, Cmd+Shift+Z)
  * - 키보드 네비게이션 (Arrow keys, Tab, Enter)
@@ -13,10 +13,7 @@ import type { UndoRedoAction } from "./undo-redo-manager";
 export interface KeyboardHandlerCallbacks {
   onUndo?: () => void;
   onRedo?: () => void;
-  onNavigate?: (
-    rowIndex: number,
-    columnId: string
-  ) => void;
+  onNavigate?: (rowIndex: number, columnId: string) => void;
   onStartEditing?: (rowIndex: number, columnId: string) => void;
   getAllColumns?: () => string[];
   getMaxRowIndex?: () => number;
@@ -30,6 +27,7 @@ export interface KeyboardHandlerCallbacks {
   isReadOnly?: () => boolean;
   onOpenFind?: () => void;
   onOpenReplace?: () => void;
+  onExtendSelection?: (rowIndex: number, columnId: string) => void;
 }
 
 export class KeyboardHandler {
@@ -42,7 +40,7 @@ export class KeyboardHandler {
   constructor(
     modifierKeyTracker: ModifierKeyTracker,
     focusManager: FocusManager,
-    callbacks: KeyboardHandlerCallbacks = {}
+    callbacks: KeyboardHandlerCallbacks = {},
   ) {
     this.modifierKeyTracker = modifierKeyTracker;
     this.focusManager = focusManager;
@@ -131,7 +129,8 @@ export class KeyboardHandler {
       if (
         (e.key === "/" || e.code === "Slash") &&
         !isInputField &&
-        (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())
+        (!this.callbacks.isQuickSearchMode ||
+          !this.callbacks.isQuickSearchMode())
       ) {
         e.preventDefault();
         e.stopPropagation();
@@ -173,14 +172,20 @@ export class KeyboardHandler {
           const focusedCell = this.focusManager.getFocusedCell();
           if (focusedCell && this.callbacks.onStartEditing) {
             // 편집 가능한 컬럼인지 확인
-            if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+            if (
+              this.callbacks.isEditableColumn &&
+              !this.callbacks.isEditableColumn(focusedCell.columnId)
+            ) {
               return;
             }
             // 읽기 전용 모드 확인
             if (this.callbacks.isReadOnly && this.callbacks.isReadOnly()) {
               return;
             }
-            this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
+            this.callbacks.onStartEditing(
+              focusedCell.rowIndex,
+              focusedCell.columnId,
+            );
           }
         }
         return;
@@ -195,12 +200,13 @@ export class KeyboardHandler {
         e.key === "Enter" &&
         this.focusManager.hasFocus() &&
         !isInputField &&
-        (!this.callbacks.isQuickSearchMode || !this.callbacks.isQuickSearchMode())
+        (!this.callbacks.isQuickSearchMode ||
+          !this.callbacks.isQuickSearchMode())
       ) {
         const focusedCell = this.focusManager.getFocusedCell();
         if (focusedCell) {
           const isLanguageColumn = focusedCell.columnId.startsWith("values.");
-          
+
           // Shift+Enter는 언어 컬럼에서만 동작
           if (e.shiftKey) {
             if (!isLanguageColumn) {
@@ -212,7 +218,10 @@ export class KeyboardHandler {
             // Enter (Shift 없음): 언어 컬럼이 아닌 경우 편집 시작
             if (!isLanguageColumn) {
               // 편집 가능한 컬럼인지 확인
-              if (this.callbacks.isEditableColumn && !this.callbacks.isEditableColumn(focusedCell.columnId)) {
+              if (
+                this.callbacks.isEditableColumn &&
+                !this.callbacks.isEditableColumn(focusedCell.columnId)
+              ) {
                 return;
               }
               // 읽기 전용 모드 확인
@@ -222,7 +231,10 @@ export class KeyboardHandler {
               if (this.callbacks.onStartEditing) {
                 e.preventDefault();
                 e.stopPropagation();
-                this.callbacks.onStartEditing(focusedCell.rowIndex, focusedCell.columnId);
+                this.callbacks.onStartEditing(
+                  focusedCell.rowIndex,
+                  focusedCell.columnId,
+                );
                 return;
               }
             }
@@ -256,13 +268,19 @@ export class KeyboardHandler {
    */
   private handleKeyboardNavigation(e: KeyboardEvent): void {
     const focusedCell = this.focusManager.getFocusedCell();
-    if (!focusedCell || !this.callbacks.getAllColumns || !this.callbacks.focusCell) {
+    if (
+      !focusedCell ||
+      !this.callbacks.getAllColumns ||
+      !this.callbacks.focusCell
+    ) {
       return;
     }
 
     const { rowIndex, columnId } = focusedCell;
     const allColumns = this.callbacks.getAllColumns();
-    const maxRowIndex = this.callbacks.getMaxRowIndex ? this.callbacks.getMaxRowIndex() : Infinity;
+    const maxRowIndex = this.callbacks.getMaxRowIndex
+      ? this.callbacks.getMaxRowIndex()
+      : Infinity;
 
     const currentColIndex = allColumns.indexOf(columnId);
     if (currentColIndex < 0) {
@@ -350,9 +368,18 @@ export class KeyboardHandler {
 
     const nextColumnId = allColumns[nextColIndex];
     if (nextColumnId) {
+      // Shift+Arrow: 선택 범위 확장
+      if (
+        e.shiftKey &&
+        e.key.startsWith("Arrow") &&
+        this.callbacks.onExtendSelection
+      ) {
+        this.callbacks.onExtendSelection(nextRowIndex, nextColumnId);
+      }
+
       this.focusManager.focusCell(nextRowIndex, nextColumnId);
       this.callbacks.focusCell(nextRowIndex, nextColumnId);
-      
+
       if (this.callbacks.onNavigate) {
         this.callbacks.onNavigate(nextRowIndex, nextColumnId);
       }
@@ -366,4 +393,3 @@ export class KeyboardHandler {
     this.callbacks = { ...this.callbacks, ...callbacks };
   }
 }
-

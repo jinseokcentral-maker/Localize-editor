@@ -39,6 +39,7 @@ export declare class VirtualTableDiv {
     private undoRedoManager;
     private modifierKeyTracker;
     private focusManager;
+    private selectionManager;
     private cellEditor;
     private keyboardHandlerModule;
     private columnResizer;
@@ -120,6 +121,26 @@ export declare class VirtualTableDiv {
      * 셀에 포커스 설정
      */
     private focusCell;
+    /**
+     * 셀 클릭 처리 (다중 선택 지원)
+     */
+    private handleCellClick;
+    /**
+     * 선택 스타일 업데이트
+     */
+    private updateSelectionStyles;
+    /**
+     * 선택된 셀의 값 가져오기
+     */
+    getSelectedValues(): {
+        rowIndex: number;
+        columnId: string;
+        value: string;
+    }[];
+    /**
+     * 선택된 셀 수 가져오기
+     */
+    getSelectionCount(): number;
     /**
      * Undo 처리
      */

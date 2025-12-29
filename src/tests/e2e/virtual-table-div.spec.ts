@@ -1,6 +1,6 @@
 /**
  * VirtualTableDiv E2E 테스트
- * 
+ *
  * 주요 기능에 대한 End-to-End 테스트
  */
 
@@ -23,10 +23,18 @@ test.describe("VirtualTableDiv - 기본 렌더링", () => {
     await expect(header).toBeVisible();
 
     // Key, Context, 언어 컬럼 헤더 확인 (헤더 셀만 선택)
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="key"]')).toBeVisible();
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="context"]')).toBeVisible();
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="values.en"]')).toBeVisible();
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="values.ko"]')).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="key"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="context"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="values.en"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="values.ko"]'),
+    ).toBeVisible();
   });
 
   test("데이터 행이 표시되어야 함", async ({ page }) => {
@@ -43,10 +51,10 @@ test.describe("VirtualTableDiv - 기본 렌더링", () => {
 
     // 스크롤 가능한지 확인
     const scrollHeight = await scrollContainer.evaluate(
-      (el) => el.scrollHeight
+      (el) => el.scrollHeight,
     );
     const clientHeight = await scrollContainer.evaluate(
-      (el) => el.clientHeight
+      (el) => el.clientHeight,
     );
     expect(scrollHeight).toBeGreaterThan(clientHeight);
   });
@@ -92,7 +100,9 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
     await expect(firstKeyCell).toContainText("New Key");
   });
 
-  test("언어 컬럼에서 Enter로 아래 행으로 이동하고 자동 편집 시작해야 함", async ({ page }) => {
+  test("언어 컬럼에서 Enter로 아래 행으로 이동하고 자동 편집 시작해야 함", async ({
+    page,
+  }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
@@ -110,12 +120,12 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
     const secondLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .nth(1);
-    
+
     // 편집 input이 나타나야 함
     const newInput = page.locator(".virtual-grid-cell-input");
     await expect(newInput).toBeVisible({ timeout: 5000 });
     await expect(newInput).toBeFocused();
-    
+
     // 첫 번째 셀의 값이 저장되었는지 확인
     await expect(firstLangCell).toContainText("New Value");
   });
@@ -141,7 +151,9 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
   });
 
   test("Key 컬럼 편집이 가능해야 함", async ({ page }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
 
     await firstKeyCell.dblclick();
     await page.waitForTimeout(100);
@@ -151,7 +163,9 @@ test.describe("VirtualTableDiv - 셀 편집", () => {
   });
 
   test("Context 컬럼 편집이 가능해야 함", async ({ page }) => {
-    const firstContextCell = page.locator('.virtual-grid-cell[data-column-id="context"]').first();
+    const firstContextCell = page
+      .locator('.virtual-grid-cell[data-column-id="context"]')
+      .first();
 
     await firstContextCell.dblclick();
     await page.waitForTimeout(100);
@@ -167,7 +181,9 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
   });
 
   test("Tab 키로 다음 셀로 이동해야 함", async ({ page }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await firstKeyCell.focus();
     await page.waitForTimeout(50);
 
@@ -175,7 +191,9 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await page.waitForTimeout(50);
 
     // Context 셀로 이동
-    const contextCell = page.locator('.virtual-grid-cell[data-column-id="context"]').first();
+    const contextCell = page
+      .locator('.virtual-grid-cell[data-column-id="context"]')
+      .first();
     await expect(contextCell).toBeFocused();
   });
 
@@ -190,19 +208,25 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await page.waitForTimeout(50);
 
     // Key 셀로 이동
-    const keyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const keyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await expect(keyCell).toBeFocused();
   });
 
   test("Arrow 키로 네비게이션이 작동해야 함", async ({ page }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await firstKeyCell.focus();
     await page.waitForTimeout(50);
 
     // 오른쪽 화살표
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(50);
-    const contextCell = page.locator('.virtual-grid-cell[data-column-id="context"]').first();
+    const contextCell = page
+      .locator('.virtual-grid-cell[data-column-id="context"]')
+      .first();
     await expect(contextCell).toBeFocused();
 
     // 아래 화살표
@@ -231,7 +255,9 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await expect(secondLangCell).toBeFocused();
   });
 
-  test("Shift+Enter 키로 위 행으로 이동해야 함 (언어 컬럼)", async ({ page }) => {
+  test("Shift+Enter 키로 위 행으로 이동해야 함 (언어 컬럼)", async ({
+    page,
+  }) => {
     // 두 번째 행의 언어 셀에 포커스
     const secondLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
@@ -249,7 +275,9 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await expect(firstLangCell).toBeFocused();
   });
 
-  test("첫 번째 행에서 Shift+Enter를 누르면 이동하지 않아야 함", async ({ page }) => {
+  test("첫 번째 행에서 Shift+Enter를 누르면 이동하지 않아야 함", async ({
+    page,
+  }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
@@ -263,8 +291,12 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await expect(firstLangCell).toBeFocused();
   });
 
-  test("언어 컬럼이 아닌 컬럼에서 Shift+Enter는 동작하지 않아야 함", async ({ page }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+  test("언어 컬럼이 아닌 컬럼에서 Shift+Enter는 동작하지 않아야 함", async ({
+    page,
+  }) => {
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await firstKeyCell.focus();
     await page.waitForTimeout(50);
 
@@ -275,19 +307,21 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     await expect(firstKeyCell).toBeFocused();
   });
 
-  test("편집 모드에서 Enter로 아래 행으로 이동하고 자동으로 편집 시작해야 함", async ({ page }) => {
+  test("편집 모드에서 Enter로 아래 행으로 이동하고 자동으로 편집 시작해야 함", async ({
+    page,
+  }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
+
     // 편집 시작
     await firstLangCell.dblclick();
     await page.waitForTimeout(100);
-    
+
     const input = page.locator(".virtual-grid-cell-input");
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill("Test Value");
-    
+
     // Enter로 편집 완료 및 아래 행으로 이동
     await input.press("Enter");
     await page.waitForTimeout(200);
@@ -296,26 +330,28 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     const secondLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .nth(1);
-    
+
     // 편집 input이 나타나야 함
     const newInput = page.locator(".virtual-grid-cell-input");
     await expect(newInput).toBeVisible({ timeout: 5000 });
     await expect(newInput).toBeFocused();
   });
 
-  test("편집 모드에서 Shift+Enter로 위 행으로 이동하고 자동으로 편집 시작해야 함", async ({ page }) => {
+  test("편집 모드에서 Shift+Enter로 위 행으로 이동하고 자동으로 편집 시작해야 함", async ({
+    page,
+  }) => {
     // 두 번째 행의 언어 셀 편집 시작
     const secondLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .nth(1);
-    
+
     await secondLangCell.dblclick();
     await page.waitForTimeout(100);
-    
+
     const input = page.locator(".virtual-grid-cell-input");
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill("Test Value");
-    
+
     // Shift+Enter로 편집 완료 및 위 행으로 이동
     await input.press("Shift+Enter");
     await page.waitForTimeout(200);
@@ -324,26 +360,28 @@ test.describe("VirtualTableDiv - 키보드 네비게이션", () => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
+
     // 편집 input이 나타나야 함
     const newInput = page.locator(".virtual-grid-cell-input");
     await expect(newInput).toBeVisible({ timeout: 5000 });
     await expect(newInput).toBeFocused();
   });
 
-  test("편집 모드에서 첫 번째 행에서 Shift+Enter를 누르면 편집만 종료되어야 함", async ({ page }) => {
+  test("편집 모드에서 첫 번째 행에서 Shift+Enter를 누르면 편집만 종료되어야 함", async ({
+    page,
+  }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
+
     // 편집 시작
     await firstLangCell.dblclick();
     await page.waitForTimeout(100);
-    
+
     const input = page.locator(".virtual-grid-cell-input");
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill("Test Value");
-    
+
     // Shift+Enter로 편집 완료 (위로 이동할 수 없으므로 편집만 종료)
     await input.press("Shift+Enter");
     await page.waitForTimeout(200);
@@ -367,8 +405,12 @@ test.describe("VirtualTableDiv - 컬럼 리사이즈", () => {
   });
 
   test("컬럼 리사이즈가 작동해야 함", async ({ page }) => {
-    const keyHeader = page.locator('.virtual-grid-header-cell[data-column-id="key"]').first();
-    const initialWidth = await keyHeader.evaluate((el) => (el as HTMLElement).offsetWidth);
+    const keyHeader = page
+      .locator('.virtual-grid-header-cell[data-column-id="key"]')
+      .first();
+    const initialWidth = await keyHeader.evaluate(
+      (el) => (el as HTMLElement).offsetWidth,
+    );
 
     const resizeHandle = page
       .locator('.virtual-grid-header-cell[data-column-id="key"]')
@@ -384,7 +426,9 @@ test.describe("VirtualTableDiv - 컬럼 리사이즈", () => {
       await page.waitForTimeout(100);
 
       // 너비가 변경되었는지 확인
-      const newWidth = await keyHeader.evaluate((el) => (el as HTMLElement).offsetWidth);
+      const newWidth = await keyHeader.evaluate(
+        (el) => (el as HTMLElement).offsetWidth,
+      );
       expect(newWidth).not.toBe(initialWidth);
     }
   });
@@ -415,7 +459,9 @@ test.describe("VirtualTableDiv - 변경사항 추적", () => {
 
   test("빈 셀은 cell-empty 클래스를 가져야 함", async ({ page }) => {
     // 빈 값이 있는 셀 찾기 (실제 데이터에 따라 다를 수 있음)
-    const langCells = page.locator('.virtual-grid-cell[data-column-id="values.en"]');
+    const langCells = page.locator(
+      '.virtual-grid-cell[data-column-id="values.en"]',
+    );
     const count = await langCells.count();
 
     // 빈 셀이 있는지 확인 (실제 데이터에 따라)
@@ -496,22 +542,27 @@ test.describe("VirtualTableDiv - Undo/Redo", () => {
   test("Cmd+Z (Mac) 또는 Ctrl+Z (Windows)로 Undo가 작동해야 함", async ({
     page,
   }) => {
-    const firstLangCell = page
-      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+    // Key 컬럼에서 테스트 (언어 컬럼은 Enter 후 자동으로 다음 행 편집 시작)
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
       .first();
-    const originalValue = await firstLangCell.textContent();
+    const originalValue = await firstKeyCell.textContent();
 
     // 셀 편집
-    await firstLangCell.dblclick();
+    await firstKeyCell.dblclick();
     await page.waitForTimeout(100);
     const input = page.locator(".virtual-grid-cell-input");
     await expect(input).toBeVisible({ timeout: 5000 });
-    await input.fill("New Value");
+    await input.fill("New Key Value");
     await input.press("Enter");
     await page.waitForTimeout(100);
 
+    // 편집 모드가 종료되었는지 확인
+    await expect(input).not.toBeVisible();
+
     // Undo 실행
-    const isMac = (await page.evaluate(() => navigator.platform)) === "MacIntel";
+    const isMac =
+      (await page.evaluate(() => navigator.platform)) === "MacIntel";
     if (isMac) {
       await page.keyboard.press("Meta+Z");
     } else {
@@ -520,7 +571,7 @@ test.describe("VirtualTableDiv - Undo/Redo", () => {
     await page.waitForTimeout(100);
 
     // 원래 값으로 복원되어야 함
-    await expect(firstLangCell).toContainText(originalValue || "");
+    await expect(firstKeyCell).toContainText(originalValue || "");
   });
 
   test("Cmd+Y 또는 Ctrl+Y로 Redo가 작동해야 함", async ({ page }) => {
@@ -538,7 +589,8 @@ test.describe("VirtualTableDiv - Undo/Redo", () => {
     await page.waitForTimeout(100);
 
     // Undo
-    const isMac = (await page.evaluate(() => navigator.platform)) === "MacIntel";
+    const isMac =
+      (await page.evaluate(() => navigator.platform)) === "MacIntel";
     if (isMac) {
       await page.keyboard.press("Meta+Z");
     } else {
@@ -566,8 +618,12 @@ test.describe("VirtualTableDiv - Key 중복 검증", () => {
 
   test("중복된 Key를 입력하면 시각적 표시가 나타나야 함", async ({ page }) => {
     // 첫 번째 Key 셀 편집
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
-    const secondKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').nth(1);
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
+    const secondKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .nth(1);
 
     // 두 번째 행의 Key 값 확인
     const duplicateKey = await secondKeyCell.textContent();
@@ -668,10 +724,10 @@ test.describe("VirtualTableDiv - 대량 데이터 처리", () => {
     const langCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
+
     // 셀이 실제로 보이는지 확인
     await expect(langCell).toBeVisible({ timeout: 5000 });
-    
+
     // 더블클릭 시도 (force 옵션 사용)
     await langCell.dblclick({ force: true });
     await page.waitForTimeout(200);
@@ -687,8 +743,10 @@ test.describe("VirtualTableDiv - 포커스 관리", () => {
   });
 
   test("셀에 포커스가 설정되어야 함", async ({ page, browserName }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
-    
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
+
     // WebKit에서는 포커스가 다르게 작동할 수 있음
     if (browserName === "webkit") {
       // WebKit에서는 클릭으로 포커스 설정
@@ -702,7 +760,9 @@ test.describe("VirtualTableDiv - 포커스 관리", () => {
     // 포커스 클래스가 추가되어야 함 (WebKit에서는 다를 수 있으므로 조건부)
     if (browserName === "webkit") {
       // WebKit에서는 포커스 상태 확인이 다를 수 있음
-      const isFocused = await firstKeyCell.evaluate((el) => document.activeElement === el);
+      const isFocused = await firstKeyCell.evaluate(
+        (el) => document.activeElement === el,
+      );
       const focusCount = await firstKeyCell.locator(":focus").count();
       expect(isFocused || focusCount > 0).toBeTruthy();
     } else {
@@ -711,14 +771,18 @@ test.describe("VirtualTableDiv - 포커스 관리", () => {
   });
 
   test("Tab으로 이동 시 포커스가 전달되어야 함", async ({ page }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await firstKeyCell.focus();
     await page.waitForTimeout(50);
 
     await page.keyboard.press("Tab");
     await page.waitForTimeout(50);
 
-    const contextCell = page.locator('.virtual-grid-cell[data-column-id="context"]').first();
+    const contextCell = page
+      .locator('.virtual-grid-cell[data-column-id="context"]')
+      .first();
     // WebKit에서는 focused 클래스가 제대로 적용되지 않을 수 있으므로 실제 포커스도 확인
     const isFocused = await contextCell.evaluate((el) => {
       return document.activeElement === el || el.classList.contains("focused");
@@ -733,13 +797,21 @@ test.describe("VirtualTableDiv - 여러 언어 컬럼", () => {
   });
 
   test("모든 언어 컬럼이 표시되어야 함", async ({ page }) => {
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="values.en"]')).toBeVisible();
-    await expect(page.locator('.virtual-grid-header-cell[data-column-id="values.ko"]')).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="values.en"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('.virtual-grid-header-cell[data-column-id="values.ko"]'),
+    ).toBeVisible();
   });
 
   test("각 언어 컬럼을 독립적으로 편집할 수 있어야 함", async ({ page }) => {
-    const enCell = page.locator('.virtual-grid-cell[data-column-id="values.en"]').first();
-    const koCell = page.locator('.virtual-grid-cell[data-column-id="values.ko"]').first();
+    const enCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .first();
+    const koCell = page
+      .locator('.virtual-grid-cell[data-column-id="values.ko"]')
+      .first();
 
     // EN 셀 편집
     await enCell.dblclick();
@@ -818,37 +890,51 @@ test.describe("VirtualTableDiv - 접근성 (Accessibility)", () => {
     await expect(grid).toHaveAttribute("role", "grid");
   });
 
-  test("키보드만으로 모든 셀에 접근 가능해야 함", async ({ page, browserName }) => {
+  test("키보드만으로 모든 셀에 접근 가능해야 함", async ({
+    page,
+    browserName,
+  }) => {
     // WebKit에서는 키보드 접근이 다르게 작동할 수 있음
     if (browserName === "webkit") {
       test.skip();
       return;
     }
 
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
     await firstKeyCell.focus();
     await page.waitForTimeout(100);
 
     // Tab으로 모든 컬럼을 순회
     const columns = ["key", "context", "values.en", "values.ko"];
     for (const columnId of columns) {
-      const cell = page.locator(`.virtual-grid-cell[data-column-id="${columnId}"]`).first();
+      const cell = page
+        .locator(`.virtual-grid-cell[data-column-id="${columnId}"]`)
+        .first();
       await expect(cell).toBeFocused({ timeout: 2000 });
       await page.keyboard.press("Tab");
       await page.waitForTimeout(100);
     }
   });
 
-  test("포커스된 셀은 시각적으로 표시되어야 함", async ({ page, browserName }) => {
-    const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
-    
+  test("포커스된 셀은 시각적으로 표시되어야 함", async ({
+    page,
+    browserName,
+  }) => {
+    const firstKeyCell = page
+      .locator('.virtual-grid-cell[data-column-id="key"]')
+      .first();
+
     // WebKit에서는 포커스가 다르게 작동할 수 있음
     if (browserName === "webkit") {
       await firstKeyCell.click();
       await page.waitForTimeout(100);
       // WebKit에서는 포커스 상태 확인이 다를 수 있음
       const hasFocus = await firstKeyCell.evaluate((el) => {
-        return document.activeElement === el || el.classList.contains("focused");
+        return (
+          document.activeElement === el || el.classList.contains("focused")
+        );
       });
       expect(hasFocus).toBeTruthy();
     } else {
@@ -950,7 +1036,6 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
     await page.goto("/");
   });
 
-
   test("초기 렌더링이 1초 이내에 완료되어야 함", async ({ page }) => {
     const startTime = Date.now();
 
@@ -973,7 +1058,7 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
     await page.evaluate(() => {
       return new Promise<void>((resolve) => {
         const container = document.querySelector(
-          ".virtual-grid-scroll-container"
+          ".virtual-grid-scroll-container",
         ) as HTMLElement;
         if (!container) {
           resolve();
@@ -1006,9 +1091,7 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
     });
 
     // 스크롤이 부드럽게 작동하는지 확인
-    const finalScrollTop = await scrollContainer.evaluate(
-      (el) => el.scrollTop
-    );
+    const finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
     expect(finalScrollTop).toBeGreaterThan(0);
   });
 
@@ -1019,7 +1102,7 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
 
     // 스크롤 높이 확인
     const scrollHeight = await scrollContainer.evaluate(
-      (el) => el.scrollHeight
+      (el) => el.scrollHeight,
     );
 
     if (scrollHeight > 1000) {
@@ -1049,7 +1132,7 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
     // 여러 번 스크롤 반복
     for (let i = 0; i < 10; i++) {
       await scrollContainer.evaluate((el, index) => {
-        el.scrollTop = (index % 2 === 0) ? el.scrollHeight / 2 : 0;
+        el.scrollTop = index % 2 === 0 ? el.scrollHeight / 2 : 0;
       }, i);
       await page.waitForTimeout(50);
     }
@@ -1068,19 +1151,17 @@ test.describe("VirtualTableDiv - 성능 테스트", () => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
-    
+
     // 셀이 실제로 보이는지 확인
     await expect(firstLangCell).toBeVisible({ timeout: 5000 });
-    
+
     await firstLangCell.dblclick();
     await page.waitForTimeout(200);
     const input = page.locator(".virtual-grid-cell-input");
     await expect(input).toBeVisible({ timeout: 5000 });
   });
 
-  test("편집 중 빠른 연속 입력이 부드럽게 처리되어야 함", async ({
-    page,
-  }) => {
+  test("편집 중 빠른 연속 입력이 부드럽게 처리되어야 함", async ({ page }) => {
     const firstLangCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
       .first();
@@ -1127,12 +1208,16 @@ test.describe("VirtualTableDiv - 브라우저 호환성", () => {
       await expect(grid).toBeVisible();
 
       // 키보드 네비게이션 테스트
-      const firstKeyCell = page.locator('.virtual-grid-cell[data-column-id="key"]').first();
+      const firstKeyCell = page
+        .locator('.virtual-grid-cell[data-column-id="key"]')
+        .first();
       await firstKeyCell.focus();
       await page.waitForTimeout(50);
       await page.keyboard.press("Tab");
       await page.waitForTimeout(50);
-      const contextCell = page.locator('.virtual-grid-cell[data-column-id="context"]').first();
+      const contextCell = page
+        .locator('.virtual-grid-cell[data-column-id="context"]')
+        .first();
       await expect(contextCell).toBeFocused();
     }
   });
@@ -1154,4 +1239,3 @@ test.describe("VirtualTableDiv - 브라우저 호환성", () => {
     }
   });
 });
-

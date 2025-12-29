@@ -30,13 +30,13 @@ export interface CellEditorCallbacks {
     cell: HTMLElement,
     rowId: string,
     columnId: string,
-    value: string
+    value: string,
   ) => void;
   onEditStateChange?: (isEditing: boolean) => void;
   onEditFinished?: (
     rowIndex: number,
     columnId: string,
-    direction: "down" | "up"
+    direction: "down" | "up",
   ) => void;
 }
 
@@ -53,7 +53,7 @@ export class CellEditor {
     translations: readonly Translation[],
     changeTracker: ChangeTracker,
     undoRedoManager: UndoRedoManager,
-    callbacks: CellEditorCallbacks = {}
+    callbacks: CellEditorCallbacks = {},
   ) {
     this.translations = translations;
     this.changeTracker = changeTracker;
@@ -85,7 +85,7 @@ export class CellEditor {
     rowIndex: number,
     columnId: string,
     rowId: string,
-    cell: HTMLElement
+    cell: HTMLElement,
   ): Effect.Effect<void, CellEditorError> {
     // 이미 편집 중이면 종료
     if (this.editingCell) {
@@ -99,7 +99,7 @@ export class CellEditor {
         new CellEditorError({
           message: "Cell content not found",
           code: "TRANSLATION_NOT_FOUND",
-        })
+        }),
       );
     }
 
@@ -143,12 +143,13 @@ export class CellEditor {
     }
 
     // 편집 완료/취소 이벤트
+    let editFinished = false;
     const finishEdit = (save: boolean) => {
-      if (this.isFinishingEdit) {
+      if (editFinished) {
         return;
       }
 
-      this.isFinishingEdit = true;
+      editFinished = true;
 
       if (save && columnId === "key" && isDuplicateKey) {
         save = false;
@@ -158,7 +159,7 @@ export class CellEditor {
         this.applyCellChange(rowId, columnId, currentValue, input.value).catch(
           (error) => {
             logger.error("Failed to apply cell change:", error);
-          }
+          },
         );
       }
 
@@ -169,7 +170,6 @@ export class CellEditor {
       }
 
       this.editingCell = null;
-      this.isFinishingEdit = false;
       if (this.callbacks.onEditStateChange) {
         this.callbacks.onEditStateChange(false);
       }
@@ -183,7 +183,7 @@ export class CellEditor {
       rowIndex,
       columnId,
       currentValue,
-      rowId
+      rowId,
     );
 
     return Effect.void;
@@ -196,7 +196,7 @@ export class CellEditor {
     rowIndex: number,
     columnId: string,
     rowId: string,
-    cell: HTMLElement
+    cell: HTMLElement,
   ): void {
     // 이미 편집 중이면 종료
     if (this.editingCell) {
@@ -246,12 +246,13 @@ export class CellEditor {
     }
 
     // 편집 완료/취소 이벤트
+    let editFinished = false;
     const finishEdit = (save: boolean) => {
-      if (this.isFinishingEdit) {
+      if (editFinished) {
         return;
       }
 
-      this.isFinishingEdit = true;
+      editFinished = true;
 
       if (save && columnId === "key" && isDuplicateKey) {
         save = false;
@@ -261,7 +262,7 @@ export class CellEditor {
         this.applyCellChange(rowId, columnId, currentValue, input.value).catch(
           (error) => {
             logger.error("Failed to apply cell change:", error);
-          }
+          },
         );
       }
 
@@ -272,7 +273,6 @@ export class CellEditor {
       }
 
       this.editingCell = null;
-      this.isFinishingEdit = false;
       if (this.callbacks.onEditStateChange) {
         this.callbacks.onEditStateChange(false);
       }
@@ -286,7 +286,7 @@ export class CellEditor {
       rowIndex,
       columnId,
       currentValue,
-      rowId
+      rowId,
     );
   }
 
@@ -300,10 +300,11 @@ export class CellEditor {
     rowIndex: number,
     columnId: string,
     _currentValue: string,
-    _rowId: string
+    _rowId: string,
   ): void {
     input.addEventListener("blur", () => {
-      if (this.isFinishingEdit) {
+      // input이 DOM에서 제거되었거나 이미 처리 중이면 무시
+      if (!input.isConnected) {
         return;
       }
 
@@ -334,8 +335,7 @@ export class CellEditor {
         e.stopPropagation();
         const direction = e.shiftKey ? "up" : "down";
         finishEdit(true);
-        input.blur();
-        
+
         // 편집 완료 후 네비게이션 및 편집 시작 (언어 컬럼인 경우만)
         if (columnId.startsWith("values.") && this.callbacks.onEditFinished) {
           // 편집 상태가 변경된 후 콜백 호출을 위해 약간의 지연
@@ -354,7 +354,6 @@ export class CellEditor {
         e.preventDefault();
         e.stopPropagation();
         finishEdit(true);
-        input.blur();
       }
     });
   }
@@ -366,7 +365,7 @@ export class CellEditor {
     rowId: string,
     columnId: string,
     oldValue: string,
-    newValue: string
+    newValue: string,
   ): Effect.Effect<void, CellEditorError> {
     // Translation 찾기
     const translation = this.translations.find((t) => t.id === rowId);
@@ -375,7 +374,7 @@ export class CellEditor {
         new CellEditorError({
           message: `Translation not found: ${rowId}`,
           code: "TRANSLATION_NOT_FOUND",
-        })
+        }),
       );
     }
 
@@ -393,7 +392,7 @@ export class CellEditor {
         new CellEditorError({
           message: `Invalid column ID: ${columnId}`,
           code: "INVALID_COLUMN_ID",
-        })
+        }),
       );
     }
 
@@ -418,7 +417,7 @@ export class CellEditor {
       this.translations,
       rowId,
       columnId,
-      newValue
+      newValue,
     );
 
     this.changeTracker.trackChange(
@@ -432,7 +431,7 @@ export class CellEditor {
         if (this.callbacks.updateCellStyle) {
           this.callbacks.updateCellStyle(rowId, columnId);
         }
-      }
+      },
     );
 
     // onCellChange 콜백 호출
@@ -451,13 +450,13 @@ export class CellEditor {
     rowId: string,
     columnId: string,
     oldValue: string,
-    newValue: string
+    newValue: string,
   ): Promise<void> {
     const effect = this.applyCellChangeEffect(
       rowId,
       columnId,
       oldValue,
-      newValue
+      newValue,
     );
     return Effect.runPromise(effect);
   }
@@ -466,7 +465,7 @@ export class CellEditor {
    * 편집 중지 (Effect 기반)
    */
   stopEditingEffect(
-    bodyElement?: HTMLElement
+    bodyElement?: HTMLElement,
   ): Effect.Effect<void, CellEditorError> {
     if (!this.editingCell) {
       return Effect.void;
@@ -486,11 +485,11 @@ export class CellEditor {
     }
 
     const editingRow = bodyElement.querySelector(
-      `[data-row-index="${this.editingCell.rowIndex}"]`
+      `[data-row-index="${this.editingCell.rowIndex}"]`,
     );
     if (editingRow) {
       const editingCellElement = editingRow.querySelector(
-        `[data-column-id="${this.editingCell.columnId}"]`
+        `[data-column-id="${this.editingCell.columnId}"]`,
       );
       if (editingCellElement) {
         const input = editingCellElement.querySelector("input");
@@ -506,7 +505,7 @@ export class CellEditor {
               editingCellElement as HTMLElement,
               rowId,
               columnId,
-              currentValue
+              currentValue,
             );
           }
 

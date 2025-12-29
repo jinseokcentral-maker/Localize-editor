@@ -12,7 +12,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("상태바가 화면 하단에 표시되어야 함", async ({ page }) => {
-
     // 상태바 확인
     const statusBar = page.locator(".status-bar");
     await expect(statusBar).toBeVisible();
@@ -23,7 +22,7 @@ test.describe("상태바 (Status Bar)", () => {
     if (statusBarBox && viewportSize) {
       expect(statusBarBox.y + statusBarBox.height).toBeCloseTo(
         viewportSize.height,
-        5
+        5,
       );
     }
   });
@@ -39,7 +38,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("셀 포커스 시 행/컬럼 정보가 업데이트되어야 함", async ({ page }) => {
-
     // 첫 번째 셀 클릭
     const firstCell = page.locator(".virtual-grid-cell").first();
     await firstCell.click();
@@ -50,10 +48,7 @@ test.describe("상태바 (Status Bar)", () => {
     expect(text).toMatch(/Row \d+\/\d+/);
   });
 
-  test("편집 모드일 때 상태바에 Editing이 표시되어야 함", async ({
-    page,
-  }) => {
-
+  test("편집 모드일 때 상태바에 Editing이 표시되어야 함", async ({ page }) => {
     // 편집 가능한 셀 더블클릭
     const editableCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
@@ -74,7 +69,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("셀 변경 시 변경사항 수가 업데이트되어야 함", async ({ page }) => {
-
     // 편집 가능한 셀 더블클릭
     const editableCell = page
       .locator('.virtual-grid-cell[data-column-id="values.en"]')
@@ -93,7 +87,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("빈 번역 수가 표시되어야 함", async ({ page }) => {
-
     const statusBar = page.locator(".status-bar");
     await page.waitForTimeout(500); // 상태바 업데이트 대기
 
@@ -105,7 +98,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("중복 Key 수가 표시되어야 함", async ({ page }) => {
-
     const statusBar = page.locator(".status-bar");
     await page.waitForTimeout(500); // 상태바 업데이트 대기
 
@@ -117,7 +109,6 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("필터 변경 시 행 수가 업데이트되어야 함", async ({ page }) => {
-
     // Command Palette 열기
     await page.keyboard.press("Meta+k");
     await page.waitForTimeout(200);
@@ -137,26 +128,35 @@ test.describe("상태바 (Status Bar)", () => {
   });
 
   test("Undo/Redo 시 변경사항 수가 업데이트되어야 함", async ({ page }) => {
-
-    // 편집 가능한 셀 더블클릭
+    // Key 컬럼에서 테스트 (언어 컬럼은 Enter 후 자동으로 다음 행 편집 시작)
     const editableCell = page
-      .locator('.virtual-grid-cell[data-column-id="values.en"]')
+      .locator('.virtual-grid-cell[data-column-id="key"]')
       .first();
     await editableCell.dblclick();
     await page.waitForTimeout(100);
 
     // 값 변경
-    await page.keyboard.type("New Value");
+    await page.keyboard.type("New Key");
     await page.keyboard.press("Enter");
     await page.waitForTimeout(300);
+
+    // 편집 모드가 종료되었는지 확인
+    const input = page.locator(".virtual-grid-cell-input");
+    await expect(input).not.toBeVisible();
 
     // 변경사항 확인
     let statusBar = page.locator(".status-bar");
     let text = await statusBar.textContent();
     expect(text).toContain("1 change");
 
-    // Undo (Cmd+Z)
-    await page.keyboard.press("Meta+z");
+    // Undo (Cmd+Z 또는 Ctrl+Z)
+    const isMac =
+      (await page.evaluate(() => navigator.platform)) === "MacIntel";
+    if (isMac) {
+      await page.keyboard.press("Meta+z");
+    } else {
+      await page.keyboard.press("Control+z");
+    }
     await page.waitForTimeout(300);
 
     // 변경사항 수가 0이 되어야 함
@@ -167,7 +167,6 @@ test.describe("상태바 (Status Bar)", () => {
   test("키보드 네비게이션 시 행/컬럼 정보가 업데이트되어야 함", async ({
     page,
   }) => {
-
     // 그리드에 포커스
     const grid = page.locator(".virtual-grid");
     await grid.click();
@@ -181,5 +180,3 @@ test.describe("상태바 (Status Bar)", () => {
     expect(text).toMatch(/Row \d+\/\d+/);
   });
 });
-
-

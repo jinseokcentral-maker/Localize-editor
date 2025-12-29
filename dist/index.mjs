@@ -826,13 +826,14 @@ var CellEditor = class {
 			};
 			G.addEventListener("input", u), u();
 		}
+		let q = !1;
 		return this.attachInputListeners(G, H, (u) => {
-			if (this.isFinishingEdit) return;
-			this.isFinishingEdit = !0, u && B === "key" && K && (u = !1), u && G.value !== W && this.applyCellChange(V, B, W, G.value).catch((u) => {
+			if (q) return;
+			q = !0, u && B === "key" && K && (u = !1), u && G.value !== W && this.applyCellChange(V, B, W, G.value).catch((u) => {
 				logger.error("Failed to apply cell change:", u);
 			});
 			let R = u ? G.value : W;
-			this.callbacks.updateCellContent && this.callbacks.updateCellContent(H, V, B, R), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
+			this.callbacks.updateCellContent && this.callbacks.updateCellContent(H, V, B, R), this.editingCell = null, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
 		}, u, B, W, V), Effect.void;
 	}
 	startEditing(u, R, B, V) {
@@ -855,28 +856,29 @@ var CellEditor = class {
 			};
 			W.addEventListener("input", u), u();
 		}
+		let K = !1;
 		this.attachInputListeners(W, V, (u) => {
-			if (this.isFinishingEdit) return;
-			this.isFinishingEdit = !0, u && R === "key" && G && (u = !1), u && W.value !== U && this.applyCellChange(B, R, U, W.value).catch((u) => {
+			if (K) return;
+			K = !0, u && R === "key" && G && (u = !1), u && W.value !== U && this.applyCellChange(B, R, U, W.value).catch((u) => {
 				logger.error("Failed to apply cell change:", u);
 			});
 			let H = u ? W.value : U;
-			this.callbacks.updateCellContent && this.callbacks.updateCellContent(V, B, R, H), this.editingCell = null, this.isFinishingEdit = !1, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
+			this.callbacks.updateCellContent && this.callbacks.updateCellContent(V, B, R, H), this.editingCell = null, this.callbacks.onEditStateChange && this.callbacks.onEditStateChange(!1);
 		}, u, R, U, B);
 	}
 	attachInputListeners(u, R, B, V, H, U, W) {
 		u.addEventListener("blur", () => {
-			this.isFinishingEdit || (this.isEscapeKeyPressed ? (B(!1), this.isEscapeKeyPressed = !1) : B(!0));
+			u.isConnected && (this.isEscapeKeyPressed ? (B(!1), this.isEscapeKeyPressed = !1) : B(!0));
 		}), u.addEventListener("beforeinput", (u) => {
 			(u.inputType === "historyUndo" || u.inputType === "historyRedo") && (u.preventDefault(), B(!0));
 		}), u.addEventListener("keydown", (R) => {
 			if (R.key === "Enter") {
 				R.preventDefault(), R.stopPropagation();
-				let U = R.shiftKey ? "up" : "down";
-				B(!0), u.blur(), H.startsWith("values.") && this.callbacks.onEditFinished && requestAnimationFrame(() => {
-					this.callbacks.onEditFinished && this.callbacks.onEditFinished(V, H, U);
+				let u = R.shiftKey ? "up" : "down";
+				B(!0), H.startsWith("values.") && this.callbacks.onEditFinished && requestAnimationFrame(() => {
+					this.callbacks.onEditFinished && this.callbacks.onEditFinished(V, H, u);
 				});
-			} else R.key === "Escape" ? (R.preventDefault(), R.stopPropagation(), this.isEscapeKeyPressed = !0, u.blur()) : R.key === "Tab" && (R.preventDefault(), R.stopPropagation(), B(!0), u.blur());
+			} else R.key === "Escape" ? (R.preventDefault(), R.stopPropagation(), this.isEscapeKeyPressed = !0, u.blur()) : R.key === "Tab" && (R.preventDefault(), R.stopPropagation(), B(!0));
 		});
 	}
 	applyCellChangeEffect(u, B, V, H) {
@@ -1029,7 +1031,7 @@ var CellEditor = class {
 		else return;
 		u.key.startsWith("Arrow") && (u.preventDefault(), u.stopPropagation(), u.key === "ArrowRight" && W < H.length - 1 ? K = W + 1 : u.key === "ArrowLeft" && W > 0 ? K = W - 1 : u.key === "ArrowDown" && B < U ? G = B + 1 : u.key === "ArrowUp" && B > 0 && (G = B - 1));
 		let q = H[K];
-		q && (this.focusManager.focusCell(G, q), this.callbacks.focusCell(G, q), this.callbacks.onNavigate && this.callbacks.onNavigate(G, q));
+		q && (u.shiftKey && u.key.startsWith("Arrow") && this.callbacks.onExtendSelection && this.callbacks.onExtendSelection(G, q), this.focusManager.focusCell(G, q), this.callbacks.focusCell(G, q), this.callbacks.onNavigate && this.callbacks.onNavigate(G, q));
 	}
 	updateCallbacks(u) {
 		this.callbacks = {
@@ -1146,7 +1148,9 @@ var CellEditor = class {
 		let K = document.createElement("div");
 		K.className = "virtual-grid-cell", K.setAttribute("role", "gridcell"), K.setAttribute("data-row-id", u), K.setAttribute("data-column-id", R), K.setAttribute("data-row-index", V.toString()), K.setAttribute("tabindex", H ? "0" : "-1"), K.style.width = `${U}px`, K.style.minWidth = `${U}px`, K.style.maxWidth = `${U}px`, (W > 0 || G > 0) && (K.style.position = "sticky", K.style.left = `${W}px`, K.style.zIndex = G.toString(), K.style.backgroundColor = "#fafafa");
 		let q = document.createElement("div");
-		return q.className = "virtual-grid-cell-content", q.textContent = B, K.appendChild(q), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(u, R, K), H && !this.options.readOnly && (K.addEventListener("dblclick", (u) => {
+		return q.className = "virtual-grid-cell-content", q.textContent = B, K.appendChild(q), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(u, R, K), K.addEventListener("click", (u) => {
+			this.options.callbacks.onCellClick && this.options.callbacks.onCellClick(V, R, K, u);
+		}), H && !this.options.readOnly && (K.addEventListener("dblclick", (u) => {
 			u.preventDefault(), u.stopPropagation(), this.options.callbacks.onCellDblClick && this.options.callbacks.onCellDblClick(V, R, K);
 		}), K.addEventListener("focus", () => {
 			this.options.callbacks.onCellFocus && this.options.callbacks.onCellFocus(V, R), K.classList.add("focused");
@@ -1155,8 +1159,10 @@ var CellEditor = class {
 		})), K;
 	}
 	updateCellContent(u, R, B, V, H) {
-		let U = u.querySelector(".virtual-grid-cell-content");
-		U ? U.textContent = V : (U = document.createElement("div"), U.className = "virtual-grid-cell-content", U.textContent = V, u.appendChild(U)), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(R, B, u);
+		let U = u.querySelector(".virtual-grid-cell-input");
+		U && U.remove();
+		let W = u.querySelector(".virtual-grid-cell-content");
+		W ? W.textContent = V : (W = document.createElement("div"), W.className = "virtual-grid-cell-content", W.textContent = V, u.appendChild(W)), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(R, B, u);
 	}
 }, CommandRegistry = class {
 	commands = /* @__PURE__ */ new Map();
@@ -2387,6 +2393,166 @@ var QuickSearchUI = class {
 	destroy() {
 		this.hide();
 	}
+}, SelectionManager = class {
+	selectedCells = /* @__PURE__ */ new Map();
+	anchorCell = null;
+	focusCell = null;
+	columns;
+	onSelectionChange;
+	constructor(u) {
+		this.columns = u.columns, this.onSelectionChange = u.onSelectionChange;
+	}
+	setColumns(u) {
+		this.columns = u;
+	}
+	getCellKey(u, R) {
+		return `${u}:${R}`;
+	}
+	selectCell(u, R) {
+		this.clearSelection(), this.addCell(u, R), this.anchorCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.focusCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.notifyChange();
+	}
+	toggleCell(u, R) {
+		let B = this.getCellKey(u, R);
+		this.selectedCells.has(B) ? this.selectedCells.delete(B) : this.addCell(u, R), this.anchorCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.focusCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.notifyChange();
+	}
+	selectRange(u, R) {
+		if (!this.anchorCell) {
+			this.selectCell(u, R);
+			return;
+		}
+		this.clearSelection();
+		let B = Math.min(this.anchorCell.rowIndex, u), V = Math.max(this.anchorCell.rowIndex, u), H = this.getColumnIndex(this.anchorCell.columnId), U = this.getColumnIndex(R), W = Math.min(H, U), G = Math.max(H, U);
+		for (let u = B; u <= V; u++) for (let R = W; R <= G; R++) {
+			let B = this.columns[R];
+			B && this.addCell(u, B);
+		}
+		this.focusCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.notifyChange();
+	}
+	extendSelection(u, R) {
+		if (!this.anchorCell) {
+			this.selectCell(u, R);
+			return;
+		}
+		this.clearSelection();
+		let B = Math.min(this.anchorCell.rowIndex, u), V = Math.max(this.anchorCell.rowIndex, u), H = this.getColumnIndex(this.anchorCell.columnId), U = this.getColumnIndex(R), W = Math.min(H, U), G = Math.max(H, U);
+		for (let u = B; u <= V; u++) for (let R = W; R <= G; R++) {
+			let B = this.columns[R];
+			B && this.addCell(u, B);
+		}
+		this.focusCell = {
+			rowIndex: u,
+			columnId: R
+		}, this.notifyChange();
+	}
+	selectRow(u) {
+		this.clearSelection();
+		for (let R of this.columns) this.addCell(u, R);
+		this.anchorCell = {
+			rowIndex: u,
+			columnId: this.columns[0] || ""
+		}, this.focusCell = {
+			rowIndex: u,
+			columnId: this.columns[this.columns.length - 1] || ""
+		}, this.notifyChange();
+	}
+	selectRowRange(u, R) {
+		this.clearSelection();
+		let B = Math.min(u, R), V = Math.max(u, R);
+		for (let u = B; u <= V; u++) for (let R of this.columns) this.addCell(u, R);
+		this.anchorCell = {
+			rowIndex: u,
+			columnId: this.columns[0] || ""
+		}, this.focusCell = {
+			rowIndex: R,
+			columnId: this.columns[this.columns.length - 1] || ""
+		}, this.notifyChange();
+	}
+	selectColumn(u, R) {
+		this.clearSelection();
+		for (let B = 0; B <= R; B++) this.addCell(B, u);
+		this.anchorCell = {
+			rowIndex: 0,
+			columnId: u
+		}, this.focusCell = {
+			rowIndex: R,
+			columnId: u
+		}, this.notifyChange();
+	}
+	clearSelection() {
+		this.selectedCells.clear();
+	}
+	resetSelection() {
+		this.clearSelection(), this.anchorCell = null, this.focusCell = null, this.notifyChange();
+	}
+	addCell(u, R) {
+		let B = this.getCellKey(u, R);
+		this.selectedCells.set(B, {
+			rowIndex: u,
+			columnId: R
+		});
+	}
+	isSelected(u, R) {
+		let B = this.getCellKey(u, R);
+		return this.selectedCells.has(B);
+	}
+	getSelectedCells() {
+		return Array.from(this.selectedCells.values());
+	}
+	getSelectionCount() {
+		return this.selectedCells.size;
+	}
+	getAnchorCell() {
+		return this.anchorCell;
+	}
+	getFocusCell() {
+		return this.focusCell;
+	}
+	getSelectionRange() {
+		if (this.selectedCells.size === 0) return null;
+		let u = this.getSelectedCells(), R = u.map((u) => u.rowIndex), B = u.map((u) => this.getColumnIndex(u.columnId)), V = Math.min(...R), H = Math.max(...R), U = Math.min(...B), W = Math.max(...B);
+		return {
+			startRow: V,
+			endRow: H,
+			startColumnId: this.columns[U] || "",
+			endColumnId: this.columns[W] || ""
+		};
+	}
+	getColumnIndex(u) {
+		let R = this.columns.indexOf(u);
+		return R >= 0 ? R : 0;
+	}
+	notifyChange() {
+		this.onSelectionChange && this.onSelectionChange(this.getSelectedCells());
+	}
+	getSelectionAsText(u) {
+		let R = this.getSelectionRange();
+		if (!R) return "";
+		let B = [];
+		for (let V = R.startRow; V <= R.endRow; V++) {
+			let H = [], U = this.getColumnIndex(R.startColumnId), W = this.getColumnIndex(R.endColumnId);
+			for (let R = U; R <= W; R++) {
+				let B = this.columns[R];
+				B && this.isSelected(V, B) && H.push(u(V, B));
+			}
+			B.push(H.join("	"));
+		}
+		return B.join("\n");
+	}
 }, VirtualTableDiv = class {
 	container;
 	scrollElement = null;
@@ -2406,6 +2572,7 @@ var QuickSearchUI = class {
 	undoRedoManager = new UndoRedoManager();
 	modifierKeyTracker = new ModifierKeyTracker();
 	focusManager = new FocusManager();
+	selectionManager;
 	cellEditor;
 	keyboardHandlerModule;
 	columnResizer;
@@ -2438,6 +2605,15 @@ var QuickSearchUI = class {
 			translations: u.translations,
 			languages: u.languages,
 			changeTracker: this.changeTracker
+		}), this.selectionManager = new SelectionManager({
+			columns: [
+				"key",
+				"context",
+				...u.languages.map((u) => `values.${u}`)
+			],
+			onSelectionChange: () => {
+				this.updateSelectionStyles(), this.updateStatusBar();
+			}
 		}), this.cellEditor = new CellEditor(u.translations, this.changeTracker, this.undoRedoManager, {
 			onCellChange: (R, B, V) => {
 				let H = this.currentTranslations.findIndex((u) => u.id === R);
@@ -2565,6 +2741,9 @@ var QuickSearchUI = class {
 			},
 			onOpenReplace: () => {
 				this.openFindReplace("replace");
+			},
+			onExtendSelection: (u, R) => {
+				this.selectionManager.extendSelection(u, R);
 			}
 		}), this.columnWidthCalculator = new ColumnWidthCalculator({
 			columnWidths: this.columnWidths,
@@ -2587,6 +2766,9 @@ var QuickSearchUI = class {
 			readOnly: u.readOnly,
 			editableColumns: this.editableColumns,
 			callbacks: {
+				onCellClick: (u, R, B, V) => {
+					this.handleCellClick(u, R, V);
+				},
 				onCellDblClick: (u, R, B) => {
 					this.startEditing(u, R, B);
 				},
@@ -2864,6 +3046,41 @@ var QuickSearchUI = class {
 			};
 			V(0);
 		} else B && (B.focus(), B.dispatchEvent(new FocusEvent("focus", { bubbles: !0 })));
+	}
+	handleCellClick(u, R, B) {
+		let V = B.ctrlKey || B.metaKey;
+		B.shiftKey ? this.selectionManager.selectRange(u, R) : V ? this.selectionManager.toggleCell(u, R) : this.selectionManager.selectCell(u, R), this.focusManager.focusCell(u, R);
+	}
+	updateSelectionStyles() {
+		if (!this.bodyElement) return;
+		this.bodyElement.querySelectorAll(".virtual-grid-cell").forEach((u) => {
+			u.classList.remove("cell-selected");
+		});
+		let u = this.selectionManager.getSelectedCells();
+		for (let R of u) {
+			let u = this.bodyElement.querySelector(`[data-row-index="${R.rowIndex}"][data-column-id="${R.columnId}"]`);
+			u && u.classList.add("cell-selected");
+		}
+	}
+	getSelectedValues() {
+		return this.selectionManager.getSelectedCells().map((u) => {
+			let R = this.currentTranslations[u.rowIndex], B = "";
+			if (R) {
+				if (u.columnId === "key") B = R.key;
+				else if (u.columnId === "context") B = R.context || "";
+				else if (u.columnId.startsWith("values.")) {
+					let V = u.columnId.replace("values.", "");
+					B = R.values[V] || "";
+				}
+			}
+			return {
+				...u,
+				value: B
+			};
+		});
+	}
+	getSelectionCount() {
+		return this.selectionManager.getSelectionCount();
 	}
 	handleUndo() {
 		if (!this.undoRedoManager.canUndo()) return;
