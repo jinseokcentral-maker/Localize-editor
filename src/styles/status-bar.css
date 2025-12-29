@@ -69,6 +69,47 @@
     color: #f59e0b;
 }
 
+.status-bar-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #3b82f6;
+    color: #fff;
+    padding: 0 8px;
+    border-radius: 3px;
+    font-weight: 500;
+    margin-left: auto;
+    margin-right: 12px;
+}
+
+.status-bar-filter-label {
+    font-size: 11px;
+}
+
+.status-bar-filter-clear {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+}
+
+.status-bar-filter-clear:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
 /* 모바일 대응 */
 @media (max-width: 768px) {
     .status-bar {

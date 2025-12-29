@@ -133,15 +133,15 @@ let isEditable = true; // 기본값: 편집 가능
 let virtualTable: VirtualTableDiv | null = null;
 
 // 셀 변경 콜백
-const onCellChange = (id: string, lang: string, value: string) => {
+const onCellChange = (id: string, columnId: string, value: string) => {
   // UI에 피드백 표시
   const feedbackEl = document.getElementById("cell-change-feedback");
   if (feedbackEl) {
     if (value === "") {
-      feedbackEl.textContent = `⚠️ 경고: ${id} / ${lang}의 값이 비어있습니다!`;
+      feedbackEl.textContent = `⚠️ 경고: ${id} / ${columnId}의 값이 비어있습니다!`;
       feedbackEl.style.color = "#dc2626";
     } else {
-      feedbackEl.textContent = `✅ 변경됨: ${id} / ${lang} = "${value}"`;
+      feedbackEl.textContent = `✅ 변경됨: ${id} / ${columnId} = "${value}"`;
       feedbackEl.style.color = "#059669";
     }
     setTimeout(() => {

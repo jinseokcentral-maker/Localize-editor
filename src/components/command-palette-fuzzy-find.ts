@@ -1,6 +1,6 @@
 /**
  * Command Palette Fuzzy Find 모듈
- * 
+ *
  * Command Palette의 fuzzy find 관련 로직 (입력 파싱, 스타일링, 결과 렌더링)
  */
 
@@ -71,20 +71,30 @@ export function parseFuzzyFindInput(query: string): FuzzyFindInputParserResult {
 export function updateInputStyling(
   input: HTMLInputElement,
   query: string,
-  parsed: FuzzyFindInputParserResult
+  parsed: FuzzyFindInputParserResult,
 ): HTMLElement | null {
   // 기존 오버레이 제거
   const existingOverlay = input.parentElement?.querySelector(
-    ".command-palette-input-overlay"
+    ".command-palette-input-overlay",
   );
   if (existingOverlay) {
     existingOverlay.remove();
   }
 
   if (!parsed.isFuzzyFindMode || !parsed.quoteChar) {
-    // 일반 모드: 스타일링 없음
+    // 일반 모드: input 텍스트 보이도록 복원
+    input.style.color = "";
+    input.style.webkitTextFillColor = "";
     return null;
   }
+
+  // Fuzzy find 모드: input 텍스트 숨기고 오버레이로 대체
+  input.style.color = "transparent";
+  input.style.webkitTextFillColor = "transparent";
+
+  // 다크모드 감지 (html.dark 클래스 기반)
+  const isDarkMode = document.documentElement.classList.contains("dark");
+  const textColor = isDarkMode ? "#f1f5f9" : "#1e293b";
 
   // 오버레이 생성 (input 위에 텍스트 렌더링)
   const overlay = document.createElement("div");
@@ -105,29 +115,31 @@ export function updateInputStyling(
     line-height: 1.5;
     border: none;
     background: transparent;
+    color: ${textColor};
   `;
 
   // 텍스트 파싱 및 스타일링
   const quoteIndex = query.indexOf(parsed.quoteChar);
-  const beforeQuote = query.substring(0, quoteIndex + 1);
-  const afterQuote = parsed.fuzzyFindQuery;
+  const beforeQuote = query.substring(0, quoteIndex); // 따옴표 제외
+  const searchQuery = parsed.fuzzyFindQuery;
 
-  // 따옴표 이전 텍스트 (일반 스타일)
-  const beforeText = document.createTextNode(beforeQuote);
-  const beforeSpan = document.createElement("span");
-  beforeSpan.style.cssText = `color: #1e293b;`;
-  beforeSpan.appendChild(beforeText);
-  overlay.appendChild(beforeSpan);
+  // 따옴표 이전 텍스트 (일반 스타일) - "goto " 부분
+  if (beforeQuote) {
+    const beforeSpan = document.createElement("span");
+    beforeSpan.style.color = textColor;
+    beforeSpan.textContent = beforeQuote;
+    overlay.appendChild(beforeSpan);
+  }
 
-  // 따옴표 이후 텍스트 (bold + italic)
-  if (afterQuote) {
+  // 검색어 텍스트 (bold + italic)
+  if (searchQuery) {
     const styledSpan = document.createElement("span");
     styledSpan.style.cssText = `
       font-weight: bold;
       font-style: italic;
-      color: #1e293b;
+      color: ${textColor};
     `;
-    styledSpan.textContent = afterQuote;
+    styledSpan.textContent = searchQuery;
     overlay.appendChild(styledSpan);
   }
 
@@ -147,7 +159,7 @@ export function createFuzzyFindList(
   fuzzyFindQuery: string,
   fuzzyFindResults: FuzzyFindMatch[],
   selectedIndex: number,
-  onItemClick: (index: number) => void
+  onItemClick: (index: number) => void,
 ): void {
   listContainer.innerHTML = "";
 
@@ -180,10 +192,7 @@ export function createFuzzyFindList(
     const item = document.createElement("div");
     item.className = "command-palette-item";
     item.setAttribute("role", "option");
-    item.setAttribute(
-      "aria-selected",
-      (index === selectedIndex).toString()
-    );
+    item.setAttribute("aria-selected", (index === selectedIndex).toString());
 
     if (index === selectedIndex) {
       item.classList.add("command-palette-item-selected");
@@ -230,7 +239,3 @@ export function createFuzzyFindList(
     listContainer.appendChild(item);
   });
 }
-
-
-
-

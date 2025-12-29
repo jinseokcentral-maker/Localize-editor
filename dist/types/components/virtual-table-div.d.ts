@@ -15,7 +15,8 @@ export interface VirtualTableDivOptions {
     languages: readonly string[];
     defaultLanguage: string;
     readOnly?: boolean;
-    onCellChange?: (id: string, lang: string, value: string) => void;
+    onCellChange?: (id: string, columnId: string, value: string) => void;
+    onRowChange?: () => void;
     rowHeight?: number;
     headerHeight?: number;
     columnWidths?: Map<string, number>;

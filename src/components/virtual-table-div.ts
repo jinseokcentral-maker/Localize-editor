@@ -54,7 +54,8 @@ export interface VirtualTableDivOptions {
   languages: readonly string[];
   defaultLanguage: string;
   readOnly?: boolean;
-  onCellChange?: (id: string, lang: string, value: string) => void;
+  onCellChange?: (id: string, columnId: string, value: string) => void;
+  onRowChange?: () => void;
   rowHeight?: number;
   headerHeight?: number;
   columnWidths?: Map<string, number>;
@@ -2432,18 +2433,41 @@ export class VirtualTableDiv {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
+    // 모달이 열렸을 때 body 스크롤 막기
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // 모달 내부 클릭 이벤트 전파 차단
+    modal.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    // 모달 내부 스크롤 이벤트 전파 차단
+    modal.addEventListener("wheel", (e) => {
+      e.stopPropagation();
+    });
+
+    // 모달 닫기 함수
+    const closeModal = () => {
+      document.body.style.overflow = originalOverflow;
+      overlay.remove();
+      document.removeEventListener("keydown", escapeHandler);
+    };
+
     // Overlay 클릭 시 닫기
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) {
-        overlay.remove();
+        closeModal();
       }
     });
+
+    // Close 버튼 클릭 시 닫기
+    closeButton.onclick = () => closeModal();
 
     // Escape 키로 닫기
     const escapeHandler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        overlay.remove();
-        document.removeEventListener("keydown", escapeHandler);
+        closeModal();
       }
     };
     document.addEventListener("keydown", escapeHandler);
@@ -2451,6 +2475,7 @@ export class VirtualTableDiv {
     // 모달이 제거될 때 이벤트 리스너 정리
     const observer = new MutationObserver(() => {
       if (!document.body.contains(overlay)) {
+        document.body.style.overflow = originalOverflow;
         document.removeEventListener("keydown", escapeHandler);
         observer.disconnect();
       }
@@ -2465,6 +2490,8 @@ export class VirtualTableDiv {
     this.changeTracker.clearChanges((rowId, field) => {
       this.updateCellStyle(rowId, field);
     });
+    // 가상 스크롤링으로 인해 DOM에 없는 셀들도 있으므로 전체 다시 렌더링
+    this.renderVirtualRows();
   }
 
   /**
@@ -2780,6 +2807,9 @@ export class VirtualTableDiv {
       onStatusUpdate: () => {
         // 필요 시 추가 처리
       },
+      onClearFilter: () => {
+        this.clearFilter();
+      },
     });
     this.statusBar.create();
     this.updateStatusBar();
@@ -2922,6 +2952,8 @@ export class VirtualTableDiv {
       emptyCount,
       duplicateCount,
       command: commandSequence,
+      filter: this.currentFilter,
+      searchKeyword: this.currentSearchKeyword,
     });
   }
 
@@ -3034,6 +3066,11 @@ export class VirtualTableDiv {
     // 상태바 업데이트
     this.updateStatusBar();
 
+    // 부모에게 행 변경 알림
+    if (this.options.onRowChange) {
+      this.options.onRowChange();
+    }
+
     logger.debug(`Added new row with tempId: ${tempId}`);
   }
 
@@ -3121,6 +3158,11 @@ export class VirtualTableDiv {
     // 상태바 업데이트
     this.updateStatusBar();
 
+    // 부모에게 행 변경 알림
+    if (this.options.onRowChange) {
+      this.options.onRowChange();
+    }
+
     logger.debug(
       `Inserted new row at index ${clampedIndex} with tempId: ${tempId}`,
     );
@@ -3163,6 +3205,11 @@ export class VirtualTableDiv {
     // 상태바 업데이트
     this.updateStatusBar();
 
+    // 부모에게 행 변경 알림
+    if (this.options.onRowChange) {
+      this.options.onRowChange();
+    }
+
     logger.debug(`Deleted row with id: ${rowId}`);
   }
 
@@ -3187,10 +3234,9 @@ export class VirtualTableDiv {
    */
   private updateVirtualizer(): void {
     if (this.rowVirtualizer) {
-      // count 업데이트를 위해 새로운 virtualizer 옵션 적용
-      // @tanstack/virtual-core에서는 count를 직접 변경할 수 없으므로
-      // 다시 렌더링하여 새로운 count를 반영
-      this.renderVirtualRows();
+      // count 업데이트를 위해 virtualizer를 재초기화해야 함
+      // @tanstack/virtual-core에서는 count를 직접 변경할 수 없음
+      this.initVirtualScrolling();
     }
   }
 

@@ -149,10 +149,6 @@ export class CommandPalette {
     this.input.setAttribute("aria-label", "Command search input");
     this.input.setAttribute("autocomplete", "off");
     this.input.setAttribute("spellcheck", "false");
-    // input의 텍스트 색상을 투명하게 만들어 오버레이가 보이도록 함
-    // placeholder는 여전히 보이도록 함
-    this.input.style.color = "transparent";
-    this.input.style.caretColor = "#1e293b"; // 커서는 보이도록
 
     // List
     this.list = document.createElement("div");

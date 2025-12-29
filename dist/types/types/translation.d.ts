@@ -33,8 +33,12 @@ export interface LocaleEditorOptions {
     readonly container: HTMLElement;
     /** 읽기 전용 모드 (선택적, 기본값: false) */
     readonly readOnly?: boolean;
-    /** 셀 변경 시 호출되는 콜백 (선택적) */
-    readonly onCellChange?: (id: string, lang: string, value: string) => void;
+    /** 셀 변경 시 호출되는 콜백 (선택적)
+     * @param id - 행 ID
+     * @param columnId - 컬럼 ID (예: "key", "context", "values.en", "values.ko")
+     * @param value - 새 값
+     */
+    readonly onCellChange?: (id: string, columnId: string, value: string) => void;
     /** 저장 시 호출되는 콜백 (선택적) */
     readonly onSave?: (changes: TranslationChange[]) => Promise<void>;
     /** 검색 시 호출되는 콜백 (선택적, 서버 검색용) */

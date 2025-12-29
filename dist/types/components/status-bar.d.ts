@@ -8,6 +8,7 @@
  * - 빈 번역 수
  * - 중복 Key 수
  */
+export type FilterType = "none" | "empty" | "changed" | "duplicate" | "search";
 export interface StatusBarInfo {
     mode: string;
     rowIndex: number | null;
@@ -17,9 +18,12 @@ export interface StatusBarInfo {
     emptyCount: number;
     duplicateCount: number;
     command?: string | null;
+    filter?: FilterType;
+    searchKeyword?: string;
 }
 export interface StatusBarCallbacks {
     onStatusUpdate?: (info: StatusBarInfo) => void;
+    onClearFilter?: () => void;
 }
 export declare class StatusBar {
     private statusBarElement;
@@ -34,6 +38,10 @@ export declare class StatusBar {
      * 상태 정보 업데이트
      */
     update(info: StatusBarInfo): void;
+    /**
+     * 필터 타입을 표시 레이블로 변환
+     */
+    private getFilterLabel;
     /**
      * 컬럼 ID를 표시 이름으로 변환
      */

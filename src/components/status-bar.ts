@@ -1,6 +1,6 @@
 /**
  * 상태바 (Status Bar) 컴포넌트
- * 
+ *
  * 화면 하단에 현재 상태 정보를 표시
  * - 현재 모드
  * - 행/컬럼 위치
@@ -8,6 +8,8 @@
  * - 빈 번역 수
  * - 중복 Key 수
  */
+
+export type FilterType = "none" | "empty" | "changed" | "duplicate" | "search";
 
 export interface StatusBarInfo {
   mode: string;
@@ -18,10 +20,13 @@ export interface StatusBarInfo {
   emptyCount: number;
   duplicateCount: number;
   command?: string | null; // Vim 명령어 표시 (예: "10j", "dd")
+  filter?: FilterType; // 현재 적용된 필터
+  searchKeyword?: string; // 검색 키워드 (filter가 search일 때)
 }
 
 export interface StatusBarCallbacks {
   onStatusUpdate?: (info: StatusBarInfo) => void;
+  onClearFilter?: () => void; // 필터 해제 버튼 클릭 시
 }
 
 export class StatusBar {
@@ -29,10 +34,7 @@ export class StatusBar {
   private container: HTMLElement;
   private callbacks: StatusBarCallbacks;
 
-  constructor(
-    container: HTMLElement,
-    callbacks: StatusBarCallbacks = {}
-  ) {
+  constructor(container: HTMLElement, callbacks: StatusBarCallbacks = {}) {
     this.container = container;
     this.callbacks = callbacks;
   }
@@ -85,7 +87,9 @@ export class StatusBar {
 
     // 변경사항 수
     if (info.changesCount > 0) {
-      parts.push(`${info.changesCount} change${info.changesCount !== 1 ? "s" : ""}`);
+      parts.push(
+        `${info.changesCount} change${info.changesCount !== 1 ? "s" : ""}`,
+      );
     }
 
     // 빈 번역 수
@@ -95,7 +99,21 @@ export class StatusBar {
 
     // 중복 Key 수
     if (info.duplicateCount > 0) {
-      parts.push(`${info.duplicateCount} duplicate${info.duplicateCount !== 1 ? "s" : ""}`);
+      parts.push(
+        `${info.duplicateCount} duplicate${info.duplicateCount !== 1 ? "s" : ""}`,
+      );
+    }
+
+    // 필터 상태 표시
+    let filterContent = "";
+    if (info.filter && info.filter !== "none") {
+      const filterLabel = this.getFilterLabel(info.filter, info.searchKeyword);
+      filterContent = `
+        <span class="status-bar-filter">
+          <span class="status-bar-filter-label">${filterLabel}</span>
+          <button class="status-bar-filter-clear" title="Clear filter (Cmd+P → clear)">×</button>
+        </span>
+      `;
     }
 
     // Vim 명령어 표시 (오른쪽에 별도로 표시)
@@ -105,12 +123,43 @@ export class StatusBar {
     // StatusBar를 두 부분으로 나눔 (왼쪽: 상태 정보, 오른쪽: 명령어)
     this.statusBarElement.innerHTML = `
       <span class="status-bar-left">${leftContent}</span>
+      ${filterContent}
       ${rightContent ? `<span class="status-bar-command">${rightContent}</span>` : ""}
     `;
+
+    // 필터 해제 버튼 이벤트 바인딩
+    const clearButton = this.statusBarElement.querySelector(
+      ".status-bar-filter-clear",
+    );
+    if (clearButton && this.callbacks.onClearFilter) {
+      clearButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.callbacks.onClearFilter?.();
+      });
+    }
 
     // 콜백 호출
     if (this.callbacks.onStatusUpdate) {
       this.callbacks.onStatusUpdate(info);
+    }
+  }
+
+  /**
+   * 필터 타입을 표시 레이블로 변환
+   */
+  private getFilterLabel(filter: FilterType, searchKeyword?: string): string {
+    switch (filter) {
+      case "empty":
+        return "Filter: Empty";
+      case "changed":
+        return "Filter: Changed";
+      case "duplicate":
+        return "Filter: Duplicates";
+      case "search":
+        return searchKeyword ? `Search: "${searchKeyword}"` : "Search";
+      default:
+        return "";
     }
   }
 
@@ -150,6 +199,3 @@ export class StatusBar {
     return this.statusBarElement !== null;
   }
 }
-
-
-

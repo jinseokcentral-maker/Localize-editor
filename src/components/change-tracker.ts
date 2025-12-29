@@ -357,18 +357,21 @@ export class ChangeTracker {
       isDirty: boolean,
     ) => void,
   ): void {
+    // 콜백을 호출하기 전에 변경 목록 복사 후 맵을 먼저 비움
+    // 이렇게 해야 updateCellStyle에서 changesMap.has()가 false를 반환함
+    const changesToClear = Array.from(this.changes.entries());
+    this.changes.clear();
+
     // 모든 변경된 셀의 스타일 제거
     if (updateStyleCallback) {
-      this.changes.forEach((change, changeKey) => {
+      for (const [changeKey, change] of changesToClear) {
         // changeKey 형식: `${rowId}-${field}`
         // rowId에 하이픈이 포함될 수 있으므로 change.id를 사용하여 field 추출
         const rowId = change.id;
         const field = changeKey.slice(rowId.length + 1); // rowId + "-" 제거
         updateStyleCallback(rowId, field, false);
-      });
+      }
     }
-
-    this.changes.clear();
   }
 
   /**

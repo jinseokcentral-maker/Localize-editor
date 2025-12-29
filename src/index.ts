@@ -26,8 +26,8 @@
  *   ],
  *   languages: ['en', 'ko'],
  *   defaultLanguage: 'en',
- *   onCellChange: (id, lang, value) => {
- *     console.log(`Cell changed: ${id}.${lang} = ${value}`);
+ *   onCellChange: (id, columnId, value) => {
+ *     console.log(`Cell changed: ${id}.${columnId} = ${value}`);
  *   },
  * });
  * ```
