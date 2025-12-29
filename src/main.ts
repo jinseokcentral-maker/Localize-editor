@@ -1,6 +1,6 @@
+import { VirtualTableDiv } from "./components/virtual-table-div";
 import "./style.css";
 import type { Translation } from "./types/translation";
-import { VirtualTableDiv } from "./components/virtual-table-div";
 
 // Step 2: AG Grid 통합 완료
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -16,7 +16,7 @@ const exampleTranslations: Translation[] = Array.from(
       ko: `항목 ${i + 1}`,
     },
     context: i % 3 === 0 ? `Context for item ${i + 1}` : undefined,
-  })
+  }),
 );
 
 // 기존 5개 데이터도 추가 (테스트용)
@@ -63,7 +63,7 @@ app.innerHTML = `
     <p class="text-gray-600 mb-8">
       Excel-like i18n translation editor
     </p>
-    
+
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
       <h2 class="text-xl font-semibold mb-2 text-blue-900">
         ✅ VirtualTableDiv (Div-based Grid)
@@ -78,9 +78,9 @@ app.innerHTML = `
         💡 셀을 더블클릭하여 편집하거나, Tab/Enter/Arrow 키로 네비게이션하세요. 큰 리스트도 부드럽게 처리됩니다.
       </p>
     </div>
-    
-    <div id="cell-change-feedback" class="mb-2 text-sm font-semibold min-h-[24px]"></div>
-    
+
+    <div id="cell-change-feedback" class="mb-2 text-sm font-semibold min-h-6"></div>
+
     <div class="mb-4 flex items-center gap-4">
       <button
         id="toggle-editable-btn"
@@ -90,9 +90,9 @@ app.innerHTML = `
       </button>
       <span id="editable-status" class="text-sm text-gray-600"></span>
     </div>
-    
+
     <div id="editor-container" class="w-full mb-8" style="height: 600px; position: relative;"></div>
-    
+
     <div class="bg-gray-50 rounded-lg p-6">
       <h2 class="text-lg font-semibold mb-4">
         진행 상황

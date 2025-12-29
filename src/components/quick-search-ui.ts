@@ -1,6 +1,6 @@
 /**
  * 빠른 검색 UI 컴포넌트
- * 
+ *
  * 검색 바, 검색어 입력 필드, 검색 결과 수 표시
  */
 
@@ -18,11 +18,9 @@ export class QuickSearchUI {
   private isOpen: boolean = false;
   private callbacks: QuickSearchUICallbacks;
   private container: HTMLElement;
+  private destroyTimerId: number | null = null;
 
-  constructor(
-    container: HTMLElement,
-    callbacks: QuickSearchUICallbacks = {}
-  ) {
+  constructor(container: HTMLElement, callbacks: QuickSearchUICallbacks = {}) {
     this.container = container;
     this.callbacks = callbacks;
   }
@@ -114,7 +112,8 @@ export class QuickSearchUI {
     this.input = document.createElement("input");
     this.input.type = "text";
     this.input.className = "quick-search-input";
-    this.input.placeholder = "Search... (e.g., keyword, key:keyword, en:keyword)";
+    this.input.placeholder =
+      "Search... (e.g., keyword, key:keyword, en:keyword)";
     this.input.setAttribute("aria-label", "Search query");
 
     // 상태 텍스트
@@ -174,15 +173,22 @@ export class QuickSearchUI {
    * UI 제거
    */
   private destroyUI(): void {
+    // 이전 타이머가 있으면 정리
+    if (this.destroyTimerId !== null) {
+      clearTimeout(this.destroyTimerId);
+      this.destroyTimerId = null;
+    }
+
     if (this.overlay) {
       this.overlay.classList.remove("quick-search-overlay-open");
-      setTimeout(() => {
+      this.destroyTimerId = window.setTimeout(() => {
         if (this.overlay && this.overlay.parentElement) {
           this.overlay.parentElement.removeChild(this.overlay);
         }
         this.overlay = null;
         this.input = null;
         this.statusText = null;
+        this.destroyTimerId = null;
       }, 200); // 애니메이션 시간
     }
   }
@@ -193,5 +199,24 @@ export class QuickSearchUI {
   isSearchMode(): boolean {
     return this.isOpen;
   }
-}
 
+  /**
+   * 리소스 정리
+   */
+  destroy(): void {
+    // 타이머 정리
+    if (this.destroyTimerId !== null) {
+      clearTimeout(this.destroyTimerId);
+      this.destroyTimerId = null;
+    }
+
+    // 즉시 UI 제거 (애니메이션 없이)
+    if (this.overlay && this.overlay.parentElement) {
+      this.overlay.parentElement.removeChild(this.overlay);
+    }
+    this.overlay = null;
+    this.input = null;
+    this.statusText = null;
+    this.isOpen = false;
+  }
+}

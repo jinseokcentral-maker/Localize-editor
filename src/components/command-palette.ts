@@ -57,7 +57,7 @@ export class CommandPalette {
 
   constructor(
     commandRegistry: CommandRegistry,
-    callbacks: CommandPaletteCallbacks = {}
+    callbacks: CommandPaletteCallbacks = {},
   ) {
     this.commandRegistry = commandRegistry;
     this.callbacks = callbacks;
@@ -262,7 +262,7 @@ export class CommandPalette {
    */
   private updateInputStyling(
     query: string,
-    parsed: FuzzyFindInputParserResult
+    parsed: FuzzyFindInputParserResult,
   ): void {
     if (!this.input) return;
 
@@ -293,7 +293,7 @@ export class CommandPalette {
         this.fuzzyFindQuery.trim()
       ) {
         this.fuzzyFindResults = this.callbacks.onFindMatches(
-          this.fuzzyFindQuery.trim()
+          this.fuzzyFindQuery.trim(),
         );
         this.updateList();
       } else {
@@ -326,7 +326,7 @@ export class CommandPalette {
       (index) => {
         this.selectedIndex = index;
         this.executeSelectedCommand();
-      }
+      },
     );
   }
 
@@ -372,7 +372,7 @@ export class CommandPalette {
       // 검색 쿼리가 없으면 자주 사용하는 명령 표시
       const popularCommands = this.commandRegistry.getPopularCommands(
         10,
-        this.currentMode
+        this.currentMode,
       );
       this.filteredCommands = popularCommands.map((cmd) => ({
         command: cmd,
@@ -452,7 +452,7 @@ export class CommandPalette {
       item.setAttribute("role", "option");
       item.setAttribute(
         "aria-selected",
-        (index === this.selectedIndex).toString()
+        (index === this.selectedIndex).toString(),
       );
 
       if (index === this.selectedIndex) {
@@ -647,5 +647,30 @@ export class CommandPalette {
     }>;
   }> {
     return [...this.fuzzyFindResults];
+  }
+
+  /**
+   * 리소스 정리
+   */
+  destroy(): void {
+    // 열려있으면 닫기
+    if (this.isOpen) {
+      this.close();
+    }
+
+    // Debounce 타이머 정리
+    if (this.fuzzyFindDebounceTimer !== null) {
+      clearTimeout(this.fuzzyFindDebounceTimer);
+      this.fuzzyFindDebounceTimer = null;
+    }
+
+    // 입력 오버레이 제거
+    if (this.inputOverlay) {
+      this.inputOverlay.remove();
+      this.inputOverlay = null;
+    }
+
+    // UI 제거
+    this.removeUI();
   }
 }

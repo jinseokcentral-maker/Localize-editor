@@ -127,7 +127,7 @@ test.describe("Command Palette", () => {
 
     // Enter로 실행
     await page.keyboard.press("Enter");
-    
+
     // WebKit에서는 smooth 스크롤이 더 느릴 수 있으므로 충분한 대기 시간 제공
     // 행이 실제로 보일 때까지 기다림 (최대 5초)
     const row5 = page.locator('[role="row"][data-row-index="4"]'); // 0-based index
@@ -298,7 +298,9 @@ test.describe("Command Palette", () => {
 
     // 초기 스크롤 위치 확인 (맨 위에 있어야 함)
     const scrollContainer = page.locator(".virtual-grid-scroll-container");
-    const initialScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
+    const initialScrollTop = await scrollContainer.evaluate(
+      (el) => el.scrollTop,
+    );
     expect(initialScrollTop).toBe(0); // 초기에는 맨 위에 있어야 함
 
     // 팔레트 열기
@@ -315,10 +317,10 @@ test.describe("Command Palette", () => {
 
     // Enter로 실행
     await page.keyboard.press("Enter");
-    
+
     // 스크롤 컨테이너가 준비될 때까지 명시적으로 대기
     await scrollContainer.waitFor({ state: "attached", timeout: 5000 });
-    
+
     // 스크롤이 안정화될 때까지 기다리기 (WebKit에서 smooth 스크롤이 더 느릴 수 있음)
     // 스크롤이 실제로 변경되었는지 먼저 확인
     await page.waitForFunction(
@@ -330,9 +332,9 @@ test.describe("Command Palette", () => {
         return scrollTop > 0;
       },
       ".virtual-grid-scroll-container",
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
-    
+
     // WebKit에서 가상 스크롤링으로 인해 scrollHeight가 정확하지 않을 수 있으므로
     // 스크롤이 충분히 내려갔는지 확인 (스크롤 위치가 충분히 큰 값인지 확인)
     // 또는 스크롤이 안정화될 때까지 기다림
@@ -340,25 +342,27 @@ test.describe("Command Palette", () => {
     let previousScrollTop = 0;
     let stableCount = 0;
     const maxIterations = 30;
-    
+
     for (let i = 0; i < maxIterations; i++) {
       // 페이지가 닫혔는지 확인
       if (page.isClosed()) {
         break;
       }
-      
+
       await page.waitForTimeout(200);
-      
+
       // evaluate를 사용하되, 요소가 없으면 null 반환
       let currentScrollTop: number | null = null;
       try {
         // 요소가 존재하는지 먼저 확인
-        const elementExists = await scrollContainer.count() > 0;
+        const elementExists = (await scrollContainer.count()) > 0;
         if (!elementExists) {
           // 요소가 없으면 더 이상 시도하지 않음
           break;
         }
-        currentScrollTop = await scrollContainer.evaluate((el) => el.scrollTop).catch(() => null);
+        currentScrollTop = await scrollContainer
+          .evaluate((el) => el.scrollTop)
+          .catch(() => null);
       } catch (error) {
         // 페이지가 닫혔거나 요소를 찾을 수 없으면 중단
         if (page.isClosed() || i >= maxIterations - 1) {
@@ -366,7 +370,7 @@ test.describe("Command Palette", () => {
         }
         continue;
       }
-      
+
       if (currentScrollTop === null || currentScrollTop === undefined) {
         // 요소를 찾을 수 없으면 최대 3번만 재시도
         if (i >= 3) {
@@ -374,7 +378,7 @@ test.describe("Command Palette", () => {
         }
         continue;
       }
-      
+
       if (Math.abs(currentScrollTop - previousScrollTop) < 1) {
         stableCount++;
         if (stableCount >= 3) {
@@ -389,8 +393,12 @@ test.describe("Command Palette", () => {
 
     // 스크롤이 발생했는지 확인 (evaluate 사용, 요소가 준비된 상태이므로 안전)
     let finalScrollTop: number | null = null;
-    let scrollInfo: { scrollTop: number; scrollHeight: number; clientHeight: number } | null = null;
-    
+    let scrollInfo: {
+      scrollTop: number;
+      scrollHeight: number;
+      clientHeight: number;
+    } | null = null;
+
     try {
       finalScrollTop = await scrollContainer.evaluate((el) => el.scrollTop);
       scrollInfo = await scrollContainer.evaluate((el) => ({
@@ -404,18 +412,40 @@ test.describe("Command Palette", () => {
     }
 
     // null 체크
-    if (finalScrollTop === null || finalScrollTop === undefined || scrollInfo === null || scrollInfo === undefined) {
+    if (
+      finalScrollTop === null ||
+      finalScrollTop === undefined ||
+      scrollInfo === null ||
+      scrollInfo === undefined
+    ) {
       throw new Error("Failed to get scroll information from container");
     }
-    
+
     // 스크롤이 필요한 경우 (scrollHeight > clientHeight) 스크롤이 발생했어야 함
     if (scrollInfo.scrollHeight > scrollInfo.clientHeight) {
       expect(finalScrollTop).toBeGreaterThan(0); // 스크롤이 발생했는지 확인
-      // 마지막 행이 보이는지 확인 (스크롤이 거의 끝까지 내려갔는지)
-      // WebKit에서는 가상 스크롤링으로 인해 정확한 위치가 약간 다를 수 있으므로 여유값을 500px로 증가
-      expect(finalScrollTop).toBeGreaterThan(
-        scrollInfo.scrollHeight - scrollInfo.clientHeight - 500
-      ); // 500px 여유를 두고 확인 (WebKit 가상 스크롤링 대응)
+
+      // WebKit에서는 가상 스크롤링으로 인해 scrollTop이 정확하지 않을 수 있음
+      // 대신 마지막 행(또는 끝에 가까운 행)이 DOM에 렌더링되었는지 확인
+      // 가상 스크롤링에서는 화면에 보이는 행만 렌더링되므로,
+      // 마지막 행 근처의 행이 렌더링되었는지 확인하는 것이 더 신뢰성 있음
+      const lastRenderedRowIndex = await page.evaluate(() => {
+        const rows = document.querySelectorAll('[role="row"][data-row-index]');
+        if (rows.length === 0) return -1;
+        let maxIndex = -1;
+        rows.forEach((row) => {
+          const index = parseInt(
+            row.getAttribute("data-row-index") || "-1",
+            10,
+          );
+          if (index > maxIndex) maxIndex = index;
+        });
+        return maxIndex;
+      });
+
+      // 마지막 렌더링된 행이 충분히 높은 인덱스인지 확인 (예: 90 이상)
+      // 100행 데이터 기준으로 마지막 몇 행이 렌더링되었으면 성공
+      expect(lastRenderedRowIndex).toBeGreaterThanOrEqual(90);
     } else {
       // 스크롤이 필요 없는 경우 (모든 행이 화면에 보임)
       // 이 경우 스크롤이 0이어도 정상
@@ -551,7 +581,7 @@ test.describe("Command Palette", () => {
     await expect(helpModal).not.toBeVisible({ timeout: 1000 });
   });
 
-  test("goto \"로 fuzzy find 모드 활성화", async ({ page }) => {
+  test('goto "로 fuzzy find 모드 활성화', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -575,7 +605,7 @@ test.describe("Command Palette", () => {
     expect(text).toContain("Type to search");
   });
 
-  test("goto \"hell\"로 텍스트 검색 및 결과 표시", async ({ page }) => {
+  test('goto "hell"로 텍스트 검색 및 결과 표시', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -600,13 +630,17 @@ test.describe("Command Palette", () => {
     expect(headerText).toMatch(/Search Results/i);
 
     // 검색 결과 항목이 있어야 함
-    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     await expect(resultItems.first()).toBeVisible({ timeout: 2000 });
     const count = await resultItems.count();
     expect(count).toBeGreaterThan(0);
   });
 
-  test("goto \"hell\"로 검색 후 Enter로 첫 번째 매치로 이동", async ({ page }) => {
+  test('goto "hell"로 검색 후 Enter로 첫 번째 매치로 이동', async ({
+    page,
+  }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -624,7 +658,9 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(400); // debounce 대기
 
     // 검색 결과가 표시되는지 확인
-    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
     // Enter로 실행
@@ -642,7 +678,9 @@ test.describe("Command Palette", () => {
     expect(scrollTop).toBeGreaterThanOrEqual(0);
   });
 
-  test("goto \"nonexistent\"로 검색 시 결과 없음 메시지 표시", async ({ page }) => {
+  test('goto "nonexistent"로 검색 시 결과 없음 메시지 표시', async ({
+    page,
+  }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -666,7 +704,7 @@ test.describe("Command Palette", () => {
     expect(text?.toLowerCase()).toContain("no matches");
   });
 
-  test("goto \"로 검색 중 키보드 네비게이션", async ({ page }) => {
+  test('goto "로 검색 중 키보드 네비게이션', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -684,7 +722,9 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(400);
 
     // 검색 결과가 표시되는지 확인
-    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
     // 아래로 이동
@@ -700,11 +740,13 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(100);
 
     // 첫 번째 항목이 선택되어 있어야 함
-    const firstSelected = page.locator(".command-palette-item-selected").first();
+    const firstSelected = page
+      .locator(".command-palette-item-selected")
+      .first();
     await expect(firstSelected).toBeVisible();
   });
 
-  test("goto \"로 검색 후 클릭으로 이동", async ({ page }) => {
+  test('goto "로 검색 후 클릭으로 이동', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -722,7 +764,9 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(400);
 
     // 검색 결과가 표시되는지 확인
-    const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    const resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
     // 첫 번째 결과 클릭
@@ -734,7 +778,7 @@ test.describe("Command Palette", () => {
     await expect(overlay).not.toBeVisible({ timeout: 1000 });
   });
 
-  test("goto \"로 검색 중 Escape로 취소", async ({ page }) => {
+  test('goto "로 검색 중 Escape로 취소', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -760,7 +804,7 @@ test.describe("Command Palette", () => {
     await expect(overlay).not.toBeVisible({ timeout: 1000 });
   });
 
-  test("goto \"로 검색 시 실시간 업데이트", async ({ page }) => {
+  test('goto "로 검색 시 실시간 업데이트', async ({ page }) => {
     // 그리드가 렌더링될 때까지 대기
     await page.waitForSelector(".virtual-grid", { timeout: 5000 });
     await page.waitForSelector(".virtual-grid-row", { timeout: 5000 });
@@ -779,7 +823,9 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(300);
 
     // 검색 결과 확인
-    let resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    let resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     const count1 = await resultItems.count();
 
     // "goto \"We\"" 입력
@@ -787,7 +833,9 @@ test.describe("Command Palette", () => {
     await page.waitForTimeout(300);
 
     // 검색 결과가 업데이트되었는지 확인
-    resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+    resultItems = page.locator(
+      ".command-palette-item:not(.command-palette-item-empty)",
+    );
     const count2 = await resultItems.count();
 
     // 결과 개수가 변경되었을 수 있음 (더 구체적인 검색)
@@ -814,7 +862,9 @@ test.describe("Command Palette", () => {
       await page.waitForTimeout(500); // debounce 대기
 
       // 검색 결과가 나타날 때까지 대기
-      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      const resultItems = page.locator(
+        ".command-palette-item:not(.command-palette-item-empty)",
+      );
       await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
       // 첫 번째 매칭으로 이동 (Enter)
@@ -877,7 +927,9 @@ test.describe("Command Palette", () => {
       await page.waitForTimeout(500);
 
       // 검색 결과가 나타날 때까지 대기
-      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      const resultItems = page.locator(
+        ".command-palette-item:not(.command-palette-item-empty)",
+      );
       await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
       // 두 번째 매칭으로 이동 (ArrowDown + Enter)
@@ -938,7 +990,9 @@ test.describe("Command Palette", () => {
       await page.waitForTimeout(500); // debounce 대기
 
       // 검색 결과가 나타날 때까지 대기
-      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      const resultItems = page.locator(
+        ".command-palette-item:not(.command-palette-item-empty)",
+      );
       await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
       // Footer에 매칭 정보가 표시되는지 확인
@@ -967,7 +1021,9 @@ test.describe("Command Palette", () => {
       await page.waitForTimeout(500);
 
       // 검색 결과가 나타날 때까지 대기
-      const resultItems = page.locator(".command-palette-item:not(.command-palette-item-empty)");
+      const resultItems = page.locator(
+        ".command-palette-item:not(.command-palette-item-empty)",
+      );
       await expect(resultItems.first()).toBeVisible({ timeout: 3000 });
 
       // Footer 확인 (초기: 1/N matches)
@@ -1019,4 +1075,3 @@ test.describe("Command Palette", () => {
     });
   });
 });
-

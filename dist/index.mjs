@@ -1076,6 +1076,9 @@ var CellEditor = class {
 	reset() {
 		this.isResizing && this.endResize();
 	}
+	destroy() {
+		this.reset();
+	}
 }, ColumnWidthCalculator = class {
 	defaultKeyWidth;
 	defaultContextWidth;
@@ -2389,6 +2392,9 @@ var CommandPalette = class {
 	getFuzzyFindResults() {
 		return [...this.fuzzyFindResults];
 	}
+	destroy() {
+		this.isOpen && this.close(), this.fuzzyFindDebounceTimer !== null && (clearTimeout(this.fuzzyFindDebounceTimer), this.fuzzyFindDebounceTimer = null), this.inputOverlay &&= (this.inputOverlay.remove(), null), this.removeUI();
+	}
 }, TextSearchMatcher = class {
 	options;
 	constructor(r) {
@@ -2566,6 +2572,7 @@ var QuickSearchUI = class {
 	isOpen = !1;
 	callbacks;
 	container;
+	destroyTimerId = null;
 	constructor(r, j = {}) {
 		this.container = r, this.callbacks = j;
 	}
@@ -2604,12 +2611,15 @@ var QuickSearchUI = class {
 		});
 	}
 	destroyUI() {
-		this.overlay && (this.overlay.classList.remove("quick-search-overlay-open"), setTimeout(() => {
-			this.overlay && this.overlay.parentElement && this.overlay.parentElement.removeChild(this.overlay), this.overlay = null, this.input = null, this.statusText = null;
+		this.destroyTimerId !== null && (clearTimeout(this.destroyTimerId), this.destroyTimerId = null), this.overlay && (this.overlay.classList.remove("quick-search-overlay-open"), this.destroyTimerId = window.setTimeout(() => {
+			this.overlay && this.overlay.parentElement && this.overlay.parentElement.removeChild(this.overlay), this.overlay = null, this.input = null, this.statusText = null, this.destroyTimerId = null;
 		}, 200));
 	}
 	isSearchMode() {
 		return this.isOpen;
+	}
+	destroy() {
+		this.destroyTimerId !== null && (clearTimeout(this.destroyTimerId), this.destroyTimerId = null), this.overlay && this.overlay.parentElement && this.overlay.parentElement.removeChild(this.overlay), this.overlay = null, this.input = null, this.statusText = null, this.isOpen = !1;
 	}
 }, StatusBar = class {
 	statusBarElement = null;
@@ -2838,6 +2848,9 @@ var QuickSearchUI = class {
 	}
 	isOpen() {
 		return this.overlay !== null;
+	}
+	destroy() {
+		this.close();
 	}
 }, FilterManager = class {
 	options;
@@ -4332,7 +4345,7 @@ var QuickSearchUI = class {
 		}));
 	}
 	destroy() {
-		this.keyboardHandlerModule && this.keyboardHandlerModule.detach(), this.commandPalette && this.commandPalette.isPaletteOpen() && this.commandPalette.close(), this.modifierKeyTracker && this.modifierKeyTracker.detach(), this.resizeObserver &&= (this.resizeObserver.disconnect(), null), this.virtualizerCleanup &&= (this.virtualizerCleanup(), null), this.scrollElement && this.container.contains(this.scrollElement) && this.container.removeChild(this.scrollElement), this.scrollElement = null, this.gridElement = null, this.headerElement = null, this.bodyElement = null, this.rowVirtualizer = null, this.statusBar &&= (this.statusBar.destroy(), null), this.vimKeyboardHandler &&= (document.removeEventListener("keydown", this.vimKeyboardHandler), null), this.commandLine &&= (this.commandLine.destroy(), null), this.vimCommandTracker &&= (this.vimCommandTracker.clear(), null);
+		this.keyboardHandlerModule && this.keyboardHandlerModule.detach(), this.commandPalette && this.commandPalette.destroy(), this.modifierKeyTracker && this.modifierKeyTracker.detach(), this.columnResizer && this.columnResizer.destroy(), this.quickSearchUI &&= (this.quickSearchUI.destroy(), null), this.findReplace &&= (this.findReplace.destroy(), null), this.resizeObserver &&= (this.resizeObserver.disconnect(), null), this.virtualizerCleanup &&= (this.virtualizerCleanup(), null), this.scrollElement && this.container.contains(this.scrollElement) && this.container.removeChild(this.scrollElement), this.scrollElement = null, this.gridElement = null, this.headerElement = null, this.bodyElement = null, this.rowVirtualizer = null, this.statusBar &&= (this.statusBar.destroy(), null), this.vimKeyboardHandler &&= (document.removeEventListener("keydown", this.vimKeyboardHandler), null), this.commandLine &&= (this.commandLine.destroy(), null), this.vimCommandTracker &&= (this.vimCommandTracker.clear(), null);
 	}
 	initStatusBar() {
 		this.statusBar = new StatusBar(this.container, { onStatusUpdate: () => {} }), this.statusBar.create(), this.updateStatusBar();

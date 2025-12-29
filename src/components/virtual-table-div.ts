@@ -146,7 +146,7 @@ export class VirtualTableDiv {
     // 원본 데이터 초기화
     this.changeTracker.initializeOriginalData(
       options.translations,
-      options.languages
+      options.languages,
     );
 
     // FilterManager 초기화
@@ -165,7 +165,7 @@ export class VirtualTableDiv {
         onCellChange: (id, columnId, value) => {
           // currentTranslations 업데이트
           const translationIndex = this.currentTranslations.findIndex(
-            (t) => t.id === id
+            (t) => t.id === id,
           );
           if (translationIndex !== -1) {
             const translation = this.currentTranslations[translationIndex];
@@ -184,7 +184,7 @@ export class VirtualTableDiv {
 
             // 원본 데이터도 업데이트
             const originalIndex = this.originalTranslations.findIndex(
-              (t) => t.id === id
+              (t) => t.id === id,
             );
             if (originalIndex !== -1) {
               const originalTranslation =
@@ -263,10 +263,10 @@ export class VirtualTableDiv {
             rowId,
             columnId,
             value,
-            rowIndex
+            rowIndex,
           );
         },
-      }
+      },
     );
 
     // CommandRegistry 초기화
@@ -332,7 +332,7 @@ export class VirtualTableDiv {
         }));
 
         const matchIndex = matches.findIndex(
-          (m) => m.rowIndex === match.rowIndex
+          (m) => m.rowIndex === match.rowIndex,
         );
 
         this.currentGotoMatches = {
@@ -389,7 +389,7 @@ export class VirtualTableDiv {
         onOpenReplace: () => {
           this.openFindReplace("replace");
         },
-      }
+      },
     );
 
     // ColumnWidthCalculator 초기화
@@ -624,11 +624,11 @@ export class VirtualTableDiv {
     const editingCell = this.cellEditor.getEditingCell();
     if (editingCell) {
       const editingRow = this.bodyElement.querySelector(
-        `[data-row-index="${editingCell.rowIndex}"]`
+        `[data-row-index="${editingCell.rowIndex}"]`,
       );
       if (editingRow) {
         const editingCellElement = editingRow.querySelector(
-          `[data-column-id="${editingCell.columnId}"]`
+          `[data-column-id="${editingCell.columnId}"]`,
         );
         if (editingCellElement) {
           const input = editingCellElement.querySelector("input");
@@ -685,11 +685,11 @@ export class VirtualTableDiv {
             this.columnMinWidths.get(
               `values.${this.options.languages[
                 this.options.languages.length - 1
-              ]!}`
+              ]!}`,
             ) || 80;
           const lastLangWidth = Math.max(
             lastLangMinWidth,
-            containerWidth - fixedWidth
+            containerWidth - fixedWidth,
           );
 
           columnWidths = {
@@ -717,7 +717,7 @@ export class VirtualTableDiv {
       const row = this.gridRenderer.createRow(
         translation,
         virtualItem.index,
-        columnWidths
+        columnWidths,
       );
 
       // 전체 너비는 항상 컨테이너 너비와 일치 (마지막 컬럼이 끝까지 채워짐)
@@ -741,14 +741,14 @@ export class VirtualTableDiv {
       // 편집 중인 셀이면 다시 편집 모드로 전환
       if (editingCellData && translation.id === editingCellData.rowId) {
         const cellElement = row.querySelector(
-          `[data-column-id="${editingCellData.columnId}"]`
+          `[data-column-id="${editingCellData.columnId}"]`,
         );
         if (cellElement) {
           requestAnimationFrame(() => {
             this.startEditing(
               virtualItem.index,
               editingCellData!.columnId,
-              cellElement as HTMLElement
+              cellElement as HTMLElement,
             );
             const input = cellElement.querySelector("input");
             if (input) {
@@ -811,7 +811,7 @@ export class VirtualTableDiv {
       columnWidths.rowNumber,
       0,
       15, // 가장 높은 z-index
-      "row-number"
+      "row-number",
     );
     rowNumberHeaderCell.classList.add("row-number-header");
     headerRow.appendChild(rowNumberHeaderCell);
@@ -822,7 +822,7 @@ export class VirtualTableDiv {
       columnWidths.key,
       columnWidths.rowNumber, // 행 번호 컬럼 너비만큼 left 오프셋
       10,
-      "key"
+      "key",
     );
     this.columnResizer.addResizeHandle(keyHeaderCell, "key");
     headerRow.appendChild(keyHeaderCell);
@@ -833,7 +833,7 @@ export class VirtualTableDiv {
       columnWidths.context,
       columnWidths.rowNumber + columnWidths.key, // 행 번호 + Key 너비만큼 left 오프셋
       10,
-      "context"
+      "context",
     );
     this.columnResizer.addResizeHandle(contextHeaderCell, "context");
     headerRow.appendChild(contextHeaderCell);
@@ -849,7 +849,7 @@ export class VirtualTableDiv {
         langWidth,
         leftOffset,
         0,
-        columnId
+        columnId,
       );
       this.columnResizer.addResizeHandle(headerCell, columnId);
       headerRow.appendChild(headerCell);
@@ -868,13 +868,13 @@ export class VirtualTableDiv {
       this.columnWidthCalculator.applyColumnWidth(
         columnId,
         width,
-        containerWidth
+        containerWidth,
       );
 
     // 헤더 셀 업데이트
     if (this.headerElement) {
       const headerRow = this.headerElement.querySelector(
-        ".virtual-grid-header-row"
+        ".virtual-grid-header-row",
       ) as HTMLElement | null;
       if (headerRow) {
         headerRow.style.width = `${totalWidth}px`;
@@ -883,7 +883,7 @@ export class VirtualTableDiv {
       }
 
       const rowNumberHeaderCell = this.headerElement.querySelector(
-        '[data-column-id="row-number"]'
+        '[data-column-id="row-number"]',
       ) as HTMLElement | null;
       if (rowNumberHeaderCell) {
         rowNumberHeaderCell.style.width = `${columnWidths.rowNumber}px`;
@@ -892,7 +892,7 @@ export class VirtualTableDiv {
       }
 
       const keyHeaderCell = this.headerElement.querySelector(
-        '[data-column-id="key"]'
+        '[data-column-id="key"]',
       ) as HTMLElement | null;
       if (keyHeaderCell) {
         keyHeaderCell.style.width = `${columnWidths.key}px`;
@@ -902,7 +902,7 @@ export class VirtualTableDiv {
       }
 
       const contextHeaderCell = this.headerElement.querySelector(
-        '[data-column-id="context"]'
+        '[data-column-id="context"]',
       ) as HTMLElement | null;
       if (contextHeaderCell) {
         contextHeaderCell.style.width = `${columnWidths.context}px`;
@@ -915,7 +915,7 @@ export class VirtualTableDiv {
 
       this.options.languages.forEach((lang, index) => {
         const langHeaderCell = this.headerElement!.querySelector(
-          `[data-column-id="values.${lang}"]`
+          `[data-column-id="values.${lang}"]`,
         ) as HTMLElement | null;
         if (langHeaderCell) {
           const langWidth = columnWidths.languages[index]!;
@@ -940,7 +940,7 @@ export class VirtualTableDiv {
       });
 
       const rowNumberCells = this.bodyElement.querySelectorAll(
-        '[data-column-id="row-number"]'
+        '[data-column-id="row-number"]',
       );
       rowNumberCells.forEach((cell) => {
         const htmlCell = cell as HTMLElement;
@@ -950,7 +950,7 @@ export class VirtualTableDiv {
       });
 
       const keyCells = this.bodyElement.querySelectorAll(
-        '[data-column-id="key"]'
+        '[data-column-id="key"]',
       );
       keyCells.forEach((cell) => {
         const htmlCell = cell as HTMLElement;
@@ -961,7 +961,7 @@ export class VirtualTableDiv {
       });
 
       const contextCells = this.bodyElement.querySelectorAll(
-        '[data-column-id="context"]'
+        '[data-column-id="context"]',
       );
       contextCells.forEach((cell) => {
         const htmlCell = cell as HTMLElement;
@@ -973,7 +973,7 @@ export class VirtualTableDiv {
 
       this.options.languages.forEach((lang, index) => {
         const langCells = this.bodyElement!.querySelectorAll(
-          `[data-column-id="values.${lang}"]`
+          `[data-column-id="values.${lang}"]`,
         );
         const langWidth = columnWidths.languages[index]!;
         const leftOffset =
@@ -1003,7 +1003,7 @@ export class VirtualTableDiv {
     }
 
     const headerRow = this.headerElement.querySelector(
-      ".virtual-grid-header-row"
+      ".virtual-grid-header-row",
     );
     if (!headerRow) {
       return null;
@@ -1058,7 +1058,7 @@ export class VirtualTableDiv {
   private startEditing(
     rowIndex: number,
     columnId: string,
-    cell: HTMLElement
+    cell: HTMLElement,
   ): void {
     // 읽기 전용 모드에서는 모든 셀 편집 불가
     if (this.options.readOnly) {
@@ -1092,7 +1092,7 @@ export class VirtualTableDiv {
 
     // 셀 찾기
     const cell = this.bodyElement.querySelector(
-      `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
+      `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`,
     ) as HTMLElement;
 
     if (cell) {
@@ -1116,14 +1116,14 @@ export class VirtualTableDiv {
   private updateCellStyle(
     rowId: string,
     columnId: string,
-    cell?: HTMLElement
+    cell?: HTMLElement,
   ): void {
     if (!this.bodyElement) return;
 
     const targetCell =
       cell ||
       (this.bodyElement.querySelector(
-        `[data-row-id="${rowId}"][data-column-id="${columnId}"]`
+        `[data-row-id="${rowId}"][data-column-id="${columnId}"]`,
       ) as HTMLElement);
 
     if (!targetCell) return;
@@ -1277,7 +1277,7 @@ export class VirtualTableDiv {
 
     // 셀이 DOM에 있는지 확인
     let cell = this.bodyElement.querySelector(
-      `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
+      `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`,
     ) as HTMLElement;
 
     // 셀이 없으면 (가상 스크롤링으로 인해 아직 렌더링되지 않음) 스크롤하여 보이게 함
@@ -1299,7 +1299,7 @@ export class VirtualTableDiv {
 
         // 즉시 한 번 확인
         cell = this.bodyElement!.querySelector(
-          `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`
+          `[data-row-index="${rowIndex}"][data-column-id="${columnId}"]`,
         ) as HTMLElement;
 
         if (cell) {
@@ -1380,7 +1380,7 @@ export class VirtualTableDiv {
 
     // 실제 Translation 데이터 업데이트
     const translationIndex = this.currentTranslations.findIndex(
-      (t) => t.id === action.rowId
+      (t) => t.id === action.rowId,
     );
     if (translationIndex === -1) {
       logger.error("VirtualTableDiv: Translation not found", action.rowId);
@@ -1406,7 +1406,7 @@ export class VirtualTableDiv {
     // 원본 데이터도 업데이트 (필터링되지 않은 원본)
     // 원본 데이터는 readonly이므로 새 배열로 교체
     const originalIndex = this.originalTranslations.findIndex(
-      (t) => t.id === action.rowId
+      (t) => t.id === action.rowId,
     );
     if (originalIndex !== -1) {
       const originalTranslation = this.originalTranslations[originalIndex];
@@ -1432,7 +1432,7 @@ export class VirtualTableDiv {
 
     // DOM 셀 찾기 (가상 스크롤링으로 인해 화면에 없을 수 있음)
     const cell = this.bodyElement?.querySelector(
-      `[data-row-id="${action.rowId}"][data-column-id="${action.columnId}"]`
+      `[data-row-id="${action.rowId}"][data-column-id="${action.columnId}"]`,
     ) as HTMLElement;
     // 셀이 화면에 있으면 업데이트
     if (cell) {
@@ -1443,7 +1443,7 @@ export class VirtualTableDiv {
         action.rowId,
         action.columnId,
         action.newValue,
-        rowIndex
+        rowIndex,
       );
     } else {
       // 화면에 없으면 스타일만 업데이트 (다음 렌더링 시 반영됨)
@@ -1453,14 +1453,14 @@ export class VirtualTableDiv {
     // 변경사항 추적
     const originalValue = this.changeTracker.getOriginalValue(
       action.rowId,
-      action.columnId
+      action.columnId,
     );
     const lang = getLangFromColumnId(action.columnId);
     const translationKey = getTranslationKey(
       this.currentTranslations,
       action.rowId,
       action.columnId,
-      action.newValue
+      action.newValue,
     );
 
     this.changeTracker.trackChange(
@@ -1472,7 +1472,7 @@ export class VirtualTableDiv {
       translationKey,
       () => {
         this.updateCellStyle(action.rowId, action.columnId);
-      }
+      },
     );
 
     // onCellChange 콜백 호출
@@ -1756,7 +1756,7 @@ export class VirtualTableDiv {
       ...this.options.languages.map((lang) => `values.${lang}`),
     ];
     const firstEditableColumn = columns.find((col) =>
-      this.editableColumns.has(col)
+      this.editableColumns.has(col),
     );
     if (firstEditableColumn) {
       // 스크롤이 완료될 때까지 충분한 시간 대기
@@ -1796,7 +1796,7 @@ export class VirtualTableDiv {
         ...this.options.languages.map((lang) => `values.${lang}`),
       ];
       const firstEditableColumn = columns.find((col) =>
-        this.editableColumns.has(col)
+        this.editableColumns.has(col),
       );
       if (firstEditableColumn) {
         // 스크롤이 완료될 때까지 충분한 시간 대기
@@ -1833,7 +1833,7 @@ export class VirtualTableDiv {
     // currentGotoMatches 업데이트 (현재 매치 인덱스 찾기)
     if (this.currentGotoMatches) {
       const matchIndex = this.currentGotoMatches.matches.findIndex(
-        (m) => m.rowIndex === match.rowIndex
+        (m) => m.rowIndex === match.rowIndex,
       );
       if (matchIndex !== -1) {
         this.currentGotoMatches.currentIndex = matchIndex;
@@ -1962,7 +1962,7 @@ export class VirtualTableDiv {
    */
   private replaceAllFindMatches(
     matches: FindMatch[],
-    replacement: string
+    replacement: string,
   ): void {
     // 역순으로 처리하여 인덱스 변경 문제 방지
     const sortedMatches = [...matches].sort((a, b) => {
@@ -2344,7 +2344,7 @@ export class VirtualTableDiv {
     if (matches.length > 0) {
       this.quickSearchUI.updateStatus(
         this.currentQuickSearchIndex,
-        matches.length
+        matches.length,
       );
       // 첫 번째 매칭으로 이동
       this.goToQuickSearchMatch(matches[0]);
@@ -2383,7 +2383,7 @@ export class VirtualTableDiv {
     if (this.quickSearchUI) {
       this.quickSearchUI.updateStatus(
         this.currentQuickSearchIndex,
-        this.currentQuickSearchMatches.length
+        this.currentQuickSearchMatches.length,
       );
     }
   }
@@ -2406,7 +2406,7 @@ export class VirtualTableDiv {
     if (this.quickSearchUI) {
       this.quickSearchUI.updateStatus(
         this.currentQuickSearchIndex,
-        this.currentQuickSearchMatches.length
+        this.currentQuickSearchMatches.length,
       );
     }
   }
@@ -2419,11 +2419,11 @@ export class VirtualTableDiv {
     if (this.rowVirtualizer && this.scrollElement) {
       const virtualItems = this.rowVirtualizer.getVirtualItems();
       const rowElement = virtualItems.find(
-        (item) => item.index === match.rowIndex
+        (item) => item.index === match.rowIndex,
       );
       if (rowElement && this.bodyElement) {
         const row = this.bodyElement.querySelector(
-          `[data-index="${match.rowIndex}"]`
+          `[data-index="${match.rowIndex}"]`,
         ) as HTMLElement;
         if (row) {
           // smooth 스크롤 대신 즉시 스크롤
@@ -2461,7 +2461,7 @@ export class VirtualTableDiv {
     cells.forEach((cell) => {
       cell.classList.remove(
         "quick-search-matched",
-        "quick-search-current-match"
+        "quick-search-current-match",
       );
       const content = cell.querySelector(".virtual-grid-cell-content");
       if (content) {
@@ -2481,7 +2481,7 @@ export class VirtualTableDiv {
       }
 
       const cell = row.querySelector(
-        `[data-column-id="${match.columnId}"]`
+        `[data-column-id="${match.columnId}"]`,
       ) as HTMLElement;
       if (!cell) {
         return;
@@ -2500,7 +2500,7 @@ export class VirtualTableDiv {
       // 하이라이트 적용
       const highlighted = QuickSearch.highlightText(
         match.matchedText,
-        match.matchIndices
+        match.matchIndices,
       );
       content.innerHTML = highlighted;
 
@@ -2531,13 +2531,30 @@ export class VirtualTableDiv {
     }
 
     // CommandPalette 정리
-    if (this.commandPalette && this.commandPalette.isPaletteOpen()) {
-      this.commandPalette.close();
+    if (this.commandPalette) {
+      this.commandPalette.destroy();
     }
 
     // ModifierKeyTracker 해제
     if (this.modifierKeyTracker) {
       this.modifierKeyTracker.detach();
+    }
+
+    // ColumnResizer 정리
+    if (this.columnResizer) {
+      this.columnResizer.destroy();
+    }
+
+    // QuickSearchUI 정리
+    if (this.quickSearchUI) {
+      this.quickSearchUI.destroy();
+      this.quickSearchUI = null;
+    }
+
+    // FindReplace 정리
+    if (this.findReplace) {
+      this.findReplace.destroy();
+      this.findReplace = null;
     }
 
     if (this.resizeObserver) {

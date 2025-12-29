@@ -1,6 +1,6 @@
 /**
  * 찾기/바꾸기 모듈
- * 
+ *
  * Cmd/Ctrl+F로 찾기, Cmd/Ctrl+H로 바꾸기 기능 제공
  */
 
@@ -94,7 +94,7 @@ export class FindReplace {
     if (!this.container) return;
 
     const replaceSection = this.container.querySelector(
-      ".find-replace-replace-section"
+      ".find-replace-replace-section",
     ) as HTMLElement;
     if (replaceSection) {
       replaceSection.style.display = mode === "replace" ? "block" : "none";
@@ -103,7 +103,7 @@ export class FindReplace {
     // 바꾸기 모드일 때 replace 입력 필드에 포커스
     if (mode === "replace") {
       const replaceInput = this.container.querySelector(
-        ".find-replace-replace-input"
+        ".find-replace-replace-input",
       ) as HTMLInputElement;
       if (replaceInput) {
         setTimeout(() => replaceInput.focus(), 0);
@@ -237,12 +237,20 @@ export class FindReplace {
     const replaceButtons = document.createElement("div");
     replaceButtons.style.cssText = `display: flex; gap: 4px;`;
 
-    const replaceButton = this.createButton("Replace", "Replace current", () => {
-      this.replaceCurrent();
-    });
-    const replaceAllButton = this.createButton("Replace All", "Replace all", () => {
-      this.replaceAll();
-    });
+    const replaceButton = this.createButton(
+      "Replace",
+      "Replace current",
+      () => {
+        this.replaceCurrent();
+      },
+    );
+    const replaceAllButton = this.createButton(
+      "Replace All",
+      "Replace all",
+      () => {
+        this.replaceAll();
+      },
+    );
 
     replaceButtons.appendChild(replaceButton);
     replaceButtons.appendChild(replaceAllButton);
@@ -266,7 +274,7 @@ export class FindReplace {
       (checked) => {
         this.state.isCaseSensitive = checked;
         this.performSearch();
-      }
+      },
     );
     const wholeWordCheckbox = this.createCheckbox(
       "Ab",
@@ -275,7 +283,7 @@ export class FindReplace {
       (checked) => {
         this.state.isWholeWord = checked;
         this.performSearch();
-      }
+      },
     );
     const regexCheckbox = this.createCheckbox(
       ".*",
@@ -284,7 +292,7 @@ export class FindReplace {
       (checked) => {
         this.state.isRegex = checked;
         this.performSearch();
-      }
+      },
     );
 
     optionsSection.appendChild(caseSensitiveCheckbox);
@@ -353,7 +361,7 @@ export class FindReplace {
   private createButton(
     text: string,
     title: string,
-    onClick: () => void
+    onClick: () => void,
   ): HTMLButtonElement {
     const button = document.createElement("button");
     button.textContent = text;
@@ -377,7 +385,7 @@ export class FindReplace {
     label: string,
     title: string,
     checked: boolean,
-    onChange: (checked: boolean) => void
+    onChange: (checked: boolean) => void,
   ): HTMLElement {
     const container = document.createElement("label");
     container.style.cssText = `display: flex; align-items: center; gap: 4px; cursor: pointer;`;
@@ -459,10 +467,7 @@ export class FindReplace {
     if (this.state.isRegex) {
       // 정규식 모드
       try {
-        return new RegExp(
-          pattern,
-          this.state.isCaseSensitive ? "g" : "gi"
-        );
+        return new RegExp(pattern, this.state.isCaseSensitive ? "g" : "gi");
       } catch (e) {
         // 잘못된 정규식이면 일반 텍스트로 처리
         pattern = this.escapeRegex(query);
@@ -476,10 +481,7 @@ export class FindReplace {
       pattern = `\\b${pattern}\\b`;
     }
 
-    return new RegExp(
-      pattern,
-      this.state.isCaseSensitive ? "g" : "gi"
-    );
+    return new RegExp(pattern, this.state.isCaseSensitive ? "g" : "gi");
   }
 
   /**
@@ -494,7 +496,7 @@ export class FindReplace {
    */
   private findMatchesInText(
     text: string,
-    pattern: RegExp
+    pattern: RegExp,
   ): Array<{ index: number; length: number }> {
     const matches: Array<{ index: number; length: number }> = [];
     let match;
@@ -522,7 +524,7 @@ export class FindReplace {
    */
   private getCellValue(
     translation: Translation,
-    columnId: string
+    columnId: string,
   ): string | null {
     if (columnId === "key") {
       return translation.key;
@@ -542,7 +544,7 @@ export class FindReplace {
    */
   private updateResult(): void {
     const resultSection = this.container?.querySelector(
-      ".find-replace-result"
+      ".find-replace-result",
     ) as HTMLElement;
     if (!resultSection) return;
 
@@ -607,9 +609,11 @@ export class FindReplace {
 
     // replaceInput에서 최신 값 가져오기
     const replaceInput = this.container?.querySelector(
-      ".find-replace-replace-input"
+      ".find-replace-replace-input",
     ) as HTMLInputElement;
-    const replacement = replaceInput ? replaceInput.value : this.state.replaceQuery;
+    const replacement = replaceInput
+      ? replaceInput.value
+      : this.state.replaceQuery;
 
     const match = this.state.matches[this.state.currentMatchIndex];
     if (this.callbacks.onReplace) {
@@ -628,9 +632,11 @@ export class FindReplace {
 
     // replaceInput에서 최신 값 가져오기
     const replaceInput = this.container?.querySelector(
-      ".find-replace-replace-input"
+      ".find-replace-replace-input",
     ) as HTMLInputElement;
-    const replacement = replaceInput ? replaceInput.value : this.state.replaceQuery;
+    const replacement = replaceInput
+      ? replaceInput.value
+      : this.state.replaceQuery;
 
     if (this.callbacks.onReplaceAll) {
       this.callbacks.onReplaceAll(this.state.matches, replacement);
@@ -661,7 +667,7 @@ export class FindReplace {
     if (this.overlay && (this.overlay as any).__escapeHandler) {
       document.removeEventListener(
         "keydown",
-        (this.overlay as any).__escapeHandler
+        (this.overlay as any).__escapeHandler,
       );
     }
   }
@@ -672,5 +678,11 @@ export class FindReplace {
   isOpen(): boolean {
     return this.overlay !== null;
   }
-}
 
+  /**
+   * 리소스 정리
+   */
+  destroy(): void {
+    this.close();
+  }
+}

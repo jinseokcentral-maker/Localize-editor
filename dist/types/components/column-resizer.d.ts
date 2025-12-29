@@ -51,5 +51,9 @@ export declare class ColumnResizer {
      * 리사이즈 상태 초기화 (필요시)
      */
     reset(): void;
+    /**
+     * 리소스 정리
+     */
+    destroy(): void;
 }
 //# sourceMappingURL=column-resizer.d.ts.map

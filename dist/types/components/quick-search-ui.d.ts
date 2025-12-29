@@ -16,6 +16,7 @@ export declare class QuickSearchUI {
     private isOpen;
     private callbacks;
     private container;
+    private destroyTimerId;
     constructor(container: HTMLElement, callbacks?: QuickSearchUICallbacks);
     /**
      * 검색 UI 열기
@@ -49,5 +50,9 @@ export declare class QuickSearchUI {
      * 열림 상태 확인
      */
     isSearchMode(): boolean;
+    /**
+     * 리소스 정리
+     */
+    destroy(): void;
 }
 //# sourceMappingURL=quick-search-ui.d.ts.map

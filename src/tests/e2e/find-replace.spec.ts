@@ -96,11 +96,11 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     // 검색어 입력
     const findInput = page.locator(".find-replace-find-input");
     await findInput.fill("button");
-    
+
     // 결과 요소가 실제로 업데이트될 때까지 기다리기
     const result = page.locator(".find-replace-result");
     await expect(result).toBeVisible({ timeout: 2000 });
-    
+
     // 검색 결과가 나타날 때까지 기다리기 (텍스트가 "matches"를 포함할 때까지)
     // waitForFunction 대신 직접 텍스트를 확인하는 방법 사용
     await page.waitForFunction(
@@ -108,27 +108,28 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
         const el = document.querySelector(".find-replace-result");
         return el && el.textContent && el.textContent.includes("matches");
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
-    
+
     // 초기 결과 확인
     const initialResultText = await result.textContent();
     expect(initialResultText).toMatch(/\d+ of \d+ matches/);
-    
-    // 다음 버튼 클릭 (title 속성으로 정확히 선택, 닫기 버튼이 가리지 않도록)
+
+    // 다음 버튼 클릭 (title 속성으로 정확히 선택)
     const nextButton = page.locator('button[title="Next"]');
     await expect(nextButton).toBeVisible({ timeout: 1000 });
-    
-    // 닫기 버튼이 가리지 않도록 확인
-    const closeButton = page.locator('.find-replace-close-button');
-    if (await closeButton.isVisible()) {
-      // 닫기 버튼이 다른 버튼을 가리지 않도록 force 클릭 사용
-      await nextButton.click({ force: true });
-    } else {
-      await nextButton.click();
-    }
-    
-    await page.waitForTimeout(500);
+
+    // force 클릭으로 버튼 클릭 (닫기 버튼 등이 가릴 수 있음)
+    await nextButton.click({ force: true });
+
+    // 결과가 업데이트될 때까지 기다리기
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector(".find-replace-result");
+        return el && el.textContent && el.textContent.includes("matches");
+      },
+      { timeout: 5000 },
+    );
 
     // 결과가 업데이트되었는지 확인
     const updatedResultText = await result.textContent();
@@ -150,36 +151,39 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     // 검색어 입력
     const findInput = page.locator(".find-replace-find-input");
     await findInput.fill("button");
-    
+
     // 결과 요소가 실제로 업데이트될 때까지 기다리기
     const result = page.locator(".find-replace-result");
     await expect(result).toBeVisible({ timeout: 2000 });
-    
+
     // 검색 결과가 나타날 때까지 기다리기
     await page.waitForFunction(
       () => {
         const el = document.querySelector(".find-replace-result");
         return el && el.textContent && el.textContent.includes("matches");
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
-    
+
     // 초기 결과 확인
     const initialResultText = await result.textContent();
     expect(initialResultText).toMatch(/\d+ of \d+ matches/);
-    
+
     // 이전 버튼 클릭 (title 속성으로 정확히 선택)
     const prevButton = page.locator('button[title="Previous"]');
     await expect(prevButton).toBeVisible({ timeout: 1000 });
-    
-    // 닫기 버튼이 가리지 않도록 확인
-    const closeButton = page.locator('.find-replace-close-button');
-    if (await closeButton.isVisible()) {
-      await prevButton.click({ force: true });
-    } else {
-      await prevButton.click();
-    }
-    await page.waitForTimeout(500);
+
+    // force 클릭으로 버튼 클릭 (닫기 버튼 등이 가릴 수 있음)
+    await prevButton.click({ force: true });
+
+    // 결과가 업데이트될 때까지 기다리기
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector(".find-replace-result");
+        return el && el.textContent && el.textContent.includes("matches");
+      },
+      { timeout: 5000 },
+    );
 
     // 결과가 업데이트되었는지 확인
     const updatedResultText = await result.textContent();
@@ -201,18 +205,18 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     // 검색어 입력
     const findInput = page.locator(".find-replace-find-input");
     await findInput.fill("button");
-    
+
     // 결과 요소가 실제로 업데이트될 때까지 기다리기
     const result = page.locator(".find-replace-result");
     await expect(result).toBeVisible({ timeout: 2000 });
-    
+
     // 검색 결과가 나타날 때까지 기다리기
     await page.waitForFunction(
       () => {
         const el = document.querySelector(".find-replace-result");
         return el && el.textContent && el.textContent.includes("matches");
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
 
     // Enter 키 입력
@@ -239,18 +243,18 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     // 검색어 입력
     const findInput = page.locator(".find-replace-find-input");
     await findInput.fill("button");
-    
+
     // 결과 요소가 실제로 업데이트될 때까지 기다리기
     const result = page.locator(".find-replace-result");
     await expect(result).toBeVisible({ timeout: 2000 });
-    
+
     // 검색 결과가 나타날 때까지 기다리기
     await page.waitForFunction(
       () => {
         const el = document.querySelector(".find-replace-result");
         return el && el.textContent && el.textContent.includes("matches");
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
 
     // Shift+Enter 키 입력
@@ -570,7 +574,7 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     const result = page.locator(".find-replace-result");
     const resultText = await result.textContent();
     expect(resultText === "" || resultText?.includes("No matches found")).toBe(
-      true
+      true,
     );
   });
 
@@ -634,4 +638,3 @@ test.describe("찾기/바꾸기 (Find & Replace)", () => {
     await expect(replaceSection).toBeVisible();
   });
 });
-

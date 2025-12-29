@@ -1,6 +1,6 @@
 /**
  * 컬럼 리사이즈 모듈
- * 
+ *
  * 컬럼 너비 조정 및 리사이즈 핸들 관련 로직을 관리합니다.
  */
 
@@ -63,11 +63,7 @@ export class ColumnResizer {
   /**
    * 컬럼 리사이즈 시작
    */
-  startResize(
-    columnId: string,
-    startX: number,
-    headerCell: HTMLElement
-  ): void {
+  startResize(columnId: string, startX: number, headerCell: HTMLElement): void {
     this.isResizing = true;
     this.resizeStartX = startX;
     this.resizeStartWidth =
@@ -105,7 +101,8 @@ export class ColumnResizer {
     if (!this.resizeColumnId) return;
 
     const deltaX = currentX - this.resizeStartX;
-    const minWidth = this.options.columnMinWidths.get(this.resizeColumnId) || 80;
+    const minWidth =
+      this.options.columnMinWidths.get(this.resizeColumnId) || 80;
     const newWidth = Math.max(minWidth, this.resizeStartWidth + deltaX);
 
     // 컬럼 너비 저장 (마지막 컬럼은 제외)
@@ -168,5 +165,12 @@ export class ColumnResizer {
       this.endResize();
     }
   }
-}
 
+  /**
+   * 리소스 정리
+   */
+  destroy(): void {
+    // 진행 중인 리사이즈가 있으면 종료
+    this.reset();
+  }
+}

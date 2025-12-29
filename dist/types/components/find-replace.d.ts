@@ -117,5 +117,9 @@ export declare class FindReplace {
      * 열려있는지 확인
      */
     isOpen(): boolean;
+    /**
+     * 리소스 정리
+     */
+    destroy(): void;
 }
 //# sourceMappingURL=find-replace.d.ts.map

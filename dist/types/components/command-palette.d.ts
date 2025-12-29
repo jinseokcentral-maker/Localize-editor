@@ -126,5 +126,9 @@ export declare class CommandPalette {
             matchType: "exact" | "contains" | "fuzzy";
         }>;
     }>;
+    /**
+     * 리소스 정리
+     */
+    destroy(): void;
 }
 //# sourceMappingURL=command-palette.d.ts.map
