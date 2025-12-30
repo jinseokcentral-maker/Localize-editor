@@ -1165,7 +1165,9 @@ var CellEditor = class {
 	}
 	updateCellContent(c, I, L, R, B) {
 		let V = c.querySelector(".virtual-grid-cell-input");
-		V && V.remove();
+		if (V && V.parentNode && c.contains(V)) try {
+			V.remove();
+		} catch {}
 		let H = c.querySelector(".virtual-grid-cell-content");
 		H ? H.textContent = R : (H = document.createElement("div"), H.className = "virtual-grid-cell-content", H.textContent = R, c.appendChild(H)), this.options.callbacks.updateCellStyle && this.options.callbacks.updateCellStyle(I, L, c);
 	}

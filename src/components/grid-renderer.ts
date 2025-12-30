@@ -254,8 +254,16 @@ export class GridRenderer {
   ): void {
     // 편집 중인 input이 있으면 먼저 제거
     const existingInput = cell.querySelector(".virtual-grid-cell-input");
-    if (existingInput) {
-      existingInput.remove();
+    if (
+      existingInput &&
+      existingInput.parentNode &&
+      cell.contains(existingInput)
+    ) {
+      try {
+        existingInput.remove();
+      } catch {
+        // 이미 제거된 경우 무시
+      }
     }
 
     // 기존 content 요소 재사용 (DOM 생성 최소화)
